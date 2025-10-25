@@ -10,7 +10,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@config/*": ["src/config/*"]
+      "@config/*": ["src/config/*"],
+      "@cron/*": ["src/cron/*"]
     }
   },
   "include": ["src/**/*.ts", "prisma/seed.ts"],

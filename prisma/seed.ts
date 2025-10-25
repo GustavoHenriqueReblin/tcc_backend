@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 
 dotenv.config();
 
-async function main() {
+const main = async () => {
     console.log("Inserindo dados iniciais...");
 
     const country = await prisma.country.upsert({
