@@ -1,5 +1,5 @@
 import { prisma } from "../src/config/prisma";
-import { Role, Plan, Product, Status, MaritalStatus } from "@prisma/client";
+import { Role, Plan, Product, Status, MaritalStatus, CustomerType } from "@prisma/client";
 import { insertGeoData } from "../src/cron/updateGeoData";
 import bcrypt from "bcrypt";
 import { env } from "../src/config/env";
@@ -93,6 +93,89 @@ const main = async () => {
             role: Role.OWNER,
             status: Status.ACTIVE,
         },
+    });
+
+    const customerPerson = await prisma.person.upsert({
+        where: { taxId: "987.654.321-00" },
+        update: {},
+        create: {
+            enterpriseId: enterprise.id,
+            countryId: country.id,
+            stateId: state.id,
+            cityId: city.id,
+            name: "Cliente Padrão",
+            legalName: "Mercado São João",
+            taxId: "987.654.321-00",
+            nationalId: "5566778899",
+            email: "cliente@mercadosaojoao.com",
+            phone: "+55 (49) 98888-8888",
+            street: "Rua Principal",
+            number: "200",
+            neighborhood: "Centro",
+            postalCode: "89900-111",
+        },
+    });
+
+    const customer = await prisma.customer.upsert({
+        where: { personId: customerPerson.id },
+        update: {},
+        create: {
+            enterpriseId: enterprise.id,
+            personId: customerPerson.id,
+            type: CustomerType.BUSINESS,
+            contactName: "João da Silva",
+            contactPhone: "+55 (49) 98888-8888",
+            contactEmail: "joao@mercadosaojoao.com",
+            status: Status.ACTIVE,
+        },
+    });
+
+    await prisma.deliveryAddress.createMany({
+        data: [
+            {
+                customerId: customer.id,
+                enterpriseId: enterprise.id,
+                label: "Matriz - Centro",
+                street: "Rua Principal",
+                number: "200",
+                neighborhood: "Centro",
+                postalCode: "89900-111",
+                cityId: city.id,
+                stateId: state.id,
+                countryId: country.id,
+                isDefault: true,
+                status: Status.ACTIVE,
+            },
+            {
+                customerId: customer.id,
+                enterpriseId: enterprise.id,
+                label: "Filial - Bairro Industrial",
+                street: "Rua das Indústrias",
+                number: "500",
+                neighborhood: "Bairro Industrial",
+                postalCode: "89900-222",
+                cityId: city.id,
+                stateId: state.id,
+                countryId: country.id,
+                isDefault: false,
+                status: Status.ACTIVE,
+            },
+            {
+                customerId: customer.id,
+                enterpriseId: enterprise.id,
+                label: "Depósito - Zona Norte",
+                street: "Av. Norte",
+                number: "1500",
+                neighborhood: "Zona Norte",
+                postalCode: "89900-333",
+                cityId: city.id,
+                stateId: state.id,
+                countryId: country.id,
+                isDefault: false,
+                status: Status.INACTIVE,
+            },
+        ],
+        skipDuplicates: true,
     });
 
     await insertGeoData();

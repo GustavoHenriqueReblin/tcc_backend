@@ -37,42 +37,50 @@ enum MaritalStatus {
   OTHER      
 }
 
-model Country {
-  id         Int        @id @default(autoincrement())
-  name       String
-  isoCode    String     @unique @db.Char(3)
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
 
-  states     State[]
-  enterprises Enterprise[]
-  people     Person[]
+model Country {
+  id              Int        @id @default(autoincrement())
+  name            String
+  isoCode         String     @unique @db.Char(3)
+    
+  states          State[]
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
 
   @@map("country")
 }
 
 model State {
-  id         Int        @id @default(autoincrement())
-  countryId  Int
-  name       String
-  uf         String     @unique @db.Char(2)
-  ibgeCode   Int        @unique
-
-  country    Country    @relation(fields: [countryId], references: [id])
-  cities     City[]
-  enterprises Enterprise[]
-  people     Person[]
+  id              Int        @id @default(autoincrement())
+  countryId       Int
+  name            String
+  uf              String     @unique @db.Char(2)
+  ibgeCode        Int        @unique
+    
+  country         Country    @relation(fields: [countryId], references: [id])
+  cities          City[]
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
 
   @@map("state")
 }
 
 model City {
-  id         Int        @id @default(autoincrement())
-  stateId    Int
-  name       String
-  ibgeCode   Int        @unique
-
-  state      State      @relation(fields: [stateId], references: [id])
-  enterprises Enterprise[]
-  people     Person[]
+  id              Int        @id @default(autoincrement())
+  stateId         Int
+  name            String
+  ibgeCode        Int        @unique
+    
+  state           State      @relation(fields: [stateId], references: [id])
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
 
   @@map("city")
 }
@@ -112,6 +120,8 @@ model Enterprise {
   users             User[]
   audits            Audit[]
   logs              Log[]
+  customers         Customer[]
+  deliveryAddress   DeliveryAddress[]
 
   @@map("enterprise")
 }
@@ -145,6 +155,7 @@ model Person {
   state          State?     @relation(fields: [stateId], references: [id])
   city           City?      @relation(fields: [cityId], references: [id])
   users          User[]
+  customer       Customer[]
 
   @@map("person")
 }
@@ -152,7 +163,7 @@ model Person {
 model User {
   id           Int         @id @default(autoincrement())
   enterpriseId Int
-  personId     Int
+  personId     Int         @unique
   username     String      @unique
   password     String
   status       Status      @default(ACTIVE)
@@ -166,6 +177,53 @@ model User {
   audits       Audit[]
 
   @@map("user")
+}
+
+model Customer {
+  id              Int          @id @default(autoincrement())
+  enterpriseId    Int
+  personId        Int          @unique
+  status          Status       @default(ACTIVE)
+  type            CustomerType @default(INDIVIDUAL)
+  contactName     String?     // nome da pessoa de contato
+  contactPhone    String?
+  contactEmail    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  enterprise      Enterprise   @relation(fields: [enterpriseId], references: [id])
+  person          Person       @relation(fields: [personId], references: [id])
+  deliveryAddress DeliveryAddress[]
+
+  @@map("customer")
+}
+
+model DeliveryAddress {
+  id             Int         @id @default(autoincrement())
+  customerId     Int
+  enterpriseId   Int
+  label          String?     // Ex: "Matriz", "Filial Porto Alegre", "Armazém"
+  street         String?
+  number         String?
+  neighborhood   String?
+  complement     String?
+  reference      String?
+  postalCode     String?
+  cityId         Int
+  stateId        Int
+  countryId      Int?
+  isDefault      Boolean     @default(false)
+  status         Status      @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  customer       Customer    @relation(fields: [customerId], references: [id])
+  enterprise     Enterprise  @relation(fields: [enterpriseId], references: [id])
+  city           City        @relation(fields: [cityId], references: [id])
+  state          State?      @relation(fields: [stateId], references: [id])
+  country        Country?    @relation(fields: [countryId], references: [id])
+
+  @@map("deliveryAddress")
 }
 
 model Token {

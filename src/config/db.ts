@@ -7,7 +7,7 @@ export const pool = mariadb.createPool({
     password: env.DB_PASS,
     database: env.DB_NAME,
     port: env.DB_PORT,
-    connectionLimit: 80,
+    connectionLimit: 50,
 });
 
 export const testConnection = async () => {
@@ -16,6 +16,6 @@ export const testConnection = async () => {
         console.log("Conexão com o MariaDB estabelecida!");
         conn.release();
     } catch (err) {
-        if (env.ENVIRONMENT === "DEVELOPMENT") console.error("Erro ao conectar ao banco:", err);
+        console.error("Erro ao conectar ao banco:", err);
     }
 };

@@ -1,2 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-export const prisma = new PrismaClient();
+import { env } from "./env";
+
+const options: ConstructorParameters<typeof PrismaClient>[0] =
+    env.ENVIRONMENT === "DEVELOPMENT" ? { log: ["query", "info", "warn", "error"] } : undefined;
+
+export const prisma = new PrismaClient(options);

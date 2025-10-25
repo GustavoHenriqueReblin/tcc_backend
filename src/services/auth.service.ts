@@ -20,7 +20,7 @@ export class AuthService extends BaseService {
             });
 
             const isValid = await bcrypt.compare(env.APP_SECRET + password, user?.password ?? "");
-            if (!user || !isValid) throw new Error("Invalid credentials");
+            if (!user || !isValid) throw new Error("Credenciais inválidas");
 
             const payload: TokenPayload = {
                 sub: user.id,
