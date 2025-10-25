@@ -114,6 +114,15 @@ model Enterprise {
   @@map("enterprise")
 }
 
+model Log {
+  id          Int       @id @default(autoincrement())
+  message     String
+  stack       String?   @db.Text
+  context     String?   
+  createdAt   DateTime  @default(now())
+}
+
+
 model Person {
   id             Int        @id @default(autoincrement())
   enterpriseId   Int

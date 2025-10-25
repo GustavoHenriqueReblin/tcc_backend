@@ -11,7 +11,9 @@
     "baseUrl": ".",
     "paths": {
       "@config/*": ["src/config/*"],
-      "@cron/*": ["src/cron/*"]
+      "@cron/*": ["src/cron/*"],
+      "@utils/*": ["src/utils/*"],
+      "@middleware/*": ["src/middleware/*"]
     }
   },
   "include": ["src/**/*.ts", "prisma/seed.ts"],

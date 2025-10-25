@@ -1,5 +1,6 @@
 import { prisma } from "@config/prisma";
 import { Role, Plan, Product, Status, MaritalStatus } from "@prisma/client";
+import { insertGeoData } from "@cron/updateGeoData";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 
@@ -96,8 +97,10 @@ const main = async () => {
         },
     });
 
+    await insertGeoData();
+
     console.log("Seed finalizada com sucesso!");
-}
+};
 
 main()
     .catch((e) => {

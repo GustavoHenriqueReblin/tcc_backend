@@ -6,7 +6,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 
     startGeoDataCron();
