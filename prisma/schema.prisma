@@ -92,7 +92,7 @@ model Enterprise {
   cityId            Int
   name              String?    // Nome Fantasia / Apelido
   legalName         String?    // Razão Social / Nome
-  taxId             String?    @unique // CNPJ/CPF
+  taxId             String?    // CNPJ/CPF
   responsiblePerson String?    // Responsável
   email             String?
   phone             String?
@@ -123,6 +123,7 @@ model Enterprise {
   customers         Customer[]
   deliveryAddress   DeliveryAddress[]
 
+  @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
 }
 
@@ -134,7 +135,7 @@ model Person {
   cityId         Int?
   name           String?    // Nome Fantasia / Apelido
   legalName      String?    // Razão Social / Nome
-  taxId          String?    @unique // CNPJ/CPF
+  taxId          String?    // CNPJ/CPF
   nationalId     String?    // RG
   maritalStatus  MaritalStatus? // Estado Civil
   neighborhood   String?    // Bairro
@@ -157,6 +158,7 @@ model Person {
   users          User[]
   customer       Customer[]
 
+  @@index([enterpriseId, taxId])
   @@map("person")
 }
 

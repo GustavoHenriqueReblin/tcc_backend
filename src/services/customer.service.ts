@@ -106,7 +106,7 @@ export class CustomerService extends BaseService {
                 if (existingCustomer) {
                     throw new AppError(
                         `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
-                        400,
+                        409,
                         "CUSTOMER:create"
                     );
                 }
@@ -151,7 +151,7 @@ export class CustomerService extends BaseService {
                 include: { person: true },
             });
 
-            if (!existing) throw new Error("Cliente não encontrado");
+            if (!existing) throw new AppError("Cliente não encontrado", 404, "CUSTOMER:update");
 
             const [updatedPerson, updatedCustomer] = await prisma.$transaction([
                 prisma.person.update({
