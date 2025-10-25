@@ -9,11 +9,17 @@ export class UserService extends BaseService {
         );
     }
 
-    async create(data: { username: string; password: string; personId: number; enterpriseId: number }) {
+    async create(data: {
+        username: string;
+        password: string;
+        personId: number;
+        enterpriseId: number;
+    }) {
         return this.safeQuery(
-            () => this.prisma.user.create({
-                data: { ...data, status: Status.ACTIVE },
-            }),
+            () =>
+                this.prisma.user.create({
+                    data: { ...data, status: Status.ACTIVE },
+                }),
             "USER:create"
         );
     }
