@@ -1,3 +1,4 @@
+import { env } from "@config/env";
 import { prisma } from "@config/prisma";
 
 export class AppError extends Error {
@@ -20,13 +21,13 @@ export const handleError = async (error: unknown, context?: string): Promise<voi
         context,
     };
 
-    console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
-    if (err.stack) console.error(err.stack);
+    if (env.ENVIRONMENT === "DEVELOPMENT") console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
+    if (err.stack && env.ENVIRONMENT === "DEVELOPMENT") console.error(err.stack);
 
     try {
         await prisma.log.create({ data: formatted });
     } catch (dbErr: unknown) {
-        console.error("[ERROR] Falha ao salvar log no banco:", dbErr);
+        if (env.ENVIRONMENT === "DEVELOPMENT") console.error("[ERROR] Falha ao salvar log no banco:", dbErr);
     }
 };
 

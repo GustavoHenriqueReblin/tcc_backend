@@ -97,12 +97,12 @@ const main = async () => {
 
     await insertGeoData();
 
-    console.log("Seed finalizada com sucesso!");
+    if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Seed finalizada com sucesso!");
 };
 
 main()
     .catch((e) => {
-        console.error("Erro ao executar seed:", e);
+        if (env.ENVIRONMENT === "DEVELOPMENT") console.error("Erro ao executar seed:", e);
         process.exit(1);
     })
     .finally(async () => {

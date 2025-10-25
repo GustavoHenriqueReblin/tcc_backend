@@ -16,6 +16,6 @@ export const testConnection = async () => {
         console.log("Conexão com o MariaDB estabelecida!");
         conn.release();
     } catch (err) {
-        console.error("Erro ao conectar ao banco:", err);
+        if (env.ENVIRONMENT === "DEVELOPMENT") console.error("Erro ao conectar ao banco:", err);
     }
 };

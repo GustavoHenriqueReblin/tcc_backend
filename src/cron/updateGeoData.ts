@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { prisma } from "@config/prisma";
 import axios from "axios";
+import { env } from "@config/env";
 
 // Agenda: todo domingo às 03:00 da manhã
 const schedule = "0 3 * * 0";
@@ -67,7 +68,7 @@ export const startGeoDataCron = () => {
             try {
                 await insertGeoData();
             } catch (error) {
-                console.error("[CRON] Erro ao executar atualização:", error);
+                if (env.ENVIRONMENT === "DEVELOPMENT") console.error("[CRON] Erro ao executar atualização:", error);
             }
         },
         {
