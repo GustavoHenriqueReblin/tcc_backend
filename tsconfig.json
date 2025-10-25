@@ -19,6 +19,6 @@
       "@services/*": ["src/services/*"],
     }
   },
-  "include": ["src/**/*.ts", "prisma/seed.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.config.ts", "**/*.config.mts", "**/*.config.cjs"]
 }

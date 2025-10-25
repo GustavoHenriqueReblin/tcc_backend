@@ -169,6 +169,22 @@ model User {
 
   enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id])
   person       Person      @relation(fields: [personId], references: [id])
+  tokens       Token[]
 
   @@map("user")
 }
+
+model Token {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  token      String    @unique @db.VarChar(512)
+  valid      Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("token")
+}
+

@@ -1,10 +1,8 @@
-import { prisma } from "@config/prisma";
+import { prisma } from "../src/config/prisma";
 import { Role, Plan, Product, Status, MaritalStatus } from "@prisma/client";
-import { insertGeoData } from "@cron/updateGeoData";
-import dotenv from "dotenv";
+import { insertGeoData } from "../src/cron/updateGeoData";
 import bcrypt from "bcrypt";
-
-dotenv.config();
+import { env } from "../src/config/env";
 
 const main = async () => {
     console.log("Inserindo dados iniciais...");
@@ -91,7 +89,7 @@ const main = async () => {
             enterpriseId: enterprise.id,
             personId: person.id,
             username: "gustavo",
-            password: await bcrypt.hash(process.env.APP_SECRET! + "123456", 10),
+            password: await bcrypt.hash(env.APP_SECRET + "123456", 10),
             role: Role.OWNER,
             status: Status.ACTIVE,
         },

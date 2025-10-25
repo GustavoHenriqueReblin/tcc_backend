@@ -1,10 +1,8 @@
 import app from "./app";
-import dotenv from "dotenv";
 import { startGeoDataCron } from "@cron/updateGeoData";
+import { env } from "@config/env";
 
-dotenv.config();
-
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
 app.listen(PORT, async () => {
     console.log(`Servidor rodando na porta ${PORT}`);

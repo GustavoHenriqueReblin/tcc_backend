@@ -1,10 +1,11 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { handleError } from "@utils/errorBundler";
 
 export const errorHandler = async (
     err: unknown,
     req: Request,
-    res: Response
+    res: Response,
+    _next: NextFunction
 ): Promise<Response> => {
     await handleError(err, `ROUTE:${req.method} ${req.originalUrl}`);
 
