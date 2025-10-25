@@ -9,9 +9,6 @@ export const errorHandler = async (
     res: Response,
     _next: NextFunction
 ): Promise<Response> => {
-    const enterpriseId = req.auth?.enterpriseId;
-    await handleError(err, `ROUTE:${req.method} ${req.originalUrl}`, enterpriseId);
-
     let message = "Erro interno no servidor.";
     let status = 500;
 

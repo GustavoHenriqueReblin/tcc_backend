@@ -1,0 +1,39 @@
+import { RequestWithAuth } from "@middleware/authMiddleware";
+import { Response } from "express";
+import { sendResponse } from "@utils/functions";
+import { DeliveryAddressService } from "@services/deliveryAddress.service";
+
+const service = new DeliveryAddressService();
+
+export const getAddresses = async (req: RequestWithAuth, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const customerId = Number(req.params.customerId);
+
+    const addresses = await service.getAll(enterpriseId, customerId);
+    return sendResponse(res, addresses, "Delivery addresses fetched successfully");
+};
+
+export const getAddressById = async (req: RequestWithAuth, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const id = Number(req.params.id);
+
+    const address = await service.getById(id, enterpriseId);
+    return sendResponse(res, address, "Delivery address fetched successfully");
+};
+
+export const createAddress = async (req: RequestWithAuth, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const userId = req.auth!.sub;
+    const result = await service.create(enterpriseId, req.body, userId);
+
+    return sendResponse(res, result, "Delivery address created successfully");
+};
+
+export const updateAddress = async (req: RequestWithAuth, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const userId = req.auth!.sub;
+    const id = Number(req.params.id);
+    const result = await service.update(id, enterpriseId, req.body, userId);
+
+    return sendResponse(res, result, "Delivery address updated successfully");
+};

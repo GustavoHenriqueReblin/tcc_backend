@@ -1,4 +1,5 @@
 import { prisma } from "@config/prisma";
+import { handleError } from "@utils/errorBundler";
 
 export class BaseService {
     protected prisma = prisma;
@@ -7,6 +8,7 @@ export class BaseService {
         try {
             return await fn();
         } catch (error) {
+            await handleError(error, context);
             throw error;
         }
     }
