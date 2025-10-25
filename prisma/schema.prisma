@@ -1,15 +1,165 @@
 generator client {
-	provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-	provider = "mysql"
-  	url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum Plan {
+  START
+  PRO
+  BUSINESS
+}
+
+enum Product {
+  INDUSTRY
+}
+
+enum Role {
+  EMPLOYEE   
+  MANAGER    
+  OWNER      
+}
+
+enum MaritalStatus {
+  SINGLE     
+  MARRIED    
+  DIVORCED   
+  WIDOWED    
+  SEPARATED  
+  OTHER      
+}
+
+model Country {
+  id         Int        @id @default(autoincrement())
+  name       String
+  isoCode    String     @unique @db.Char(3)
+
+  states     State[]
+  enterprises Enterprise[]
+  people     Person[]
+
+  @@map("country")
+}
+
+model State {
+  id         Int        @id @default(autoincrement())
+  countryId  Int
+  name       String
+  uf         String     @unique @db.Char(2)
+  ibgeCode   Int        @unique
+
+  country    Country    @relation(fields: [countryId], references: [id])
+  cities     City[]
+  enterprises Enterprise[]
+  people     Person[]
+
+  @@map("state")
+}
+
+model City {
+  id         Int        @id @default(autoincrement())
+  stateId    Int
+  name       String
+  ibgeCode   Int        @unique
+
+  state      State      @relation(fields: [stateId], references: [id])
+  enterprises Enterprise[]
+  people     Person[]
+
+  @@map("city")
+}
+
+model Enterprise {
+  id                Int        @id @default(autoincrement())
+  countryId         Int
+  stateId           Int
+  cityId            Int
+  name              String?    // Nome Fantasia / Apelido
+  legalName         String?    // Razão Social / Nome
+  taxId             String?    @unique // CNPJ/CPF
+  responsiblePerson String?    // Responsável
+  email             String?
+  phone             String?
+  cellphone         String?
+  stateRegistration String?    // IE
+  cityRegistration  String?    // IM
+  maritalStatus     MaritalStatus? // Estado Civil
+  neighborhood      String?    // Bairro
+  street            String?    // Rua
+  number            String?    // Número
+  complement        String?    // Complemento
+  postalCode        String?    // CEP
+  notes             String?
+  logo              String?   
+  product           Product    @default(INDUSTRY)
+  plan              Plan       @default(START)
+  status            Status     @default(ACTIVE)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  country           Country    @relation(fields: [countryId], references: [id])
+  state             State      @relation(fields: [stateId], references: [id])
+  city              City       @relation(fields: [cityId], references: [id])
+  people            Person[]
+  users             User[]
+
+  @@map("enterprise")
+}
+
+model Person {
+  id             Int        @id @default(autoincrement())
+  enterpriseId   Int
+  countryId      Int?
+  stateId        Int?
+  cityId         Int?
+  name           String?    // Nome Fantasia / Apelido
+  legalName      String?    // Razão Social / Nome
+  taxId          String?    @unique // CNPJ/CPF
+  nationalId     String?    // RG
+  maritalStatus  MaritalStatus? // Estado Civil
+  neighborhood   String?    // Bairro
+  street         String?    // Rua
+  number         String?    // Número
+  complement     String?    // Complemento
+  postalCode     String?    // CEP
+  notes          String?
+  email          String?
+  phone          String?
+  cellphone      String?
+  dateOfBirth    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  enterprise     Enterprise @relation(fields: [enterpriseId], references: [id])
+  country        Country?   @relation(fields: [countryId], references: [id])
+  state          State?     @relation(fields: [stateId], references: [id])
+  city           City?      @relation(fields: [cityId], references: [id])
+  users          User[]
+
+  @@map("person")
 }
 
 model User {
-  	id        Int       @id @default(autoincrement())
-  	name      String
-  	email     String    @unique
-  	createdAt DateTime  @default(now())
+  id           Int         @id @default(autoincrement())
+  enterpriseId Int
+  personId     Int
+  username     String      @unique
+  password     String
+  status       Status      @default(ACTIVE)
+  role         Role        @default(EMPLOYEE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id])
+  person       Person      @relation(fields: [personId], references: [id])
+
+  @@map("user")
 }
