@@ -45,6 +45,14 @@ export class AuthService extends BaseService {
                 },
             });
 
+            await this.prisma.audit.create({
+                data: {
+                    userId: user.id,
+                    enterpriseId: user.enterpriseId,
+                    action: `User ${user.username} has logged in`,
+                },
+            });
+
             return {
                 token,
                 user: {

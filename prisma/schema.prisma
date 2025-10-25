@@ -110,17 +110,10 @@ model Enterprise {
   city              City       @relation(fields: [cityId], references: [id])
   people            Person[]
   users             User[]
+  audits            Audit[]
+  logs              Log[]
 
   @@map("enterprise")
-}
-
-model Log {
-  id            Int       @id @default(autoincrement())
-  message       String
-  stack         String?   @db.Text
-  context       String?   
-  enterpriseId  Int?
-  createdAt     DateTime  @default(now())
 }
 
 model Person {
@@ -170,6 +163,7 @@ model User {
   enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id])
   person       Person      @relation(fields: [personId], references: [id])
   tokens       Token[]
+  audits       Audit[]
 
   @@map("user")
 }
@@ -189,3 +183,29 @@ model Token {
   @@map("token")
 }
 
+model Audit {
+  id            Int        @id @default(autoincrement())
+  userId        Int
+  enterpriseId  Int
+  action        String
+  entity        String?
+  createdAt     DateTime   @default(now())
+
+  user          User       @relation(fields: [userId], references: [id])
+  enterprise    Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  @@map("audit")
+}
+
+model Log {
+  id            Int        @id @default(autoincrement())
+  message       String
+  stack         String?    @db.Text
+  context       String?
+  enterpriseId  Int?
+  createdAt     DateTime   @default(now())
+
+  enterprise    Enterprise? @relation(fields: [enterpriseId], references: [id])
+
+  @@map("log")
+}
