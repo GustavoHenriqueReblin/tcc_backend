@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import { env } from "../src/config/env";
 
 const main = async () => {
-    console.log("Inserindo dados iniciais...");
+    if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados iniciais...");
 
     const country = await prisma.country.upsert({
         where: { isoCode: "BRA" },

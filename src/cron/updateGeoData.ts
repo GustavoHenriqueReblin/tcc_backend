@@ -55,7 +55,8 @@ export const insertGeoData = async () => {
             });
         }
 
-        console.log(`[CRON] ${cities.length} cidades atualizadas para ${s.sigla}`);
+        if (env.ENVIRONMENT === "DEVELOPMENT")
+            console.log(`[CRON] ${cities.length} cidades atualizadas para ${s.sigla}`);
     }
 };
 
@@ -63,12 +64,14 @@ export const startGeoDataCron = () => {
     cron.schedule(
         schedule,
         async () => {
-            console.log("[CRON] Iniciando atualização de países, estados e cidades...");
+            if (env.ENVIRONMENT === "DEVELOPMENT")
+                console.log("[CRON] Iniciando atualização de países, estados e cidades...");
 
             try {
                 await insertGeoData();
             } catch (error) {
-                if (env.ENVIRONMENT === "DEVELOPMENT") console.error("[CRON] Erro ao executar atualização:", error);
+                if (env.ENVIRONMENT === "DEVELOPMENT")
+                    console.error("[CRON] Erro ao executar atualização:", error);
             }
         },
         {
@@ -76,5 +79,6 @@ export const startGeoDataCron = () => {
         }
     );
 
-    console.log("[CRON] Rotina de atualização geográfica agendada para domingos às 03:00.");
+    if (env.ENVIRONMENT === "DEVELOPMENT")
+        console.log("[CRON] Rotina de atualização geográfica agendada para domingos às 03:00.");
 };

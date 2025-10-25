@@ -7,11 +7,12 @@ interface AuthPayload {
     sub: number;
     username: string;
     role: string;
+    enterpriseId: number;
     iat?: number;
     exp?: number;
 }
 
-interface RequestWithAuth extends ExpressRequest {
+export interface RequestWithAuth extends ExpressRequest {
     auth?: AuthPayload;
 }
 
@@ -22,11 +23,11 @@ export const authMiddleware = async (
 ): Promise<Response | void> => {
     try {
         const token = req.cookies?.token;
-
-        if (!token) return res.status(401).json({ error: true, message: "Token not provided" });
+        if (!token) {
+            return res.status(401).json({ error: true, message: "Token not provided" });
+        }
 
         const decoded = jwt.verify(token, env.APP_SECRET);
-
         if (typeof decoded === "string" || !("sub" in decoded)) {
             return res.status(401).json({ error: true, message: "Malformed token" });
         }
@@ -35,20 +36,19 @@ export const authMiddleware = async (
             sub: Number(decoded.sub),
             username: decoded.username as string,
             role: decoded.role as string,
+            enterpriseId: Number(decoded.enterpriseId),
             iat: decoded.iat,
             exp: decoded.exp,
         };
 
         const tokenRecord = await prisma.token.findUnique({ where: { token } });
-
         if (!tokenRecord || !tokenRecord.valid || tokenRecord.expiresAt < new Date()) {
             return res.status(401).json({ error: true, message: "Token revoked or expired" });
         }
 
         req.auth = payload;
-
         return next();
-    } catch (error) {
+    } catch {
         return res.status(401).json({ error: true, message: "Invalid or expired token" });
     }
 };

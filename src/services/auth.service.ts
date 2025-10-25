@@ -8,6 +8,7 @@ interface TokenPayload {
     sub: number;
     username: string;
     role: string;
+    enterpriseId: number;
 }
 
 export class AuthService extends BaseService {
@@ -25,6 +26,7 @@ export class AuthService extends BaseService {
                 sub: user.id,
                 username: user.username,
                 role: user.role,
+                enterpriseId: user.enterpriseId,
             };
 
             const token = jwt.sign(payload, env.APP_SECRET, {
@@ -39,6 +41,7 @@ export class AuthService extends BaseService {
                     token,
                     expiresAt,
                     valid: true,
+                    enterpriseId: user.enterpriseId,
                 },
             });
 

@@ -115,13 +115,13 @@ model Enterprise {
 }
 
 model Log {
-  id          Int       @id @default(autoincrement())
-  message     String
-  stack       String?   @db.Text
-  context     String?   
-  createdAt   DateTime  @default(now())
+  id            Int       @id @default(autoincrement())
+  message       String
+  stack         String?   @db.Text
+  context       String?   
+  enterpriseId  Int?
+  createdAt     DateTime  @default(now())
 }
-
 
 model Person {
   id             Int        @id @default(autoincrement())
@@ -175,14 +175,15 @@ model User {
 }
 
 model Token {
-  id         Int       @id @default(autoincrement())
-  userId     Int
-  token      String    @unique @db.VarChar(512)
-  valid      Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  expiresAt  DateTime
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  enterpriseId Int
+  token        String    @unique @db.VarChar(512)
+  valid        Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
 
-  user       User      @relation(fields: [userId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@map("token")

@@ -12,22 +12,29 @@ export class AppError extends Error {
     }
 }
 
-export const handleError = async (error: unknown, context?: string): Promise<void> => {
+export const handleError = async (
+    error: unknown,
+    context?: string,
+    enterpriseId?: number
+): Promise<void> => {
     const err = normalizeError(error);
 
     const formatted = {
         message: err.message,
-        stack: err.stack ? err.stack.substring(0, 5000) : null,
+        stack: err.stack?.slice(0, 1500) ?? null,
         context,
+        enterpriseId,
     };
 
-    if (env.ENVIRONMENT === "DEVELOPMENT") console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
+    if (env.ENVIRONMENT === "DEVELOPMENT")
+        console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
     if (err.stack && env.ENVIRONMENT === "DEVELOPMENT") console.error(err.stack);
 
     try {
         await prisma.log.create({ data: formatted });
-    } catch (dbErr: unknown) {
-        if (env.ENVIRONMENT === "DEVELOPMENT") console.error("[ERROR] Falha ao salvar log no banco:", dbErr);
+    } catch (dbErr) {
+        if (env.ENVIRONMENT === "DEVELOPMENT")
+            console.error("[ERROR] Falha ao salvar log no banco:", dbErr);
     }
 };
 

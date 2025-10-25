@@ -31,5 +31,6 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         maxAge: parseTimeToMs(env.JWT_EXPIRES_IN),
     });
 
-    return sendResponse(res, result, "Login successful");
+    const { token, ...data } = result;
+    return sendResponse(res, data, "Login successful");
 };
