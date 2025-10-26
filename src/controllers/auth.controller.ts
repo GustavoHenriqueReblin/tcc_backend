@@ -41,5 +41,12 @@ export const logout = async (req: RequestWithAuth, res: Response) => {
     if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
 
     const result = await service.logout(token);
+
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+    });
+
     return sendResponse(res, result, "Logout successful");
 };
