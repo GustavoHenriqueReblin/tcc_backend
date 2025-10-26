@@ -3,6 +3,7 @@ import { BaseService } from "@services/base.service";
 import { env } from "@config/env";
 import bcrypt from "bcrypt";
 import { parseTimeToMs } from "@utils/functions";
+import { AppError } from "@utils/appError";
 
 interface TokenPayload {
     sub: number;
@@ -66,4 +67,39 @@ export class AuthService extends BaseService {
             };
         }, "AUTH:login");
     };
+
+    logout = async (token: string) =>
+        this.safeQuery(async () => {
+            let decoded: TokenPayload;
+
+            try {
+                const payload = jwt.verify(token, env.APP_SECRET);
+                if (typeof payload === "string") {
+                    throw new AppError("Token inválido", 401);
+                }
+
+                decoded = payload as unknown as TokenPayload;
+            } catch {
+                throw new AppError("Token inválido ou expirado", 401);
+            }
+
+            const deleted = await this.prisma.token.deleteMany({
+                where: { token },
+            });
+
+            if (deleted.count === 0) {
+                throw new AppError("Sessão não encontrada ou já encerrada", 404);
+            }
+
+            await this.prisma.audit.create({
+                data: {
+                    userId: decoded.sub,
+                    enterpriseId: decoded.enterpriseId,
+                    action: `User ${decoded.username} has logged out`,
+                    entity: "Auth",
+                },
+            });
+
+            return { message: "User logouted successfully" };
+        }, "AUTH:logout");
 }

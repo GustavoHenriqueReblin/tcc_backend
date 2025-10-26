@@ -2,8 +2,9 @@ import type { Request, Response } from "express";
 import { AuthService } from "@services/auth.service";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
 import { env } from "@config/env";
+import { RequestWithAuth } from "@middleware/authMiddleware";
 
-const authService = new AuthService();
+const service = new AuthService();
 
 export const login = async (req: Request, res: Response): Promise<Response> => {
     const { username, password } = req?.body ?? {};
@@ -15,7 +16,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         });
     }
 
-    const result = await authService.login(username, password);
+    const result = await service.login(username, password);
 
     if (!result) {
         return res.status(401).json({
@@ -33,4 +34,12 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
 
     const { token, ...data } = result;
     return sendResponse(res, data, "Login successful");
+};
+
+export const logout = async (req: RequestWithAuth, res: Response) => {
+    const token = req.cookies?.token as string;
+    if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
+
+    const result = await service.logout(token);
+    return sendResponse(res, result, "Logout successful");
 };
