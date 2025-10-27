@@ -1,17 +1,6 @@
 import { env } from "@config/env";
 import { prisma } from "@config/prisma";
 
-export class AppError extends Error {
-    public readonly context?: string;
-    public readonly original?: unknown;
-
-    constructor(message: string, context?: string, original?: unknown) {
-        super(message);
-        this.context = context;
-        this.original = original;
-    }
-}
-
 export const handleError = async (
     error: unknown,
     context?: string,
