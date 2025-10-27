@@ -21,7 +21,7 @@ const envSchema = z.object({
 
     DATABASE_URL: z.string().url(),
 
-    ENVIRONMENT: z.enum(["DEVELOPMENT", "PRODUCTION"]).default("DEVELOPMENT"),
+    ENVIRONMENT: z.enum(["DEVELOPMENT", "PRODUCTION", "TEST"]).default("DEVELOPMENT"),
 
     APP_SECRET: z.string().min(10, "APP_SECRET must be at least 10 characters long"),
     JWT_EXPIRES_IN: z.string().default("2d"),

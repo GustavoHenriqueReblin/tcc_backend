@@ -155,5 +155,10 @@ Observação: as rotas são montadas em `src/routes/*.routes.ts` e agrupadas em 
 ---
 
 ## Licença
-Este projeto é licenciado sob os termos descritos em `LICENSE`.
+©2025 Gustavo Henrique Reblin. Todos os direitos reservados.
 
+Este software é de propriedade exclusiva do autor.
+Nenhuma parte deste código, documentação ou conteúdo poderá ser copiada, modificada, distribuída ou utilizada, total ou parcialmente, sem autorização expressa e por escrito do detentor dos direitos.
+
+O uso deste sistema é restrito aos fins autorizados pelo proprietário.
+O descumprimento destas condições poderá resultar em sanções civis e penais conforme a legislação aplicável.

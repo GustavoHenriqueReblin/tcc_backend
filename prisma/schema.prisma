@@ -46,7 +46,6 @@ model Country {
   id              Int        @id @default(autoincrement())
   name            String
   isoCode         String     @unique @db.Char(3)
-    
   states          State[]
   enterprises     Enterprise[]
   people          Person[]
@@ -61,7 +60,6 @@ model State {
   name            String
   uf              String     @unique @db.Char(2)
   ibgeCode        Int        @unique
-    
   country         Country    @relation(fields: [countryId], references: [id])
   cities          City[]
   enterprises     Enterprise[]
@@ -76,7 +74,6 @@ model City {
   stateId         Int
   name            String
   ibgeCode        Int        @unique
-    
   state           State      @relation(fields: [stateId], references: [id])
   enterprises     Enterprise[]
   people          Person[]
@@ -122,6 +119,7 @@ model Enterprise {
   logs              Log[]
   customers         Customer[]
   deliveryAddress   DeliveryAddress[]
+  tokens            Token[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
@@ -158,7 +156,7 @@ model Person {
   users          User[]
   customer       Customer[]
 
-  @@index([enterpriseId, taxId])
+  @@unique([enterpriseId, taxId])
   @@map("person")
 }
 
@@ -238,6 +236,7 @@ model Token {
   expiresAt    DateTime
 
   user         User      @relation(fields: [userId], references: [id])
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
 
   @@index([userId])
   @@map("token")

@@ -38,7 +38,14 @@ const main = async () => {
     });
 
     const enterprise = await prisma.enterprise.upsert({
-        where: { taxId: "123.456.78/0001-00" },
+        where: { 
+            taxId_countryId_stateId_cityId: {
+                cityId: city.id,
+                countryId: country.id,
+                stateId: state.id,
+                taxId: "123.456.78/0001-00",
+            } 
+        },
         update: {},
         create: {
             countryId: country.id,
@@ -61,7 +68,12 @@ const main = async () => {
     });
 
     const person = await prisma.person.upsert({
-        where: { taxId: "123.456.789-00" },
+        where: {
+            enterpriseId_taxId: {
+                enterpriseId: enterprise.id,
+                taxId: "123.456.789-00",
+            },
+        },
         update: {},
         create: {
             enterpriseId: enterprise.id,
@@ -96,7 +108,12 @@ const main = async () => {
     });
 
     const customerPerson = await prisma.person.upsert({
-        where: { taxId: "987.654.321-00" },
+        where: {
+            enterpriseId_taxId: {
+                enterpriseId: enterprise.id,
+                taxId: "987.654.321-00",
+            },
+        },
         update: {},
         create: {
             enterpriseId: enterprise.id,
