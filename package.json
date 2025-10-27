@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "prisma:validate": "dotenv -e .env -- prisma validate --schema=prisma/schema.prisma",
     "prisma:migrate": "dotenv -e .env -- prisma migrate dev --name init --schema=prisma/schema.prisma",
-    "prisma:generate": "dotenv -e .env -- prisma generate",
+    "prisma:generate": "dotenv -e .env -- prisma generate --schema=prisma/schema.prisma",
     "prisma:seed": "dotenv -e .env -- ts-node -r tsconfig-paths/register prisma/seed.ts",
     "prisma:reset": "dotenv -e .env -- prisma migrate reset --schema=prisma/schema.prisma",
     "test": "npx playwright test"

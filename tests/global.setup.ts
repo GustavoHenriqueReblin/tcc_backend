@@ -1,11 +1,14 @@
 import { request, expect } from "@playwright/test";
 import { env } from "../src/config/env";
+import { generateData } from "../prisma/seed";
+import { defaultUser } from "../src/config/default.data";
 
 const globalSetup = async () => {
+    await generateData();
     const apiContext = await request.newContext();
 
     const res = await apiContext.post(`http://${env.DOMAIN}:${env.PORT}/api/v1/auth/login`, {
-        data: { username: "gustavo", password: "123456" },
+        data: { username: defaultUser.username, password: defaultUser.password },
     });
 
     expect(res.ok()).toBeTruthy();

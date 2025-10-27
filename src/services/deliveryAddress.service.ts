@@ -37,7 +37,7 @@ export class DeliveryAddressService extends BaseService {
 
     getById = async (id: number, enterpriseId: number) =>
         this.safeQuery(async () => {
-            const address = await prisma.deliveryAddress.findFirst({
+            const address = await prisma.deliveryAddress.findUnique({
                 where: { id, enterpriseId },
                 include: { city: true, state: true, country: true },
             });

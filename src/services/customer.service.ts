@@ -56,7 +56,7 @@ export class CustomerService extends BaseService {
 
     getById = async (id: number, enterpriseId: number) =>
         this.safeQuery(async () => {
-            return prisma.customer.findFirst({
+            return prisma.customer.findUnique({
                 where: { id, enterpriseId },
                 include: { person: true, deliveryAddress: true },
             });
