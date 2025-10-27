@@ -38,13 +38,13 @@ const main = async () => {
     });
 
     const enterprise = await prisma.enterprise.upsert({
-        where: { 
+        where: {
             taxId_countryId_stateId_cityId: {
                 cityId: city.id,
                 countryId: country.id,
                 stateId: state.id,
                 taxId: "123.456.78/0001-00",
-            } 
+            },
         },
         update: {},
         create: {

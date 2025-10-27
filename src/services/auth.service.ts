@@ -23,36 +23,44 @@ export class AuthService extends BaseService {
             const isValid = await bcrypt.compare(env.APP_SECRET + password, user?.password ?? "");
             if (!user || !isValid) throw new Error("Credenciais inválidas");
 
-            const payload: TokenPayload = {
-                sub: user.id,
-                username: user.username,
-                role: user.role,
-                enterpriseId: user.enterpriseId,
-            };
-
-            const token = jwt.sign(payload, env.APP_SECRET, {
-                expiresIn: env.JWT_EXPIRES_IN,
-            } as jwt.SignOptions);
-
-            const expiresAt = new Date(Date.now() + parseTimeToMs(env.JWT_EXPIRES_IN));
-
-            await this.prisma.token.create({
-                data: {
-                    userId: user.id,
-                    token,
-                    expiresAt,
-                    valid: true,
-                    enterpriseId: user.enterpriseId,
-                },
+            const existingToken = await this.prisma.token.findFirst({
+                where: { userId: user.id, valid: true },
+                include: { user: true, enterprise: true },
             });
 
-            await this.prisma.audit.create({
-                data: {
-                    userId: user.id,
+            let token = existingToken?.token;
+            if (!token) {
+                const payload: TokenPayload = {
+                    sub: user.id,
+                    username: user.username,
+                    role: user.role,
                     enterpriseId: user.enterpriseId,
-                    action: `User ${user.username} has logged in`,
-                },
-            });
+                };
+
+                token = jwt.sign(payload, env.APP_SECRET, {
+                    expiresIn: env.JWT_EXPIRES_IN,
+                } as jwt.SignOptions);
+
+                const expiresAt = new Date(Date.now() + parseTimeToMs(env.JWT_EXPIRES_IN));
+
+                await this.prisma.token.create({
+                    data: {
+                        userId: user.id,
+                        token,
+                        expiresAt,
+                        valid: true,
+                        enterpriseId: user.enterpriseId,
+                    },
+                });
+
+                await this.prisma.audit.create({
+                    data: {
+                        userId: user.id,
+                        enterpriseId: user.enterpriseId,
+                        action: `User ${user.username} has logged in`,
+                    },
+                });
+            }
 
             return {
                 token,

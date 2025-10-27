@@ -13,7 +13,8 @@
     "prisma:migrate": "dotenv -e .env -- prisma migrate dev --name init --schema=prisma/schema.prisma",
     "prisma:generate": "dotenv -e .env -- prisma generate",
     "prisma:seed": "dotenv -e .env -- ts-node -r tsconfig-paths/register prisma/seed.ts",
-    "prisma:reset": "dotenv -e .env -- prisma migrate reset --schema=prisma/schema.prisma"
+    "prisma:reset": "dotenv -e .env -- prisma migrate reset --schema=prisma/schema.prisma",
+    "test": "npx playwright test"
   },
   "repository": {
     "type": "git",
@@ -39,6 +40,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@prisma/client": "^6.18.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
