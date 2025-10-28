@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 
+export const CUSTOMER_ERROR = {
+    PAGINATION: "page and limit must be numbers",
+    INCLUDE_INACTIVE: "includeInactive must be 'true' or 'false'",
+}
+
 export const validateCustomerPaginationAndFilter = (
     req: Request,
     res: Response,
@@ -11,7 +16,7 @@ export const validateCustomerPaginationAndFilter = (
     const limitNum = Number(limit);
 
     if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
-        return res.status(400).json({ message: "page and limit must be numbers" });
+        return res.status(400).json({ message: CUSTOMER_ERROR.PAGINATION });
     }
 
     if (
@@ -19,7 +24,7 @@ export const validateCustomerPaginationAndFilter = (
         includeInactive !== "true" &&
         includeInactive !== "false"
     ) {
-        return res.status(400).json({ message: "includeInactive must be 'true' or 'false'" });
+        return res.status(400).json({ message: CUSTOMER_ERROR.INCLUDE_INACTIVE });
     }
 
     req.query.page = pageNum.toString();
