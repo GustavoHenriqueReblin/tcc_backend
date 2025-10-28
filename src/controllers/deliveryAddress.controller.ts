@@ -1,11 +1,11 @@
-import { RequestWithAuth } from "@middleware/authMiddleware";
+import { Request } from "@middleware/authMiddleware";
 import { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { DeliveryAddressService } from "@services/deliveryAddress.service";
 
 const service = new DeliveryAddressService();
 
-export const getAddresses = async (req: RequestWithAuth, res: Response) => {
+export const getAddresses = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const customerId = Number(req.params.customerId);
 
@@ -13,7 +13,7 @@ export const getAddresses = async (req: RequestWithAuth, res: Response) => {
     return sendResponse(res, addresses, "Delivery addresses fetched successfully");
 };
 
-export const getAddressById = async (req: RequestWithAuth, res: Response) => {
+export const getAddressById = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const id = Number(req.params.id);
 
@@ -21,7 +21,7 @@ export const getAddressById = async (req: RequestWithAuth, res: Response) => {
     return sendResponse(res, address, "Delivery address fetched successfully");
 };
 
-export const createAddress = async (req: RequestWithAuth, res: Response) => {
+export const createAddress = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
     const result = await service.create(enterpriseId, req.body, userId);
@@ -29,7 +29,7 @@ export const createAddress = async (req: RequestWithAuth, res: Response) => {
     return sendResponse(res, result, "Delivery address created successfully");
 };
 
-export const updateAddress = async (req: RequestWithAuth, res: Response) => {
+export const updateAddress = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
     const id = Number(req.params.id);

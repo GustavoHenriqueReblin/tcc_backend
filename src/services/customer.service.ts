@@ -27,20 +27,26 @@ export interface CustomerInput {
 }
 
 export class CustomerService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, includeInactive: boolean) =>
         this.safeQuery(async () => {
             const skip = (page - 1) * limit;
 
             const [customers, total] = await prisma.$transaction([
                 prisma.customer.findMany({
-                    where: { enterpriseId, status: Status.ACTIVE },
+                    where: {
+                        enterpriseId,
+                        ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    },
                     include: { person: true, deliveryAddress: true },
                     skip,
                     take: limit,
                     orderBy: { createdAt: "desc" },
                 }),
                 prisma.customer.count({
-                    where: { enterpriseId, status: Status.ACTIVE },
+                    where: {
+                        enterpriseId,
+                        ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    },
                 }),
             ]);
 

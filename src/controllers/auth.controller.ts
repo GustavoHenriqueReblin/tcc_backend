@@ -1,8 +1,8 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { AuthService } from "@services/auth.service";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
 import { env } from "@config/env";
-import { RequestWithAuth } from "@middleware/authMiddleware";
+import { Request } from "@middleware/authMiddleware";
 
 const service = new AuthService();
 
@@ -36,7 +36,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
     return sendResponse(res, data, "Login successful");
 };
 
-export const logout = async (req: RequestWithAuth, res: Response) => {
+export const logout = async (req: Request, res: Response) => {
     const token = req.cookies?.token as string;
     if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
 

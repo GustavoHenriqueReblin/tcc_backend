@@ -12,12 +12,12 @@ interface AuthPayload {
     exp?: number;
 }
 
-export interface RequestWithAuth extends ExpressRequest {
+export interface Request extends ExpressRequest {
     auth?: AuthPayload;
 }
 
 export const authMiddleware = async (
-    req: RequestWithAuth,
+    req: Request,
     res: Response,
     next: NextFunction
 ): Promise<Response | void> => {

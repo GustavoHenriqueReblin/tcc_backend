@@ -1,11 +1,11 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 import { handleError } from "@utils/errorBundler";
-import { RequestWithAuth } from "./authMiddleware";
+import { Request } from "./authMiddleware";
 import { AppError } from "@utils/appError";
 
 export const errorHandler = async (
     err: unknown,
-    req: RequestWithAuth,
+    req: Request,
     res: Response,
     _next: NextFunction
 ): Promise<Response> => {
