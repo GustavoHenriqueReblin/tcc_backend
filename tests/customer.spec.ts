@@ -39,7 +39,11 @@ test("Lista clientes com includeInactive=true retorna >= que ativos", async ({ r
     const { data: withInactive } = await resAll.json();
 
     expect(withInactive.customers.length).toBeGreaterThanOrEqual(onlyActive.customers.length);
-    expect(withInactive.customers.every((c: Customer) => [Status.ACTIVE, Status.INACTIVE].includes(c.status))).toBeTruthy();
+    expect(
+        withInactive.customers.every((c: Customer) =>
+            [Status.ACTIVE, Status.INACTIVE].includes(c.status)
+        )
+    ).toBeTruthy();
 });
 
 test("Validação de query: page/limit inválidos e includeInactive inválido", async ({ request }) => {
@@ -157,8 +161,10 @@ test("Criacao de cliente com CPF/CNPJ ja vinculado deve falhar (409)", async ({ 
 
     const payload = {
         person: {
-            name: `${existing.person.name} Duplicado` || "Duplicado",
-            legalName: `${existing.person.legalName} Duplicado` || "Duplicado",
+            name: existing.person.name ? `${existing.person.name} Duplicado` : "Duplicado",
+            legalName: existing.person.legalName
+                ? `${existing.person.legalName} Duplicado`
+                : "Duplicado",
             taxId: existing.person.taxId,
         },
         contactName: "Tentativa Duplicada",
@@ -174,7 +180,11 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
     // Cria um cliente de teste para atualizar em seguida
     const uniqueTaxId = `111.${Date.now().toString().slice(-6)}-99`;
     const createPayload = {
-        person: { name: "Cliente Atualizar", legalName: "Cliente Atualizar LTDA", taxId: uniqueTaxId },
+        person: {
+            name: "Cliente Atualizar",
+            legalName: "Cliente Atualizar LTDA",
+            taxId: uniqueTaxId,
+        },
         type: CustomerType.BUSINESS,
         contactName: "Contato Atualizar",
         contactPhone: "+55 (49) 95555-5555",
@@ -199,7 +209,9 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
         status: Status.INACTIVE,
     };
 
-    const updateRes = await request.put(`${baseUrl}/customers/${created.id}`, { data: updatePayload });
+    const updateRes = await request.put(`${baseUrl}/customers/${created.id}`, {
+        data: updatePayload,
+    });
     expect(updateRes.status()).toBe(200);
     const { data: updated } = await updateRes.json();
     expect(updated.person.name).toBe("Cliente Atualizado");

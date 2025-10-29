@@ -18,7 +18,7 @@ enum Plan {
   BUSINESS
 }
 
-enum Product {
+enum Branch {
   INDUSTRY
 }
 
@@ -42,9 +42,21 @@ enum CustomerType {
   BUSINESS
 }
 
+enum ProductDefinitionType {
+  RAW_MATERIAL          // Matéria-prima
+  FINISHED_PRODUCT      // Produto acabado
+  RESALE_PRODUCT        // Produto para revenda
+  IN_PROCESS_PRODUCT    // Produto em processo de fabricação
+  COMPONENT             // Componente usado na montagem
+  CONSUMABLE_MATERIAL   // Material de consumo (uso interno)
+  PACKAGING_MATERIAL    // Material de embalagem
+  BY_PRODUCT            // Subproduto
+  RETURNED_PRODUCT       // Produto devolvido
+}
+
 model Country {
   id              Int        @id @default(autoincrement())
-  name            String
+  name            String     @db.VarChar(40)
   isoCode         String     @unique @db.Char(3)
   states          State[]
   enterprises     Enterprise[]
@@ -57,7 +69,7 @@ model Country {
 model State {
   id              Int        @id @default(autoincrement())
   countryId       Int
-  name            String
+  name            String     @db.VarChar(40)
   uf              String     @unique @db.Char(2)
   ibgeCode        Int        @unique
   country         Country    @relation(fields: [countryId], references: [id])
@@ -72,7 +84,7 @@ model State {
 model City {
   id              Int        @id @default(autoincrement())
   stateId         Int
-  name            String
+  name            String     @db.VarChar(60)
   ibgeCode        Int        @unique
   state           State      @relation(fields: [stateId], references: [id])
   enterprises     Enterprise[]
@@ -83,36 +95,36 @@ model City {
 }
 
 model Enterprise {
-  id                Int        @id @default(autoincrement())
-  countryId         Int
-  stateId           Int
-  cityId            Int
-  name              String?    // Nome Fantasia / Apelido
-  legalName         String?    // Razão Social / Nome
-  taxId             String?    // CNPJ/CPF
-  responsiblePerson String?    // Responsável
-  email             String?
-  phone             String?
-  cellphone         String?
-  stateRegistration String?    // IE
-  cityRegistration  String?    // IM
+  id                Int            @id @default(autoincrement())
+  countryId         Int    
+  stateId           Int    
+  cityId            Int    
+  name              String?        @db.VarChar(80) // Nome Fantasia / Apelido
+  legalName         String?        @db.VarChar(80) // Razão Social / Nome
+  taxId             String?        @db.VarChar(20) // CNPJ/CPF
+  responsiblePerson String?        @db.VarChar(40) // Responsável
+  email             String?    
+  phone             String?    
+  cellphone         String?    
+  stateRegistration String?        @db.VarChar(40) // IE
+  cityRegistration  String?        @db.VarChar(40) // IM
   maritalStatus     MaritalStatus? // Estado Civil
-  neighborhood      String?    // Bairro
-  street            String?    // Rua
-  number            String?    // Número
-  complement        String?    // Complemento
-  postalCode        String?    // CEP
-  notes             String?
-  logo              String?   
-  product           Product    @default(INDUSTRY)
-  plan              Plan       @default(START)
-  status            Status     @default(ACTIVE)
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-
-  country           Country    @relation(fields: [countryId], references: [id])
-  state             State      @relation(fields: [stateId], references: [id])
-  city              City       @relation(fields: [cityId], references: [id])
+  neighborhood      String?        @db.VarChar(40) // Bairro
+  street            String?        @db.VarChar(40) // Rua
+  number            String?        @db.VarChar(40)// Número
+  complement        String?        @db.VarChar(80) // Complemento
+  postalCode        String?        @db.VarChar(20) // CEP
+  notes             String?    
+  logo              String?       
+  branch            Branch         @default(INDUSTRY)
+  plan              Plan           @default(START)
+  status            Status         @default(ACTIVE)
+  createdAt         DateTime       @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt         DateTime       @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    
+  country           Country        @relation(fields: [countryId], references: [id])
+  state             State          @relation(fields: [stateId], references: [id])
+  city              City           @relation(fields: [cityId], references: [id])
   people            Person[]
   users             User[]
   audits            Audit[]
@@ -120,39 +132,43 @@ model Enterprise {
   customers         Customer[]
   deliveryAddress   DeliveryAddress[]
   tokens            Token[]
+  productDefinition ProductDefinition[]
+  unity             Unity[]
+  product           Product[]
+  productInventory  ProductInventory[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
 }
 
 model Person {
-  id             Int        @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   enterpriseId   Int
   countryId      Int?
   stateId        Int?
   cityId         Int?
-  name           String?    // Nome Fantasia / Apelido
-  legalName      String?    // Razão Social / Nome
-  taxId          String?    // CNPJ/CPF
-  nationalId     String?    // RG
+  name           String?        @db.VarChar(80) // Nome Fantasia / Apelido
+  legalName      String?        @db.VarChar(80) // Razão Social / Nome
+  taxId          String?        @db.VarChar(20) // CNPJ/CPF
+  nationalId     String?        @db.VarChar(20) // RG
   maritalStatus  MaritalStatus? // Estado Civil
-  neighborhood   String?    // Bairro
-  street         String?    // Rua
-  number         String?    // Número
-  complement     String?    // Complemento
-  postalCode     String?    // CEP
-  notes          String?
-  email          String?
-  phone          String?
-  cellphone      String?
+  neighborhood   String?        @db.VarChar(80) // Bairro
+  street         String?        @db.VarChar(80) // Rua
+  number         String?        @db.VarChar(40) // Número
+  complement     String?        @db.VarChar(80) // Complemento
+  postalCode     String?        @db.VarChar(20) // CEP
+  notes          String?        
+  email          String?        @db.VarChar(40)
+  phone          String?        @db.VarChar(40)
+  cellphone      String?        @db.VarChar(40)
   dateOfBirth    DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  enterprise     Enterprise @relation(fields: [enterpriseId], references: [id])
-  country        Country?   @relation(fields: [countryId], references: [id])
-  state          State?     @relation(fields: [stateId], references: [id])
-  city           City?      @relation(fields: [cityId], references: [id])
+  createdAt      DateTime       @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt      DateTime       @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    
+  enterprise     Enterprise     @relation(fields: [enterpriseId], references: [id])
+  country        Country?       @relation(fields: [countryId], references: [id])
+  state          State?         @relation(fields: [stateId], references: [id])
+  city           City?          @relation(fields: [cityId], references: [id])
   users          User[]
   customer       Customer[]
 
@@ -165,11 +181,11 @@ model User {
   enterpriseId Int
   personId     Int         @unique
   username     String      @unique
-  password     String
+  password     String      @db.VarChar(80)
   status       Status      @default(ACTIVE)
   role         Role        @default(EMPLOYEE)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime    @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt    DateTime    @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
   enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id])
   person       Person      @relation(fields: [personId], references: [id])
@@ -185,11 +201,11 @@ model Customer {
   personId        Int          @unique
   status          Status       @default(ACTIVE)
   type            CustomerType @default(INDIVIDUAL)
-  contactName     String?     // nome da pessoa de contato
-  contactPhone    String?
-  contactEmail    String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  contactName     String?      @db.VarChar(80) // nome da pessoa de contato
+  contactPhone    String?      @db.VarChar(20)
+  contactEmail    String?      @db.VarChar(40)
+  createdAt       DateTime     @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt       DateTime     @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
   enterprise      Enterprise   @relation(fields: [enterpriseId], references: [id])
   person          Person       @relation(fields: [personId], references: [id])
@@ -202,20 +218,20 @@ model DeliveryAddress {
   id             Int         @id @default(autoincrement())
   customerId     Int
   enterpriseId   Int
-  label          String?     // Ex: "Matriz", "Filial Porto Alegre", "Armazém"
-  street         String?
-  number         String?
-  neighborhood   String?
-  complement     String?
-  reference      String?
-  postalCode     String?
+  label          String?     @db.VarChar(40) // Ex: "Matriz", "Filial Porto Alegre", "Armazém"
+  street         String?     @db.VarChar(80)
+  number         String?     @db.VarChar(40)
+  neighborhood   String?     @db.VarChar(40)
+  complement     String?     @db.VarChar(80)
+  reference      String?     @db.VarChar(80)
+  postalCode     String?     @db.VarChar(20)
   cityId         Int
   stateId        Int
   countryId      Int?
   isDefault      Boolean     @default(false)
   status         Status      @default(ACTIVE)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime    @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt      DateTime    @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
   customer       Customer    @relation(fields: [customerId], references: [id])
   enterprise     Enterprise  @relation(fields: [enterpriseId], references: [id])
@@ -227,15 +243,16 @@ model DeliveryAddress {
 }
 
 model Token {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  enterpriseId Int
-  token        String    @unique @db.VarChar(512)
-  valid        Boolean   @default(true)
-  createdAt    DateTime  @default(now())
+  id           Int        @id @default(autoincrement())
+  userId       Int 
+  enterpriseId Int 
+  token        String     @unique @db.VarChar(512)
+  valid        Boolean    @default(true)
+  createdAt    DateTime   @default(dbgenerated("CURRENT_TIMESTAMP"))
   expiresAt    DateTime
+  updatedAt    DateTime   @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
 
-  user         User      @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
   enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
 
   @@index([userId])
@@ -248,7 +265,7 @@ model Audit {
   enterpriseId  Int
   action        String
   entity        String?
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime   @default(dbgenerated("CURRENT_TIMESTAMP"))
 
   user          User       @relation(fields: [userId], references: [id])
   enterprise    Enterprise @relation(fields: [enterpriseId], references: [id])
@@ -257,14 +274,80 @@ model Audit {
 }
 
 model Log {
-  id            Int        @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   message       String
-  stack         String?    @db.Text
+  stack         String?     @db.Text
   context       String?
   enterpriseId  Int?
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime    @default(dbgenerated("CURRENT_TIMESTAMP"))
 
   enterprise    Enterprise? @relation(fields: [enterpriseId], references: [id])
 
   @@map("log")
+}
+
+model ProductDefinition {
+  id            Int                   @id @default(autoincrement())
+  enterpriseId  Int
+  name          String                @db.VarChar(40)
+  description   String?
+  type          ProductDefinitionType 
+  createdAt     DateTime              @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt     DateTime              @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+           
+  enterprise    Enterprise            @relation(fields: [enterpriseId], references: [id])
+  product       Product[]
+
+  @@unique([enterpriseId, name])
+  @@map("productDefinition")
+}
+
+model Unity {
+  id            Int        @id @default(autoincrement())
+  enterpriseId  Int
+  simbol        String     @db.VarChar(8)
+  description   String?
+  createdAt     DateTime   @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt     DateTime   @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+
+  enterprise    Enterprise @relation(fields: [enterpriseId], references: [id])
+  product       Product[]
+
+  @@unique([enterpriseId, simbol])
+  @@map("unity")
+}
+
+model Product {
+  id                  Int                @id @default(autoincrement())
+  enterpriseId        Int            
+  productDefinitionId Int?            
+  unityId             Int?            
+  name                String             @db.VarChar(80)
+  barcode             String?            @db.VarChar(40)
+  createdAt           DateTime           @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt           DateTime           @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+ 
+  enterprise          Enterprise         @relation(fields: [enterpriseId], references: [id])
+  productDefinition   ProductDefinition? @relation(fields: [productDefinitionId], references: [id])
+  unity               Unity?             @relation(fields: [unityId], references: [id])
+  productInventory    ProductInventory[]
+
+  @@map("product")
+}
+
+model ProductInventory {
+  id           Int        @id @default(autoincrement())
+  enterpriseId Int
+  productId    Int 
+  costValue    Decimal    @db.Decimal(14, 6) 
+  saleValue    Decimal    @db.Decimal(14, 6)
+  quantity     Decimal    @db.Decimal(14, 6)
+  createdAt    DateTime   @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt    DateTime   @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
+  product      Product    @relation(fields: [productId], references: [id])
+
+  @@unique([enterpriseId, productId])
+  @@map("productInventory")
 }

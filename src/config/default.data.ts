@@ -1,4 +1,6 @@
 export const defaultUser = {
-    username: "gustavo",
+    username(i?: number) {
+        return `admin_test${i ?? 1}`;
+    },
     password: "123456",
 };

@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 export const CUSTOMER_ERROR = {
     PAGINATION: "page and limit must be numbers",
     INCLUDE_INACTIVE: "includeInactive must be 'true' or 'false'",
-}
+};
 
 export const validateCustomerPaginationAndFilter = (
     req: Request,
