@@ -39,6 +39,9 @@ export const clearData = async () => {
 export const generateData = async () => {
     if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados de teste...");
 
+    let nextId = -1;
+    const genId = () => nextId--;
+
     const country = await prisma.country.upsert({
         where: { isoCode: "BRA" },
         update: {},
@@ -59,7 +62,7 @@ export const generateData = async () => {
 
     // 3 empresas com Ids negativos
     for (let i = 1; i <= 3; i++) {
-        const enterpriseId = -i;
+        const enterpriseId = genId();
 
         const enterpriseData = {
             id: enterpriseId,
@@ -89,6 +92,7 @@ export const generateData = async () => {
 
         // Pessoa / usuário padrão
         const userPersonData = {
+            id: genId(),
             enterpriseId,
             countryId: country.id,
             stateId: state.id,
@@ -115,6 +119,7 @@ export const generateData = async () => {
         });
 
         const userData = {
+            id: genId(),
             enterpriseId,
             personId: userPerson.id,
             username: defaultUser.username(i),
@@ -196,6 +201,7 @@ export const generateData = async () => {
         for (const customerData of customersData) {
             // Pessoa (cliente)
             const personData = {
+                id: genId(),
                 enterpriseId,
                 countryId: country.id,
                 stateId: state.id,
@@ -215,15 +221,18 @@ export const generateData = async () => {
             });
 
             // Cliente
+            const customerId = genId();
             const customer = await prisma.customer.upsert({
                 where: { personId: person.id },
                 update: {
+                    id: customerId,
                     contactName: customerData.contact.name,
                     contactEmail: customerData.contact.email,
                     contactPhone: customerData.contact.phone,
                     status: customerData.status,
                 },
                 create: {
+                    id: customerId,
                     enterpriseId,
                     personId: person.id,
                     type: CustomerType.BUSINESS,
@@ -265,6 +274,7 @@ export const generateData = async () => {
                 },
             ].map((addr) => ({
                 ...addr,
+                id: genId(),
                 customerId: customer.id,
                 enterpriseId,
                 cityId: city.id,
@@ -284,6 +294,7 @@ export const generateData = async () => {
 
         // Unidade padrão
         const unityData = {
+            id: genId(),
             enterpriseId,
             simbol: "UN",
             description: "Unidade",
@@ -299,6 +310,7 @@ export const generateData = async () => {
         const productDefinitionsData = [
             {
                 // Produto acabado
+                id: genId(),
                 enterpriseId,
                 name: "Produto acabado",
                 description: "Produto acabado — pronto para venda",
@@ -306,6 +318,7 @@ export const generateData = async () => {
             },
             {
                 // Matéria-prima
+                id: genId(),
                 enterpriseId,
                 name: "Matéria prima",
                 description: "Insumos utilizados na produção",
@@ -343,6 +356,7 @@ export const generateData = async () => {
 
         // Produto acabado
         const productDataFinished = {
+            id: genId(),
             enterpriseId,
             productDefinitionId: finishedProductDef!.id,
             unityId: unity.id,
@@ -368,6 +382,7 @@ export const generateData = async () => {
         // Matérias primas
         const rawMaterialsData = [
             {
+                id: genId(),
                 enterpriseId,
                 productDefinitionId: rawMaterialDef!.id,
                 unityId: unity.id,
@@ -375,6 +390,7 @@ export const generateData = async () => {
                 barcode: null,
             },
             {
+                id: genId(),
                 enterpriseId,
                 productDefinitionId: rawMaterialDef!.id,
                 unityId: unity.id,
@@ -382,6 +398,7 @@ export const generateData = async () => {
                 barcode: null,
             },
             {
+                id: genId(),
                 enterpriseId,
                 productDefinitionId: rawMaterialDef!.id,
                 unityId: unity.id,
@@ -421,6 +438,7 @@ export const generateData = async () => {
         const inventoryData = [
             // Produto acabado
             {
+                id: genId(),
                 productId: productFinished.id,
                 costValue: 4.51,
                 saleValue: 7.92,
@@ -428,6 +446,7 @@ export const generateData = async () => {
             },
             // Matérias primas
             ...rawProducts.map((raw, idx) => ({
+                id: genId(),
                 productId: raw.id,
                 costValue: 1.62 + idx * 0.5,
                 saleValue: 0,
