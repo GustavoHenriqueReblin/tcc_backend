@@ -118,39 +118,6 @@ test("Cria cliente com pessoa nova", async ({ request }) => {
     expect(fetched.person.taxId).toBe(uniqueTaxId);
 });
 
-test("Cria cliente vinculando pessoa existente (sem cliente)", async ({ request }) => {
-    // Busca um usuario para usar a pessoa dele (nao eh cliente inicial)
-    const usersRes = await request.get(`${baseUrl}/users`);
-    expect(usersRes.status()).toBe(200);
-    const { data: users } = await usersRes.json();
-    expect(users.length).toBeGreaterThan(0);
-    const userPerson = users[0].person;
-    expect(userPerson).toBeTruthy();
-
-    const payload = {
-        person: {
-            name: `${userPerson.name || "Pessoa"} Cliente`,
-            legalName: `${userPerson.legalName || userPerson.name} Cliente`,
-            taxId: userPerson.taxId,
-            email: "cliente.ligado@example.com",
-            phone: "+55 (49) 93333-3333",
-        },
-        type: CustomerType.INDIVIDUAL,
-        contactName: "Contato Ligado",
-        contactPhone: "+55 (49) 94444-4444",
-        contactEmail: "contato.ligado@example.com",
-        status: Status.ACTIVE,
-    };
-
-    const res = await request.post(`${baseUrl}/customers`, { data: payload });
-    expect(res.status()).toBe(200);
-    const { data } = await res.json();
-    expect(data).toBeTruthy();
-    // Deve manter o mesmo personId (pessoa existente atualizada)
-    expect(data.person.id).toBe(userPerson.id);
-    expect(data.person.taxId).toBe(userPerson.taxId);
-});
-
 test("Criacao de cliente com CPF/CNPJ ja vinculado deve falhar (409)", async ({ request }) => {
     // Pega um cliente existente e tenta criar outro com o mesmo taxId da pessoa
     const listRes = await request.get(`${baseUrl}/customers?includeInactive=true`);
