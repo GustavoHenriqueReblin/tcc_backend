@@ -21,7 +21,7 @@ export class ProductService extends BaseService {
         this.safeQuery(async () => {
             const skip = (page - 1) * limit;
 
-            const [items, total] = await prisma.$transaction([
+            const [products, total] = await prisma.$transaction([
                 prisma.product.findMany({
                     where: { enterpriseId },
                     include: { productDefinition: true, unity: true, productInventory: true },
@@ -33,7 +33,7 @@ export class ProductService extends BaseService {
             ]);
 
             return {
-                products: items,
+                products,
                 meta: {
                     total,
                     page,
@@ -147,4 +147,3 @@ export class ProductService extends BaseService {
             return updated;
         }, "PRODUCT:update");
 }
-

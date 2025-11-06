@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
-import { getAllUnities, getUnityById, createUnity, updateUnity } from "@controllers/unity.controller";
+import {
+    getAllUnities,
+    getUnityById,
+    createUnity,
+    updateUnity,
+} from "@controllers/unity.controller";
 
 const router = Router();
 
@@ -12,4 +17,3 @@ router.post("/", createUnity);
 router.put("/:id", updateUnity);
 
 export default router;
-

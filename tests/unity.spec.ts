@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
+import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
 
@@ -16,7 +17,7 @@ test("Lista unities com paginação básica", async ({ request }) => {
 
 test("Cria, busca e atualiza unity", async ({ request }) => {
     const simbol = `T${Date.now().toString().slice(-6)}`; // <= 7 chars
-    const payload = { simbol, description: "Unidade de teste" };
+    const payload = { id: genId(), simbol, description: "Unidade de teste" };
 
     const createRes = await request.post(`${baseUrl}/unities`, { data: payload });
     expect(createRes.status()).toBe(200);
@@ -39,10 +40,14 @@ test("Cria, busca e atualiza unity", async ({ request }) => {
 
 test("Criar unity com simbol duplicado retorna 409", async ({ request }) => {
     const simbol = `D${Date.now().toString().slice(-6)}`;
-    const res1 = await request.post(`${baseUrl}/unities`, { data: { simbol, description: null } });
+    const res1 = await request.post(`${baseUrl}/unities`, {
+        data: { id: genId(), simbol, description: null },
+    });
     expect(res1.status()).toBe(200);
 
-    const res2 = await request.post(`${baseUrl}/unities`, { data: { simbol, description: null } });
+    const res2 = await request.post(`${baseUrl}/unities`, {
+        data: { id: genId(), simbol, description: null },
+    });
     expect(res2.status()).toBe(409);
     const body = await res2.json();
     expect(body.error).toBeTruthy();
@@ -61,4 +66,3 @@ test("Atualizar unity inexistente retorna 404", async ({ request }) => {
     const body = await res.json();
     expect(body.error).toBeTruthy();
 });
-

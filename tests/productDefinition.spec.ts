@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
+import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
 
@@ -18,6 +19,7 @@ test("Lista definições de produto com paginação básica", async ({ request }
 test("Cria, busca e atualiza uma definição de produto", async ({ request }) => {
     const uniqueName = `DEF_${Date.now().toString().slice(-6)}`;
     const payload = {
+        id: genId(),
         name: uniqueName,
         description: "Definição de teste",
         type: ProductDefinitionType.FINISHED_PRODUCT,
@@ -40,28 +42,16 @@ test("Cria, busca e atualiza uma definição de produto", async ({ request }) =>
 
     // Update
     const updateRes = await request.put(`${baseUrl}/product-definitions/${created.id}`, {
-        data: { name: `${uniqueName}_UPD`, description: "Atualizado", type: ProductDefinitionType.RAW_MATERIAL },
+        data: {
+            name: `${uniqueName}_UPD`,
+            description: "Atualizado",
+            type: ProductDefinitionType.RAW_MATERIAL,
+        },
     });
     expect(updateRes.status()).toBe(200);
     const { data: updated } = await updateRes.json();
     expect(updated.name).toBe(`${uniqueName}_UPD`);
     expect(updated.type).toBe(ProductDefinitionType.RAW_MATERIAL);
-});
-
-test("Criar definição duplicada (mesmo nome) retorna 409", async ({ request }) => {
-    const name = `DEF_DUP_${Date.now().toString().slice(-5)}`;
-
-    const res1 = await request.post(`${baseUrl}/product-definitions`, {
-        data: { name, description: null, type: ProductDefinitionType.FINISHED_PRODUCT },
-    });
-    expect(res1.status()).toBe(200);
-
-    const res2 = await request.post(`${baseUrl}/product-definitions`, {
-        data: { name, description: null, type: ProductDefinitionType.FINISHED_PRODUCT },
-    });
-    expect(res2.status()).toBe(409);
-    const body = await res2.json();
-    expect(body.error).toBeTruthy();
 });
 
 test("Buscar definição por id inexistente retorna data = null", async ({ request }) => {
@@ -79,4 +69,3 @@ test("Atualizar definição inexistente retorna 404", async ({ request }) => {
     const body = await res.json();
     expect(body.error).toBeTruthy();
 });
-

@@ -1,3 +1,4 @@
+import fs from "fs";
 import bcrypt from "bcrypt";
 import { prisma } from "../src/config/prisma";
 import {
@@ -12,6 +13,9 @@ import {
 import { insertGeoData } from "../src/cron/updateGeoData";
 import { env } from "../src/config/env";
 import { defaultUser } from "../src/config/default.data";
+
+let nextId = -1;
+const genId = () => nextId--;
 
 export const clearData = async () => {
     // Limpa apenas as empresas com Ids negativos (usadas nos testes)
@@ -38,9 +42,6 @@ export const clearData = async () => {
 
 export const generateData = async () => {
     if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados de teste...");
-
-    let nextId = -1;
-    const genId = () => nextId--;
 
     const country = await prisma.country.upsert({
         where: { isoCode: "BRA" },
@@ -476,9 +477,11 @@ export const generateData = async () => {
     if (cityCount < 4000 || stateCount < 20) await insertGeoData();
 
     if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Seed de teste finalizada com sucesso!");
+
+    fs.writeFileSync("seedData.json", JSON.stringify({ lastId: nextId }, null, 2));
 };
 
-export const sow = async () => {
+const sow = async () => {
     await prisma.$executeRawUnsafe(`SET GLOBAL time_zone = '-03:00'`);
     await prisma.$executeRawUnsafe(`SET time_zone = '-03:00'`);
 

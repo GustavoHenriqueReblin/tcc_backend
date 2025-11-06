@@ -1,21 +1,29 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
+import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
 
-const createAuxUnity = async (request: any) => {
+const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `U${Date.now().toString().slice(-6)}`;
-    const res = await request.post(`${baseUrl}/unities`, { data: { simbol, description: "Aux" } });
+    const res = await request.post(`${baseUrl}/unities`, {
+        data: { id: genId(), simbol, description: "Aux" },
+    });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
     return data;
 };
 
-const createAuxDefinition = async (request: any) => {
+const createAuxDefinition = async (request: APIRequestContext) => {
     const name = `PD_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/product-definitions`, {
-        data: { name, description: "Aux", type: ProductDefinitionType.FINISHED_PRODUCT },
+        data: {
+            id: genId(),
+            name,
+            description: "Aux",
+            type: ProductDefinitionType.FINISHED_PRODUCT,
+        },
     });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -40,6 +48,7 @@ test("Cria produto (com inventory), busca e atualiza", async ({ request }) => {
 
     const nameBase = `PROD_${Date.now().toString().slice(-6)}`;
     const payload = {
+        id: genId(),
         productDefinitionId: def.id,
         unityId: unity.id,
         name: nameBase,
@@ -110,4 +119,3 @@ test("Atualizar produto inexistente retorna 404", async ({ request }) => {
     const body = await res.json();
     expect(body.error).toBeTruthy();
 });
-

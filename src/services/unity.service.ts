@@ -12,7 +12,7 @@ export class UnityService extends BaseService {
         this.safeQuery(async () => {
             const skip = (page - 1) * limit;
 
-            const [items, total] = await prisma.$transaction([
+            const [unities, total] = await prisma.$transaction([
                 prisma.unity.findMany({
                     where: { enterpriseId },
                     skip,
@@ -23,7 +23,7 @@ export class UnityService extends BaseService {
             ]);
 
             return {
-                unities: items,
+                unities,
                 meta: {
                     total,
                     page,
@@ -39,7 +39,9 @@ export class UnityService extends BaseService {
 
     create = async (enterpriseId: number, data: UnityInput, userId: number) =>
         this.safeQuery(async () => {
-            const exists = await prisma.unity.findFirst({ where: { enterpriseId, simbol: data.simbol } });
+            const exists = await prisma.unity.findFirst({
+                where: { enterpriseId, simbol: data.simbol },
+            });
             if (exists) throw new AppError("Unity symbol already exists", 409, "UNITY:create");
 
             const created = await prisma.$transaction(async (tx) => {
@@ -69,7 +71,8 @@ export class UnityService extends BaseService {
                 const simbolTaken = await prisma.unity.findFirst({
                     where: { enterpriseId, simbol: data.simbol, NOT: { id } },
                 });
-                if (simbolTaken) throw new AppError("Unity symbol already exists", 409, "UNITY:update");
+                if (simbolTaken)
+                    throw new AppError("Unity symbol already exists", 409, "UNITY:update");
             }
 
             const updated = await prisma.$transaction(async (tx) => {
@@ -93,4 +96,3 @@ export class UnityService extends BaseService {
             return updated;
         }, "UNITY:update");
 }
-

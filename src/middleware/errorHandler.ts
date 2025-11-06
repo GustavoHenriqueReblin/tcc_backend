@@ -1,5 +1,4 @@
 import type { Response, NextFunction } from "express";
-import { handleError } from "@utils/errorBundler";
 import { Request } from "./authMiddleware";
 import { AppError } from "@utils/appError";
 

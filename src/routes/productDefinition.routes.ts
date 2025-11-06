@@ -17,4 +17,3 @@ router.post("/", createProductDefinition);
 router.put("/:id", updateProductDefinition);
 
 export default router;
-

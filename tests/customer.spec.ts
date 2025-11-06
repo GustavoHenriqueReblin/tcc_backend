@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { Status, CustomerType, Customer } from "@prisma/client";
 import { CUSTOMER_ERROR } from "../src/middleware/customerMiddleware";
+import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
 
@@ -89,7 +90,9 @@ test("Busca cliente por Id inexistente retorna data = null", async ({ request })
 test("Cria cliente com pessoa nova", async ({ request }) => {
     const uniqueTaxId = `000.${Date.now().toString().slice(-6)}-00`;
     const payload = {
+        id: genId(),
         person: {
+            id: genId(),
             name: "Cliente Novo",
             legalName: "Cliente Novo LTDA",
             taxId: uniqueTaxId,
@@ -147,7 +150,9 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
     // Cria um cliente de teste para atualizar em seguida
     const uniqueTaxId = `111.${Date.now().toString().slice(-6)}-99`;
     const createPayload = {
+        id: genId(),
         person: {
+            id: genId(),
             name: "Cliente Atualizar",
             legalName: "Cliente Atualizar LTDA",
             taxId: uniqueTaxId,

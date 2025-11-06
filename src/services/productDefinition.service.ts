@@ -14,7 +14,7 @@ export class ProductDefinitionService extends BaseService {
         this.safeQuery(async () => {
             const skip = (page - 1) * limit;
 
-            const [items, total] = await prisma.$transaction([
+            const [productDefinitions, total] = await prisma.$transaction([
                 prisma.productDefinition.findMany({
                     where: { enterpriseId },
                     skip,
@@ -25,7 +25,7 @@ export class ProductDefinitionService extends BaseService {
             ]);
 
             return {
-                productDefinitions: items,
+                productDefinitions,
                 meta: {
                     total,
                     page,
@@ -46,7 +46,12 @@ export class ProductDefinitionService extends BaseService {
             const exists = await prisma.productDefinition.findFirst({
                 where: { enterpriseId, name: data.name },
             });
-            if (exists) throw new AppError("Product definition name already exists", 409, "PRODUCT_DEFINITION:create");
+            if (exists)
+                throw new AppError(
+                    "Product definition name already exists",
+                    409,
+                    "PRODUCT_DEFINITION:create"
+                );
 
             const created = await prisma.$transaction(async (tx) => {
                 const def = await tx.productDefinition.create({
@@ -68,16 +73,33 @@ export class ProductDefinitionService extends BaseService {
             return created;
         }, "PRODUCT_DEFINITION:create");
 
-    update = async (id: number, enterpriseId: number, data: ProductDefinitionInput, userId: number) =>
+    update = async (
+        id: number,
+        enterpriseId: number,
+        data: ProductDefinitionInput,
+        userId: number
+    ) =>
         this.safeQuery(async () => {
-            const existing = await prisma.productDefinition.findFirst({ where: { id, enterpriseId } });
-            if (!existing) throw new AppError("Product definition not found", 404, "PRODUCT_DEFINITION:update");
+            const existing = await prisma.productDefinition.findFirst({
+                where: { id, enterpriseId },
+            });
+            if (!existing)
+                throw new AppError(
+                    "Product definition not found",
+                    404,
+                    "PRODUCT_DEFINITION:update"
+                );
 
             if (data.name && data.name !== existing.name) {
                 const nameTaken = await prisma.productDefinition.findFirst({
                     where: { enterpriseId, name: data.name, NOT: { id } },
                 });
-                if (nameTaken) throw new AppError("Product definition name already exists", 409, "PRODUCT_DEFINITION:update");
+                if (nameTaken)
+                    throw new AppError(
+                        "Product definition name already exists",
+                        409,
+                        "PRODUCT_DEFINITION:update"
+                    );
             }
 
             const updated = await prisma.$transaction(async (tx) => {
@@ -101,4 +123,3 @@ export class ProductDefinitionService extends BaseService {
             return updated;
         }, "PRODUCT_DEFINITION:update");
 }
-
