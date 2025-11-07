@@ -37,7 +37,7 @@ enum MaritalStatus {
   OTHER      
 }
 
-enum CustomerType {
+enum PersonType {
   INDIVIDUAL
   BUSINESS
 }
@@ -130,6 +130,7 @@ model Enterprise {
   audits            Audit[]
   logs              Log[]
   customers         Customer[]
+  suppliers         Supplier[]
   deliveryAddress   DeliveryAddress[]
   tokens            Token[]
   productDefinition ProductDefinition[]
@@ -171,6 +172,7 @@ model Person {
   city           City?          @relation(fields: [cityId], references: [id])
   users          User[]
   customer       Customer[]
+  suppliers      Supplier[]
 
   @@unique([enterpriseId, taxId])
   @@map("person")
@@ -200,7 +202,7 @@ model Customer {
   enterpriseId    Int
   personId        Int          @unique
   status          Status       @default(ACTIVE)
-  type            CustomerType @default(INDIVIDUAL)
+  type            PersonType   @default(INDIVIDUAL)
   contactName     String?      @db.VarChar(80) // nome da pessoa de contato
   contactPhone    String?      @db.VarChar(20)
   contactEmail    String?      @db.VarChar(40)
@@ -212,6 +214,29 @@ model Customer {
   deliveryAddress DeliveryAddress[]
 
   @@map("customer")
+}
+
+model Supplier {
+  id              Int           @id @default(autoincrement())
+  enterpriseId    Int
+  personId        Int           @unique
+  status          Status        @default(ACTIVE)
+  type            PersonType    @default(BUSINESS)
+  contactName     String?       @db.VarChar(80)  // Nome do contato principal
+  contactPhone    String?       @db.VarChar(20)
+  contactEmail    String?       @db.VarChar(40)
+  website         String?       @db.VarChar(100)
+  paymentTerms    String?       @db.VarChar(40)  // Prazo de pagamento (ex: 30 dias)
+  deliveryTime    String?       @db.VarChar(40)  // Tempo médio de entrega
+  category        String?       @db.VarChar(60)  // Ex: embalagens, frutas, transporte
+  notes           String?       
+  createdAt       DateTime      @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt       DateTime      @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+
+  enterprise      Enterprise    @relation(fields: [enterpriseId], references: [id])
+  person          Person        @relation(fields: [personId], references: [id])
+
+  @@map("supplier")
 }
 
 model DeliveryAddress {

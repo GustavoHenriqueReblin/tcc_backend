@@ -3,7 +3,7 @@ import { BaseService } from "@services/base.service";
 import { Status, PersonType } from "@prisma/client";
 import { AppError } from "@utils/appError";
 
-export interface CustomerInput {
+export interface SupplierInput {
     person: {
         name: string;
         legalName?: string;
@@ -23,26 +23,31 @@ export interface CustomerInput {
     contactName?: string;
     contactPhone?: string;
     contactEmail?: string;
+    website?: string;
+    paymentTerms?: string;
+    deliveryTime?: string;
+    category?: string;
+    notes?: string;
     status?: Status;
 }
 
-export class CustomerService extends BaseService {
+export class SupplierService extends BaseService {
     getAll = async (enterpriseId: number, page = 1, limit = 10, includeInactive: boolean) =>
         this.safeQuery(async () => {
             const skip = (page - 1) * limit;
 
-            const [customers, total] = await prisma.$transaction([
-                prisma.customer.findMany({
+            const [suppliers, total] = await prisma.$transaction([
+                prisma.supplier.findMany({
                     where: {
                         enterpriseId,
                         ...(includeInactive ? {} : { status: Status.ACTIVE }),
                     },
-                    include: { person: true, deliveryAddress: true },
+                    include: { person: true },
                     skip,
                     take: limit,
                     orderBy: { createdAt: "desc" },
                 }),
-                prisma.customer.count({
+                prisma.supplier.count({
                     where: {
                         enterpriseId,
                         ...(includeInactive ? {} : { status: Status.ACTIVE }),
@@ -51,24 +56,24 @@ export class CustomerService extends BaseService {
             ]);
 
             return {
-                customers,
+                suppliers,
                 meta: {
                     total,
                     page,
                     totalPages: Math.ceil(total / limit),
                 },
             };
-        }, "CUSTOMER:getAll");
+        }, "SUPPLIER:getAll");
 
     getById = async (id: number, enterpriseId: number) =>
         this.safeQuery(async () => {
-            return prisma.customer.findUnique({
-                where: { id, enterpriseId },
-                include: { person: true, deliveryAddress: true },
+            return prisma.supplier.findUnique({
+                where: { id, enterpriseId } as unknown as { id: number },
+                include: { person: true },
             });
-        }, "CUSTOMER:getById");
+        }, "SUPPLIER:getById");
 
-    create = async (enterpriseId: number, data: CustomerInput, userId: number) =>
+    create = async (enterpriseId: number, data: SupplierInput, userId: number) =>
         this.safeQuery(async () => {
             const result = await prisma.$transaction(async (tx) => {
                 const existingPerson = await tx.person.findFirst({
@@ -80,14 +85,19 @@ export class CustomerService extends BaseService {
                         data: { ...data.person, enterpriseId },
                     });
 
-                    const newCustomer = await tx.customer.create({
+                    const newSupplier = await tx.supplier.create({
                         data: {
                             enterpriseId,
                             personId: newPerson.id,
-                            type: data.type ?? PersonType.INDIVIDUAL,
+                            type: data.type ?? PersonType.BUSINESS,
                             contactName: data.contactName,
                             contactPhone: data.contactPhone,
                             contactEmail: data.contactEmail,
+                            website: data.website,
+                            paymentTerms: data.paymentTerms,
+                            deliveryTime: data.deliveryTime,
+                            category: data.category,
+                            notes: data.notes,
                             status: data.status ?? Status.ACTIVE,
                         },
                         include: { person: true },
@@ -97,23 +107,23 @@ export class CustomerService extends BaseService {
                         data: {
                             userId,
                             enterpriseId,
-                            action: `Created customer ${newPerson.name} (${newPerson.taxId})`,
-                            entity: "Customer",
+                            action: `Created supplier ${newPerson.name} (${newPerson.taxId})`,
+                            entity: "Supplier",
                         },
                     });
 
-                    return newCustomer;
+                    return newSupplier;
                 }
 
-                const existingCustomer = await tx.customer.findFirst({
+                const existingSupplier = await tx.supplier.findFirst({
                     where: { personId: existingPerson.id, enterpriseId },
                 });
 
-                if (existingCustomer) {
+                if (existingSupplier) {
                     throw new AppError(
-                        `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
+                        `CPF/CNPJ ${data.person.taxId} já está vinculado a outro fornecedor`,
                         409,
-                        "CUSTOMER:create"
+                        "SUPPLIER:create"
                     );
                 }
 
@@ -122,14 +132,19 @@ export class CustomerService extends BaseService {
                     data: { ...data.person, updatedAt: new Date() },
                 });
 
-                const linkedCustomer = await tx.customer.create({
+                const linkedSupplier = await tx.supplier.create({
                     data: {
                         enterpriseId,
                         personId: updatedPerson.id,
-                        type: data.type ?? PersonType.INDIVIDUAL,
+                        type: data.type ?? PersonType.BUSINESS,
                         contactName: data.contactName,
                         contactPhone: data.contactPhone,
                         contactEmail: data.contactEmail,
+                        website: data.website,
+                        paymentTerms: data.paymentTerms,
+                        deliveryTime: data.deliveryTime,
+                        category: data.category,
+                        notes: data.notes,
                         status: data.status ?? Status.ACTIVE,
                     },
                     include: { person: true },
@@ -139,27 +154,27 @@ export class CustomerService extends BaseService {
                     data: {
                         userId,
                         enterpriseId,
-                        action: `Linked existing person ${updatedPerson.name} (${updatedPerson.taxId}) as customer`,
-                        entity: "Customer",
+                        action: `Linked existing person ${updatedPerson.name} (${updatedPerson.taxId}) as supplier`,
+                        entity: "Supplier",
                     },
                 });
 
-                return linkedCustomer;
+                return linkedSupplier;
             });
 
             return result;
-        }, "CUSTOMER:create");
+        }, "SUPPLIER:create");
 
-    update = async (id: number, enterpriseId: number, data: CustomerInput, userId: number) =>
+    update = async (id: number, enterpriseId: number, data: SupplierInput, userId: number) =>
         this.safeQuery(async () => {
-            const existing = await prisma.customer.findFirst({
+            const existing = await prisma.supplier.findFirst({
                 where: { id, enterpriseId },
                 include: { person: true },
             });
 
-            if (!existing) throw new AppError("Cliente não encontrado", 404, "CUSTOMER:update");
+            if (!existing) throw new AppError("Fornecedor não encontrado", 404, "SUPPLIER:update");
 
-            const [updatedPerson, updatedCustomer] = await prisma.$transaction([
+            const [updatedPerson, updatedSupplier] = await prisma.$transaction([
                 prisma.person.update({
                     where: { id: existing.personId },
                     data: {
@@ -168,12 +183,17 @@ export class CustomerService extends BaseService {
                     },
                 }),
 
-                prisma.customer.update({
+                prisma.supplier.update({
                     where: { id },
                     data: {
                         contactName: data.contactName,
                         contactPhone: data.contactPhone,
                         contactEmail: data.contactEmail,
+                        website: data.website,
+                        paymentTerms: data.paymentTerms,
+                        deliveryTime: data.deliveryTime,
+                        category: data.category,
+                        notes: data.notes,
                         type: data.type,
                         status: data.status,
                         updatedAt: new Date(),
@@ -186,11 +206,11 @@ export class CustomerService extends BaseService {
                 data: {
                     userId,
                     enterpriseId,
-                    action: `Updated customer ${updatedPerson.name} (${updatedPerson.taxId})`,
-                    entity: "Customer",
+                    action: `Updated supplier ${updatedPerson.name} (${updatedPerson.taxId})`,
+                    entity: "Supplier",
                 },
             });
 
-            return updatedCustomer;
-        }, "CUSTOMER:update");
+            return updatedSupplier;
+        }, "SUPPLIER:update");
 }
