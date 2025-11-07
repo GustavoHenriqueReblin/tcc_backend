@@ -9,8 +9,8 @@ export const handleError = async (
     const err = normalizeError(error);
 
     const formatted = {
-        message: err.message,
-        stack: err.stack?.slice(0, 1500) ?? null,
+        message: err.stack?.slice(0, 1500) ?? "",
+        stack: err.name,
         context,
         enterpriseId,
     };
@@ -19,7 +19,7 @@ export const handleError = async (
         console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
 
     try {
-        if (env.ENVIRONMENT !== "DEVELOPMENT") await prisma.log.create({ data: formatted });
+        await prisma.log.create({ data: formatted });
     } catch (dbErr) {
         console.error("[ERROR] Falha ao salvar log no banco:", dbErr);
     }

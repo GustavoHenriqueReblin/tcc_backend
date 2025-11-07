@@ -315,7 +315,7 @@ model Audit {
 
 model Log {
   id            Int         @id @default(autoincrement())
-  message       String
+  message       String      @db.Text
   stack         String?     @db.Text
   context       String?
   enterpriseId  Int?
