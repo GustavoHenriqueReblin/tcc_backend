@@ -21,7 +21,7 @@ export class AuthService extends BaseService {
             });
 
             const isValid = await bcrypt.compare(env.APP_SECRET + password, user?.password ?? "");
-            if (!user || !isValid) throw new Error("Credenciais inválidas");
+            if (!user || !isValid) throw new AppError("Credenciais inválidas");
 
             const existingToken = await this.prisma.token.findFirst({
                 where: { userId: user.id, valid: true },

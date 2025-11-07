@@ -44,7 +44,7 @@ export class UnityService extends BaseService {
             const exists = await prisma.unity.findFirst({
                 where: { enterpriseId, simbol: data.simbol },
             });
-            if (exists) throw new AppError("Unity symbol already exists", 409, "UNITY:create");
+            if (exists) throw new AppError("Unidade já cadastrada", 409, "UNITY:create");
 
             const created = await prisma.$transaction(async (tx) => {
                 const unity = await tx.unity.create({
@@ -76,14 +76,13 @@ export class UnityService extends BaseService {
     update = async (id: number, enterpriseId: number, data: UnityInput, userId: number) =>
         this.safeQuery(async () => {
             const existing = await prisma.unity.findFirst({ where: { id, enterpriseId } });
-            if (!existing) throw new AppError("Unity not found", 404, "UNITY:update");
+            if (!existing) throw new AppError("Unidade não encontrada", 404, "UNITY:update");
 
             if (data.simbol && data.simbol !== existing.simbol) {
                 const simbolTaken = await prisma.unity.findFirst({
                     where: { enterpriseId, simbol: data.simbol, NOT: { id } },
                 });
-                if (simbolTaken)
-                    throw new AppError("Unity symbol already exists", 409, "UNITY:update");
+                if (simbolTaken) throw new AppError("Unidade já cadastrada", 409, "UNITY:update");
             }
 
             const updated = await prisma.$transaction(async (tx) => {

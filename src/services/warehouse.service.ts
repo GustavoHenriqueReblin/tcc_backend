@@ -38,7 +38,7 @@ export class WarehouseService extends BaseService {
     getById = async (id: number, enterpriseId: number) =>
         this.safeQuery(async () => {
             const wh = await prisma.warehouse.findUnique({ where: { id, enterpriseId } });
-            if (!wh) throw new AppError("Warehouse not found", 404, "WAREHOUSE:getById");
+            if (!wh) throw new AppError("Depósito não encontrado", 404, "WAREHOUSE:getById");
             return wh;
         }, "WAREHOUSE:getById");
 
@@ -47,8 +47,7 @@ export class WarehouseService extends BaseService {
             const exists = await prisma.warehouse.findFirst({
                 where: { enterpriseId, code: data.code },
             });
-            if (exists)
-                throw new AppError("Warehouse code already exists", 409, "WAREHOUSE:create");
+            if (exists) throw new AppError("Depósito já cadastrado", 409, "WAREHOUSE:create");
 
             const created = await prisma.$transaction(async (tx) => {
                 const wh = await tx.warehouse.create({
@@ -81,14 +80,14 @@ export class WarehouseService extends BaseService {
     update = async (id: number, enterpriseId: number, data: WarehouseInput, userId: number) =>
         this.safeQuery(async () => {
             const existing = await prisma.warehouse.findFirst({ where: { id, enterpriseId } });
-            if (!existing) throw new AppError("Warehouse not found", 404, "WAREHOUSE:update");
+            if (!existing) throw new AppError("Depósito não encontrado", 404, "WAREHOUSE:update");
 
             if (data.code && data.code !== existing.code) {
                 const codeTaken = await prisma.warehouse.findFirst({
                     where: { enterpriseId, code: data.code, NOT: { id } },
                 });
                 if (codeTaken)
-                    throw new AppError("Warehouse code already exists", 409, "WAREHOUSE:update");
+                    throw new AppError("Depósito já cadastrado", 409, "WAREHOUSE:update");
             }
 
             const updated = await prisma.$transaction(async (tx) => {

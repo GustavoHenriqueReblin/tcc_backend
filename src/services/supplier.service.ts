@@ -1,7 +1,7 @@
 import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
-import { Status, PersonType } from "@prisma/client";
+import { Status, PersonType, MaritalStatus } from "@prisma/client";
 import { AppError } from "@utils/appError";
 
 export interface SupplierInput {
@@ -21,6 +21,11 @@ export interface SupplierInput {
         cityId?: number;
         stateId?: number;
         countryId?: number;
+        maritalStatus?: MaritalStatus;
+        complement?: string;
+        notes?: string;
+        cellphone?: string;
+        dateOfBirth?: Date;
     };
     type?: PersonType;
     contactName?: string;
@@ -78,6 +83,17 @@ export class SupplierService extends BaseService {
 
     create = async (enterpriseId: number, data: SupplierInput, userId: number) =>
         this.safeQuery(async () => {
+            const city = await prisma.city.findFirst({
+                where: { id: data.person.cityId },
+                select: { id: true, stateId: true, state: { select: { countryId: true } } },
+            });
+
+            if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+            if (data.person.stateId && city.stateId !== data.person.stateId)
+                throw new AppError("Cidade não pertence ao estado informado", 400, "FK:MISMATCH");
+            if (data.person.countryId && city.state.countryId !== data.person.countryId)
+                throw new AppError("Cidade não pertence ao país informado", 400, "FK:MISMATCH");
+
             const result = await prisma.$transaction(async (tx) => {
                 const existingPerson = await tx.person.findFirst({
                     where: { taxId: data.person.taxId, enterpriseId },
@@ -104,6 +120,13 @@ export class SupplierService extends BaseService {
                             cityId: data.person.cityId,
                             stateId: data.person.stateId,
                             countryId: data.person.countryId,
+                            maritalStatus: data.person.maritalStatus,
+                            complement: data.person.complement,
+                            notes: data.person.notes,
+                            cellphone: data.person.cellphone,
+                            dateOfBirth: data.person.dateOfBirth
+                                ? new Date(data.person.dateOfBirth)
+                                : undefined,
                         },
                     });
 
@@ -192,6 +215,17 @@ export class SupplierService extends BaseService {
 
     update = async (id: number, enterpriseId: number, data: SupplierInput, userId: number) =>
         this.safeQuery(async () => {
+            const city = await prisma.city.findFirst({
+                where: { id: data.person.cityId },
+                select: { id: true, stateId: true, state: { select: { countryId: true } } },
+            });
+
+            if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+            if (data.person.stateId && city.stateId !== data.person.stateId)
+                throw new AppError("Cidade não pertence ao estado informado", 400, "FK:MISMATCH");
+            if (data.person.countryId && city.state.countryId !== data.person.countryId)
+                throw new AppError("Cidade não pertence ao país informado", 400, "FK:MISMATCH");
+
             const existing = await prisma.supplier.findFirst({
                 where: { id, enterpriseId },
                 include: { person: true },
@@ -204,6 +238,9 @@ export class SupplierService extends BaseService {
                     where: { id: existing.personId },
                     data: {
                         ...data.person,
+                        dateOfBirth: data.person.dateOfBirth
+                            ? new Date(data.person.dateOfBirth)
+                            : undefined,
                         updatedAt: new Date(),
                     },
                 }),

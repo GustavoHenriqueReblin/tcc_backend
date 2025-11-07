@@ -50,7 +50,7 @@ export class ProductDefinitionService extends BaseService {
             });
             if (exists)
                 throw new AppError(
-                    "Product definition name already exists",
+                    "A definição do produto já existe",
                     409,
                     "PRODUCT_DEFINITION:create"
                 );
@@ -95,7 +95,7 @@ export class ProductDefinitionService extends BaseService {
             });
             if (!existing)
                 throw new AppError(
-                    "Product definition not found",
+                    "Definição do produto não encontrada",
                     404,
                     "PRODUCT_DEFINITION:update"
                 );
@@ -106,7 +106,7 @@ export class ProductDefinitionService extends BaseService {
                 });
                 if (nameTaken)
                     throw new AppError(
-                        "Product definition name already exists",
+                        "A definição do produto já existe",
                         409,
                         "PRODUCT_DEFINITION:update"
                     );

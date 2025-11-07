@@ -50,7 +50,7 @@ export class ProductService extends BaseService {
                 where: { id, enterpriseId },
                 include: { productDefinition: true, unity: true, productInventory: true },
             });
-            if (!product) throw new AppError("Product not found", 404, "PRODUCT:getById");
+            if (!product) throw new AppError("Produto não encontrado", 404, "PRODUCT:getById");
             return product;
         }, "PRODUCT:getById");
 
@@ -102,7 +102,7 @@ export class ProductService extends BaseService {
     update = async (id: number, enterpriseId: number, data: ProductInput, userId: number) =>
         this.safeQuery(async () => {
             const exists = await prisma.product.findFirst({ where: { id, enterpriseId } });
-            if (!exists) throw new AppError("Product not found", 404, "PRODUCT:update");
+            if (!exists) throw new AppError("Produto não encontrado", 404, "PRODUCT:update");
 
             const updated = await prisma.$transaction(async (tx) => {
                 await tx.product.update({
