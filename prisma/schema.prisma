@@ -54,6 +54,18 @@ enum ProductDefinitionType {
   RETURNED_PRODUCT       // Produto devolvido
 }
 
+enum MovementType {
+  IN
+  OUT
+}
+
+enum MovementSource {
+  PURCHASE   // entrada comprada
+  HARVEST    // entrada colhida
+  SALE       // saída por pedido
+  ADJUSTMENT // ajuste manual
+}
+
 model Country {
   id              Int        @id @default(autoincrement())
   name            String     @db.VarChar(40)
@@ -137,6 +149,8 @@ model Enterprise {
   unity             Unity[]
   product           Product[]
   productInventory  ProductInventory[]
+  warehouse         Warehouse[]
+  inventoryMovement InventoryMovement[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
@@ -217,24 +231,25 @@ model Customer {
 }
 
 model Supplier {
-  id              Int           @id @default(autoincrement())
-  enterpriseId    Int
-  personId        Int           @unique
-  status          Status        @default(ACTIVE)
-  type            PersonType    @default(BUSINESS)
-  contactName     String?       @db.VarChar(80)  // Nome do contato principal
-  contactPhone    String?       @db.VarChar(20)
-  contactEmail    String?       @db.VarChar(40)
-  website         String?       @db.VarChar(100)
-  paymentTerms    String?       @db.VarChar(40)  // Prazo de pagamento (ex: 30 dias)
-  deliveryTime    String?       @db.VarChar(40)  // Tempo médio de entrega
-  category        String?       @db.VarChar(60)  // Ex: embalagens, frutas, transporte
-  notes           String?       
-  createdAt       DateTime      @default(dbgenerated("CURRENT_TIMESTAMP"))
-  updatedAt       DateTime      @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
-
-  enterprise      Enterprise    @relation(fields: [enterpriseId], references: [id])
-  person          Person        @relation(fields: [personId], references: [id])
+  id                Int                 @id @default(autoincrement())
+  enterpriseId      Int      
+  personId          Int                 @unique
+  status            Status              @default(ACTIVE)
+  type              PersonType          @default(BUSINESS)
+  contactName       String?             @db.VarChar(80)  // Nome do contato principal
+  contactPhone      String?             @db.VarChar(20)
+  contactEmail      String?             @db.VarChar(40)
+  website           String?             @db.VarChar(100)
+  paymentTerms      String?             @db.VarChar(40)  // Prazo de pagamento (ex: 30 dias)
+  deliveryTime      String?             @db.VarChar(40)  // Tempo médio de entrega
+  category          String?             @db.VarChar(60)  // Ex: embalagens, frutas, transporte
+  notes             String?             
+  createdAt         DateTime            @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt         DateTime            @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+      
+  enterprise        Enterprise          @relation(fields: [enterpriseId], references: [id])
+  person            Person              @relation(fields: [personId], references: [id])
+  inventoryMovement InventoryMovement[]  
 
   @@map("supplier")
 }
@@ -356,6 +371,7 @@ model Product {
   productDefinition   ProductDefinition? @relation(fields: [productDefinitionId], references: [id])
   unity               Unity?             @relation(fields: [unityId], references: [id])
   productInventory    ProductInventory[]
+  inventoryMovement   InventoryMovement[]
 
   @@map("product")
 }
@@ -375,4 +391,46 @@ model ProductInventory {
 
   @@unique([enterpriseId, productId])
   @@map("productInventory")
+}
+
+model Warehouse {
+  id           Int                 @id @default(autoincrement())
+  enterpriseId Int      
+  code         String              @db.VarChar(20)
+  name         String              @db.VarChar(80)
+  description  String?             @db.VarChar(120)
+      
+  enterprise   Enterprise          @relation(fields: [enterpriseId], references: [id])
+  movements    InventoryMovement[]
+
+  @@unique([enterpriseId, code])
+  @@map("warehouse")
+}
+
+model InventoryMovement {
+  id              Int                @id @default(autoincrement())
+  enterpriseId    Int   
+  productId       Int   
+  warehouseId     Int   
+  lotId           Int?               // controle de lote
+  direction       MovementType       
+  source          MovementSource     
+  quantity        Decimal            @db.Decimal(14, 6)
+  unitCost        Decimal?           @db.Decimal(14, 6)
+  reference       String?            @db.VarChar(80) // NF, código colheita...
+  notes           String?   
+  supplierId      Int?               // se for uma compra
+  createdAt       DateTime           @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt       DateTime           @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+   
+  enterprise      Enterprise         @relation(fields: [enterpriseId], references: [id])
+  product         Product            @relation(fields: [productId], references: [id])
+  warehouse       Warehouse          @relation(fields: [warehouseId], references: [id])
+  supplier        Supplier?          @relation(fields: [supplierId], references: [id])
+
+  @@index([enterpriseId, productId])
+  @@index([warehouseId])
+  @@index([direction])
+  @@index([source])
+  @@map("inventoryMovement")
 }

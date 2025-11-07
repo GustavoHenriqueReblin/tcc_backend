@@ -1,0 +1,113 @@
+import { prisma } from "@config/prisma";
+import { BaseService } from "@services/base.service";
+import { AppError } from "@utils/appError";
+
+export interface WarehouseInput {
+    code: string;
+    name: string;
+    description?: string | null;
+}
+
+export class WarehouseService extends BaseService {
+    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+        this.safeQuery(async () => {
+            const skip = (page - 1) * limit;
+
+            const [warehouses, total] = await prisma.$transaction([
+                prisma.warehouse.findMany({
+                    where: { enterpriseId },
+                    skip,
+                    take: limit,
+                    orderBy: { id: "desc" },
+                }),
+                prisma.warehouse.count({ where: { enterpriseId } }),
+            ]);
+
+            return {
+                warehouses,
+                meta: {
+                    total,
+                    page,
+                    totalPages: Math.ceil(total / limit),
+                },
+            };
+        }, "WAREHOUSE:getAll");
+
+    getById = async (id: number, enterpriseId: number) =>
+        this.safeQuery(async () => {
+            const wh = await prisma.warehouse.findUnique({ where: { id, enterpriseId } });
+            if (!wh) throw new AppError("Warehouse not found", 404, "WAREHOUSE:getById");
+            return wh;
+        }, "WAREHOUSE:getById");
+
+    create = async (enterpriseId: number, data: WarehouseInput, userId: number) =>
+        this.safeQuery(async () => {
+            const exists = await prisma.warehouse.findFirst({
+                where: { enterpriseId, code: data.code },
+            });
+            if (exists)
+                throw new AppError("Warehouse code already exists", 409, "WAREHOUSE:create");
+
+            const created = await prisma.$transaction(async (tx) => {
+                const wh = await tx.warehouse.create({
+                    data: {
+                        enterpriseId,
+                        code: data.code,
+                        name: data.name,
+                        description: data.description ?? null,
+                    },
+                });
+
+                await tx.audit.create({
+                    data: {
+                        userId,
+                        enterpriseId,
+                        action: `Created warehouse ${wh.code} - ${wh.name}`,
+                        entity: "Warehouse",
+                    },
+                });
+
+                return wh;
+            });
+
+            return created;
+        }, "WAREHOUSE:create");
+
+    update = async (id: number, enterpriseId: number, data: WarehouseInput, userId: number) =>
+        this.safeQuery(async () => {
+            const existing = await prisma.warehouse.findFirst({ where: { id, enterpriseId } });
+            if (!existing) throw new AppError("Warehouse not found", 404, "WAREHOUSE:update");
+
+            if (data.code && data.code !== existing.code) {
+                const codeTaken = await prisma.warehouse.findFirst({
+                    where: { enterpriseId, code: data.code, NOT: { id } },
+                });
+                if (codeTaken)
+                    throw new AppError("Warehouse code already exists", 409, "WAREHOUSE:update");
+            }
+
+            const updated = await prisma.$transaction(async (tx) => {
+                const wh = await tx.warehouse.update({
+                    where: { id },
+                    data: {
+                        code: data.code,
+                        name: data.name,
+                        description: data.description ?? null,
+                    },
+                });
+
+                await tx.audit.create({
+                    data: {
+                        userId,
+                        enterpriseId,
+                        action: `Updated warehouse ${wh.code} - ${wh.name}`,
+                        entity: "Warehouse",
+                    },
+                });
+
+                return wh;
+            });
+
+            return updated;
+        }, "WAREHOUSE:update");
+}
