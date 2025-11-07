@@ -7,7 +7,7 @@ import {
     Branch,
     Status,
     MaritalStatus,
-    CustomerType,
+    PersonType,
     ProductDefinitionType,
 } from "@prisma/client";
 import { insertGeoData } from "../src/cron/updateGeoData";
@@ -35,6 +35,7 @@ export const clearData = async () => {
         await prisma.unity.deleteMany({ where: { enterpriseId: id } });
         await prisma.deliveryAddress.deleteMany({ where: { enterpriseId: id } });
         await prisma.customer.deleteMany({ where: { enterpriseId: id } });
+        await prisma.supplier.deleteMany({ where: { enterpriseId: id } });
         await prisma.person.deleteMany({ where: { enterpriseId: id } });
         await prisma.enterprise.deleteMany({ where: { id } });
     }
@@ -236,13 +237,118 @@ export const generateData = async () => {
                     id: customerId,
                     enterpriseId,
                     personId: person.id,
-                    type: CustomerType.BUSINESS,
+                    type: PersonType.BUSINESS,
                     contactName: customerData.contact.name,
                     contactEmail: customerData.contact.email,
                     contactPhone: customerData.contact.phone,
                     status: customerData.status,
                 },
             });
+
+            // Fornecedores padrão
+            const suppliersData = [
+                {
+                    person: {
+                        name: "Transportadora Rápida",
+                        legalName: "Transportadora Rápida LTDA",
+                        taxId: "22.333.444/0001-55",
+                        email: "contato@transportadorarapida.com",
+                        phone: "+55 (49) 93456-7000",
+                        street: "Rua Logística",
+                        number: "45",
+                        neighborhood: "Distrito Industrial",
+                        postalCode: "89910-000",
+                    },
+                    contact: {
+                        name: "Paulo Souza",
+                        phone: "+55 (49) 93456-7000",
+                        email: "paulo@transportadorarapida.com",
+                    },
+                    status: Status.ACTIVE,
+                },
+                {
+                    person: {
+                        name: "Embalagens Sul",
+                        legalName: "Embalagens Sul Indústria e Comércio LTDA",
+                        taxId: "33.444.555/0001-66",
+                        email: "vendas@embalagenssul.com",
+                        phone: "+55 (49) 94567-8000",
+                        street: "Av. das Indústrias",
+                        number: "1200",
+                        neighborhood: "Polo Industrial",
+                        postalCode: "89920-000",
+                    },
+                    contact: {
+                        name: "Roberta Dias",
+                        phone: "+55 (49) 94567-8000",
+                        email: "roberta@embalagenssul.com",
+                    },
+                    status: Status.ACTIVE,
+                },
+                {
+                    person: {
+                        name: "Agro Frutas Fornecimentos",
+                        legalName: "Agro Frutas Fornecimentos LTDA",
+                        taxId: "44.555.666/0001-77",
+                        email: "contato@agrofrutas.com",
+                        phone: "+55 (49) 95678-9000",
+                        street: "Estrada Rural",
+                        number: "S/N",
+                        neighborhood: "Interior",
+                        postalCode: "89930-000",
+                    },
+                    contact: {
+                        name: "Marcos Lima",
+                        phone: "+55 (49) 95678-9000",
+                        email: "marcos@agrofrutas.com",
+                    },
+                    status: Status.INACTIVE,
+                },
+            ];
+
+            for (const supplierData of suppliersData) {
+                const personData = {
+                    id: genId(),
+                    enterpriseId,
+                    countryId: country.id,
+                    stateId: state.id,
+                    cityId: city.id,
+                    ...supplierData.person,
+                };
+
+                const person = await prisma.person.upsert({
+                    where: {
+                        enterpriseId_taxId: {
+                            enterpriseId,
+                            taxId: supplierData.person.taxId,
+                        },
+                    },
+                    update: personData,
+                    create: personData,
+                });
+
+                const supplierId = genId();
+                await prisma.supplier.upsert({
+                    where: { personId: person.id },
+                    update: {
+                        id: supplierId,
+                        contactName: supplierData.contact.name,
+                        contactEmail: supplierData.contact.email,
+                        contactPhone: supplierData.contact.phone,
+                        status: supplierData.status,
+                    },
+                    create: {
+                        id: supplierId,
+                        enterpriseId,
+                        personId: person.id,
+                        type: PersonType.BUSINESS,
+                        contactName: supplierData.contact.name,
+                        contactEmail: supplierData.contact.email,
+                        contactPhone: supplierData.contact.phone,
+                        status: supplierData.status,
+                    },
+                });
+            }
 
             // Endereços de entrega
             const deliveryAddresses = [
