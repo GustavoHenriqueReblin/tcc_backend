@@ -1,10 +1,13 @@
 import { prisma } from "@config/prisma";
+import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { Status, PersonType } from "@prisma/client";
 import { AppError } from "@utils/appError";
 
 export interface CustomerInput {
+    id?: number;
     person: {
+        id?: number;
         name: string;
         legalName?: string;
         taxId: string;
@@ -77,11 +80,33 @@ export class CustomerService extends BaseService {
 
                 if (!existingPerson) {
                     const newPerson = await tx.person.create({
-                        data: { ...data.person, enterpriseId },
+                        data: {
+                            ...(env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.person.id === "number"
+                                ? { id: data.person.id }
+                                : {}),
+                            enterpriseId,
+                            name: data.person.name,
+                            legalName: data.person.legalName,
+                            taxId: data.person.taxId,
+                            nationalId: data.person.nationalId,
+                            email: data.person.email,
+                            phone: data.person.phone,
+                            neighborhood: data.person.neighborhood,
+                            street: data.person.street,
+                            number: data.person.number,
+                            postalCode: data.person.postalCode,
+                            cityId: data.person.cityId,
+                            stateId: data.person.stateId,
+                            countryId: data.person.countryId,
+                        },
                     });
 
                     const newCustomer = await tx.customer.create({
                         data: {
+                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                                ? { id: data.id }
+                                : {}),
                             enterpriseId,
                             personId: newPerson.id,
                             type: data.type ?? PersonType.INDIVIDUAL,

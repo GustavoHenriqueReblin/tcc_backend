@@ -28,6 +28,8 @@ export const clearData = async () => {
         await prisma.audit.deleteMany({ where: { enterpriseId: id } });
         await prisma.log.deleteMany({ where: { enterpriseId: id } });
         await prisma.token.deleteMany({ where: { enterpriseId: id } });
+        await prisma.inventoryMovement.deleteMany({ where: { enterpriseId: id } });
+        await prisma.warehouse.deleteMany({ where: { enterpriseId: id } });
         await prisma.user.deleteMany({ where: { enterpriseId: id } });
         await prisma.productInventory.deleteMany({ where: { enterpriseId: id } });
         await prisma.product.deleteMany({ where: { enterpriseId: id } });
@@ -412,6 +414,32 @@ export const generateData = async () => {
             update: unityData,
             create: unityData,
         });
+
+        // Armazéns padrão
+        const warehousesData = [
+            {
+                id: genId(),
+                enterpriseId,
+                code: "MAIN",
+                name: "Armazém Principal",
+                description: "Armazém principal da empresa",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                code: "SEC",
+                name: "Armazém Secundário",
+                description: "Armazém secundário da empresa",
+            },
+        ];
+
+        for (const wh of warehousesData) {
+            await prisma.warehouse.upsert({
+                where: { enterpriseId_code: { enterpriseId, code: wh.code } },
+                update: wh,
+                create: wh,
+            });
+        }
 
         // Definições de produto
         const productDefinitionsData = [

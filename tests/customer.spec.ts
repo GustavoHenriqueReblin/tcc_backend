@@ -130,6 +130,7 @@ test("Criacao de cliente com CPF/CNPJ ja vinculado deve falhar (409)", async ({ 
     expect(existing).toBeTruthy();
 
     const payload = {
+        id: genId(),
         person: {
             name: existing.person.name ? `${existing.person.name} Duplicado` : "Duplicado",
             legalName: existing.person.legalName

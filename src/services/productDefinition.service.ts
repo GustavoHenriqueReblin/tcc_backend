@@ -1,9 +1,11 @@
 import { prisma } from "@config/prisma";
+import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { ProductDefinitionType } from "@prisma/client";
 
 export interface ProductDefinitionInput {
+    id?: number;
     name: string;
     description?: string | null;
     type: ProductDefinitionType;
@@ -55,7 +57,15 @@ export class ProductDefinitionService extends BaseService {
 
             const created = await prisma.$transaction(async (tx) => {
                 const def = await tx.productDefinition.create({
-                    data: { enterpriseId, ...data },
+                    data: {
+                        ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ? { id: data.id }
+                            : {}),
+                        enterpriseId,
+                        name: data.name,
+                        description: data.description ?? null,
+                        type: data.type,
+                    },
                 });
 
                 await tx.audit.create({

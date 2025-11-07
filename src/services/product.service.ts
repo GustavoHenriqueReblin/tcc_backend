@@ -1,4 +1,5 @@
 import { prisma } from "@config/prisma";
+import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 
@@ -9,6 +10,7 @@ export interface ProductInventoryInput {
 }
 
 export interface ProductInput {
+    id?: number;
     productDefinitionId?: number | null;
     unityId?: number | null;
     name: string;
@@ -57,6 +59,9 @@ export class ProductService extends BaseService {
             const created = await prisma.$transaction(async (tx) => {
                 const prod = await tx.product.create({
                     data: {
+                        ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ? { id: data.id }
+                            : {}),
                         enterpriseId,
                         productDefinitionId: data.productDefinitionId ?? null,
                         unityId: data.unityId ?? null,

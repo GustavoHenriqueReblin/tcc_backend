@@ -1,8 +1,10 @@
 import { prisma } from "@config/prisma";
+import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 
 export interface UnityInput {
+    id?: number;
     simbol: string;
     description?: string | null;
 }
@@ -45,7 +47,16 @@ export class UnityService extends BaseService {
             if (exists) throw new AppError("Unity symbol already exists", 409, "UNITY:create");
 
             const created = await prisma.$transaction(async (tx) => {
-                const unity = await tx.unity.create({ data: { enterpriseId, ...data } });
+                const unity = await tx.unity.create({
+                    data: {
+                        ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ? { id: data.id }
+                            : {}),
+                        enterpriseId,
+                        simbol: data.simbol,
+                        description: data.description ?? null,
+                    },
+                });
 
                 await tx.audit.create({
                     data: {

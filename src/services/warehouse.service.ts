@@ -1,8 +1,10 @@
 import { prisma } from "@config/prisma";
+import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 
 export interface WarehouseInput {
+    id?: number;
     code: string;
     name: string;
     description?: string | null;
@@ -51,6 +53,9 @@ export class WarehouseService extends BaseService {
             const created = await prisma.$transaction(async (tx) => {
                 const wh = await tx.warehouse.create({
                     data: {
+                        ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ? { id: data.id }
+                            : {}),
                         enterpriseId,
                         code: data.code,
                         name: data.name,
