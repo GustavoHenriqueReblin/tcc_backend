@@ -6,14 +6,18 @@ import {
     createAddress,
     updateAddress,
 } from "@controllers/deliveryAddress.controller";
+import {
+    validateDeliveryAddressFields,
+    validateDeliveryAddressPaginationAndFilter,
+} from "@middleware/deliveryAddressMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, validateDeliveryAddressPaginationAndFilter);
 
 router.get("/:customerId", getAddresses);
 router.get("/detail/:id", getAddressById);
-router.post("/", createAddress);
-router.put("/:id", updateAddress);
+router.post("/", validateDeliveryAddressFields, createAddress);
+router.put("/:id", validateDeliveryAddressFields, updateAddress);
 
 export default router;

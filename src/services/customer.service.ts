@@ -87,20 +87,46 @@ export class CustomerService extends BaseService {
     create = async (enterpriseId: number, data: CustomerInput, userId: number) =>
         this.safeQuery(
             async () => {
-                const city = await prisma.city.findFirst({
-                    where: { id: data.person.cityId },
-                    select: { id: true, stateId: true, state: { select: { countryId: true } } },
-                });
+                if (data.person && data.person.cityId) {
+                    const city = await prisma.city.findFirst({
+                        where: { id: data.person.cityId },
+                        select: { id: true, stateId: true, state: { select: { countryId: true } } },
+                    });
 
-                if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
-                if (data.person.stateId && city.stateId !== data.person.stateId)
-                    throw new AppError(
-                        "Cidade não pertence ao estado informado",
-                        400,
-                        "FK:MISMATCH"
-                    );
-                if (data.person.countryId && city.state.countryId !== data.person.countryId)
-                    throw new AppError("Cidade não pertence ao país informado", 400, "FK:MISMATCH");
+                    if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+                    if (data.person.stateId && city.stateId !== data.person.stateId) {
+                        throw new AppError(
+                            "Cidade não pertence ao estado informado",
+                            400,
+                            "FK:MISMATCH"
+                        );
+                    }
+                    if (data.person.countryId && city.state.countryId !== data.person.countryId) {
+                        throw new AppError(
+                            "Cidade não pertence ao país informado",
+                            400,
+                            "FK:MISMATCH"
+                        );
+                    }
+                }
+
+                if (data.person && data.person.stateId) {
+                    const state = await prisma.state.findFirst({
+                        where: { id: data.person.stateId },
+                        select: { id: true },
+                    });
+
+                    if (!state) throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
+                }
+
+                if (data.person && data.person.countryId) {
+                    const country = await prisma.country.findFirst({
+                        where: { id: data.person.countryId },
+                        select: { id: true },
+                    });
+
+                    if (!country) throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
+                }
 
                 const result = await prisma.$transaction(async (tx) => {
                     const existingPerson = await tx.person.findFirst({
@@ -132,9 +158,10 @@ export class CustomerService extends BaseService {
                                 complement: data.person.complement,
                                 notes: data.person.notes,
                                 cellphone: data.person.cellphone,
-                                dateOfBirth: data.person.dateOfBirth
-                                    ? new Date(data.person.dateOfBirth)
-                                    : undefined,
+                                dateOfBirth:
+                                    data.person && data.person.dateOfBirth
+                                        ? new Date(data.person.dateOfBirth)
+                                        : undefined,
                             },
                         });
 
@@ -217,20 +244,67 @@ export class CustomerService extends BaseService {
     update = async (id: number, enterpriseId: number, data: CustomerInput, userId: number) =>
         this.safeQuery(
             async () => {
-                const city = await prisma.city.findFirst({
-                    where: { id: data.person.cityId },
-                    select: { id: true, stateId: true, state: { select: { countryId: true } } },
-                });
+                if (data.person && data.person.cityId) {
+                    const city = await prisma.city.findFirst({
+                        where: { id: data.person.cityId },
+                        select: { id: true, stateId: true, state: { select: { countryId: true } } },
+                    });
 
-                if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
-                if (data.person.stateId && city.stateId !== data.person.stateId)
-                    throw new AppError(
-                        "Cidade não pertence ao estado informado",
-                        400,
-                        "FK:MISMATCH"
-                    );
-                if (data.person.countryId && city.state.countryId !== data.person.countryId)
-                    throw new AppError("Cidade não pertence ao país informado", 400, "FK:MISMATCH");
+                    if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+                    if (data.person.stateId && city.stateId !== data.person.stateId) {
+                        throw new AppError(
+                            "Cidade não pertence ao estado informado",
+                            400,
+                            "FK:MISMATCH"
+                        );
+                    }
+                    if (data.person.countryId && city.state.countryId !== data.person.countryId) {
+                        throw new AppError(
+                            "Cidade não pertence ao país informado",
+                            400,
+                            "FK:MISMATCH"
+                        );
+                    }
+                }
+
+                if (data.person && data.person.stateId) {
+                    const state = await prisma.state.findFirst({
+                        where: { id: data.person.stateId },
+                        select: { id: true },
+                    });
+
+                    if (!state) throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
+                }
+
+                if (data.person && data.person.countryId) {
+                    const country = await prisma.country.findFirst({
+                        where: { id: data.person.countryId },
+                        select: { id: true },
+                    });
+
+                    if (!country) throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
+                }
+
+                if (data.person && data.person.taxId) {
+                    const duplicate = await prisma.customer.findFirst({
+                        where: {
+                            enterpriseId,
+                            person: {
+                                taxId: data.person.taxId,
+                            },
+                        },
+                        include: {
+                            person: true,
+                        },
+                    });
+
+                    if (duplicate && duplicate.id !== id)
+                        throw new AppError(
+                            `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
+                            409,
+                            "CUSTOMER:create"
+                        );
+                }
 
                 const existing = await prisma.customer.findFirst({
                     where: { id, enterpriseId },
@@ -244,9 +318,10 @@ export class CustomerService extends BaseService {
                         where: { id: existing.personId },
                         data: {
                             ...data.person,
-                            dateOfBirth: data.person.dateOfBirth
-                                ? new Date(data.person.dateOfBirth)
-                                : undefined,
+                            dateOfBirth:
+                                data.person && data.person.dateOfBirth
+                                    ? new Date(data.person.dateOfBirth)
+                                    : undefined,
                             updatedAt: new Date(),
                         },
                     }),
@@ -257,9 +332,9 @@ export class CustomerService extends BaseService {
                             contactName: data.contactName,
                             contactPhone: data.contactPhone,
                             contactEmail: data.contactEmail,
-                            type: data.type,
                             status: data.status,
                             updatedAt: new Date(),
+                            ...(data.type && { type: data.type }),
                         },
                         include: { person: true },
                     }),

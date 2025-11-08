@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
-import { validateWarehousePagination } from "@middleware/warehouseMiddleware";
+import {
+    validateWarehouseFields,
+    validateWarehousePaginationAndFilter,
+} from "@middleware/warehouseMiddleware";
 import {
     getAllWarehouses,
     getWarehouseById,
@@ -10,11 +13,11 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, validateWarehousePagination);
+router.use(authMiddleware, validateWarehousePaginationAndFilter);
 
 router.get("/", getAllWarehouses);
 router.get("/:id", getWarehouseById);
-router.post("/", createWarehouse);
-router.put("/:id", updateWarehouse);
+router.post("/", validateWarehouseFields, createWarehouse);
+router.put("/:id", validateWarehouseFields, updateWarehouse);
 
 export default router;

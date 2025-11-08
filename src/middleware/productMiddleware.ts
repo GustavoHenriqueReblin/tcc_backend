@@ -1,14 +1,14 @@
-import { WarehouseInput } from "@services/warehouse.service";
+import { ProductInput } from "@services/product.service";
 import { Request, Response, NextFunction } from "express";
 
-export const WAREHOUSE_ERROR = {
+export const PRODUCT_ERROR = {
     PAGINATION: "page and limit must be numbers",
     INCLUDE_INACTIVE: "includeInactive must be 'true' or 'false'",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
 };
 
-export const validateWarehousePaginationAndFilter = (
+export const validateProductPaginationAndFilter = (
     req: Request,
     res: Response,
     next: NextFunction
@@ -19,7 +19,7 @@ export const validateWarehousePaginationAndFilter = (
     const limitNum = Number(limit);
 
     if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.PAGINATION });
+        return res.status(400).json({ message: PRODUCT_ERROR.PAGINATION });
     }
 
     if (
@@ -27,7 +27,7 @@ export const validateWarehousePaginationAndFilter = (
         includeInactive !== "true" &&
         includeInactive !== "false"
     ) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.INCLUDE_INACTIVE });
+        return res.status(400).json({ message: PRODUCT_ERROR.INCLUDE_INACTIVE });
     }
 
     req.query.page = pageNum.toString();
@@ -37,11 +37,16 @@ export const validateWarehousePaginationAndFilter = (
     next();
 };
 
-export const validateWarehouseFields = (req: Request, res: Response, next: NextFunction) => {
-    const warehouse = req.body as WarehouseInput;
+export const validateProductFields = (req: Request, res: Response, next: NextFunction) => {
+    const product = req.body as ProductInput;
+    const inventory = product.inventory;
 
-    if (!warehouse.code || !warehouse.name) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.MISSING_FIELDS });
+    if (!product || !inventory) {
+        return res.status(400).json({ message: PRODUCT_ERROR.MISSING_FIELDS });
+    }
+
+    if (!product.name || !inventory.costValue || !inventory.quantity || !inventory.saleValue) {
+        return res.status(400).json({ message: PRODUCT_ERROR.MISSING_FIELDS });
     }
 
     next();

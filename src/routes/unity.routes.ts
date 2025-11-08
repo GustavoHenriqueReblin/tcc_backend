@@ -6,14 +6,15 @@ import {
     createUnity,
     updateUnity,
 } from "@controllers/unity.controller";
+import { validateUnityFields, validateUnityPaginationAndFilter } from "@middleware/unityMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, validateUnityPaginationAndFilter);
 
 router.get("/", getAllUnities);
 router.get("/:id", getUnityById);
-router.post("/", createUnity);
-router.put("/:id", updateUnity);
+router.post("/", validateUnityFields, createUnity);
+router.put("/:id", validateUnityFields, updateUnity);
 
 export default router;

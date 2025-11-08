@@ -6,14 +6,18 @@ import {
     createProductDefinition,
     updateProductDefinition,
 } from "@controllers/productDefinition.controller";
+import {
+    validateProductDefinitionFields,
+    validateProductDefinitionPaginationAndFilter,
+} from "@middleware/productDefinitionMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, validateProductDefinitionPaginationAndFilter);
 
 router.get("/", getAllProductDefinitions);
 router.get("/:id", getProductDefinitionById);
-router.post("/", createProductDefinition);
-router.put("/:id", updateProductDefinition);
+router.post("/", validateProductDefinitionFields, createProductDefinition);
+router.put("/:id", validateProductDefinitionFields, updateProductDefinition);
 
 export default router;

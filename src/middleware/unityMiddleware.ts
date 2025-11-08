@@ -1,14 +1,14 @@
-import { WarehouseInput } from "@services/warehouse.service";
+import { UnityInput } from "@services/unity.service";
 import { Request, Response, NextFunction } from "express";
 
-export const WAREHOUSE_ERROR = {
+export const UNITY_ERROR = {
     PAGINATION: "page and limit must be numbers",
     INCLUDE_INACTIVE: "includeInactive must be 'true' or 'false'",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
 };
 
-export const validateWarehousePaginationAndFilter = (
+export const validateUnityPaginationAndFilter = (
     req: Request,
     res: Response,
     next: NextFunction
@@ -19,7 +19,7 @@ export const validateWarehousePaginationAndFilter = (
     const limitNum = Number(limit);
 
     if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.PAGINATION });
+        return res.status(400).json({ message: UNITY_ERROR.PAGINATION });
     }
 
     if (
@@ -27,7 +27,7 @@ export const validateWarehousePaginationAndFilter = (
         includeInactive !== "true" &&
         includeInactive !== "false"
     ) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.INCLUDE_INACTIVE });
+        return res.status(400).json({ message: UNITY_ERROR.INCLUDE_INACTIVE });
     }
 
     req.query.page = pageNum.toString();
@@ -37,11 +37,11 @@ export const validateWarehousePaginationAndFilter = (
     next();
 };
 
-export const validateWarehouseFields = (req: Request, res: Response, next: NextFunction) => {
-    const warehouse = req.body as WarehouseInput;
+export const validateUnityFields = (req: Request, res: Response, next: NextFunction) => {
+    const unity = req.body as UnityInput;
 
-    if (!warehouse.code || !warehouse.name) {
-        return res.status(400).json({ message: WAREHOUSE_ERROR.MISSING_FIELDS });
+    if (!unity.simbol) {
+        return res.status(400).json({ message: UNITY_ERROR.MISSING_FIELDS });
     }
 
     next();

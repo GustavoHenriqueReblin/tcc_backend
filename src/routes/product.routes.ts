@@ -6,14 +6,18 @@ import {
     createProduct,
     updateProduct,
 } from "@controllers/product.controller";
+import {
+    validateProductFields,
+    validateProductPaginationAndFilter,
+} from "@middleware/productMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, validateProductPaginationAndFilter);
 
 router.get("/", getAllProducts);
 router.get("/:id", getProductById);
-router.post("/", createProduct);
-router.put("/:id", updateProduct);
+router.post("/", validateProductFields, createProduct);
+router.put("/:id", validateProductFields, updateProduct);
 
 export default router;

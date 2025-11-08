@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
-import { validateCustomerPaginationAndFilter } from "@middleware/customerMiddleware";
+import {
+    validateCustomerFields,
+    validateCustomerPaginationAndFilter,
+} from "@middleware/customerMiddleware";
 import {
     getAllCustomers,
     getCustomerById,
@@ -14,7 +17,7 @@ router.use(authMiddleware, validateCustomerPaginationAndFilter);
 
 router.get("/", getAllCustomers);
 router.get("/:id", getCustomerById);
-router.post("/", createCustomer);
-router.put("/:id", updateCustomer);
+router.post("/", validateCustomerFields, createCustomer);
+router.put("/:id", validateCustomerFields, updateCustomer);
 
 export default router;

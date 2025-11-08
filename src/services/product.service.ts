@@ -65,6 +65,34 @@ export class ProductService extends BaseService {
     create = async (enterpriseId: number, data: ProductInput, userId: number) =>
         this.safeQuery(
             async () => {
+                if (data && data.productDefinitionId) {
+                    const productDefinition = await prisma.productDefinition.findFirst({
+                        where: { id: data.productDefinitionId },
+                        select: { id: true },
+                    });
+
+                    if (!productDefinition)
+                        throw new AppError(
+                            "Definição do produto não encontrada",
+                            404,
+                            "FK:NOT_FOUND"
+                        );
+                }
+
+                if (data && data.unityId) {
+                    const unity = await prisma.unity.findFirst({
+                        where: { id: data.unityId },
+                        select: { id: true },
+                    });
+
+                    if (!unity)
+                        throw new AppError(
+                            "Unidade do produto não encontrada",
+                            404,
+                            "FK:NOT_FOUND"
+                        );
+                }
+
                 const created = await prisma.$transaction(async (tx) => {
                     const prod = await tx.product.create({
                         data: {
@@ -114,6 +142,34 @@ export class ProductService extends BaseService {
     update = async (id: number, enterpriseId: number, data: ProductInput, userId: number) =>
         this.safeQuery(
             async () => {
+                if (data && data.productDefinitionId) {
+                    const productDefinition = await prisma.productDefinition.findFirst({
+                        where: { id: data.productDefinitionId },
+                        select: { id: true },
+                    });
+
+                    if (!productDefinition)
+                        throw new AppError(
+                            "Definição do produto não encontrada",
+                            404,
+                            "FK:NOT_FOUND"
+                        );
+                }
+
+                if (data && data.unityId) {
+                    const unity = await prisma.unity.findFirst({
+                        where: { id: data.unityId },
+                        select: { id: true },
+                    });
+
+                    if (!unity)
+                        throw new AppError(
+                            "Unidade do produto não encontrada",
+                            404,
+                            "FK:NOT_FOUND"
+                        );
+                }
+
                 const exists = await prisma.product.findFirst({ where: { id, enterpriseId } });
                 if (!exists) throw new AppError("Produto não encontrado", 404, "PRODUCT:update");
 
