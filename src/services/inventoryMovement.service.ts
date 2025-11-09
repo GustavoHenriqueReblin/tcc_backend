@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { MovementType, MovementSource } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export interface InventoryMovementInput {
     id?: number;
@@ -65,7 +66,11 @@ export class InventoryMovementService extends BaseService {
                 const [product, warehouse, supplier] = await Promise.all([
                     prisma.product.findFirst({
                         where: { id: data.productId, enterpriseId },
-                        select: { id: true },
+                        include: {
+                            productInventory: {
+                                select: { quantity: true, costValue: true },
+                            },
+                        },
                     }),
                     prisma.warehouse.findFirst({
                         where: { id: data.warehouseId, enterpriseId },
@@ -90,6 +95,19 @@ export class InventoryMovementService extends BaseService {
                                 : {}),
                             enterpriseId,
                             ...data,
+                        },
+                    });
+
+                    const productQuantity = product.productInventory?.quantity ?? new Decimal(0);
+                    await tx.productInventory.update({
+                        where: { productId: data.productId },
+                        data: {
+                            quantity:
+                                data.direction === MovementType.IN
+                                    ? productQuantity.plus(data.quantity)
+                                    : productQuantity.minus(data.quantity),
+                            ...(data.direction === MovementType.IN &&
+                                data.unitCost && { costValue: new Decimal(data.unitCost) }),
                         },
                     });
 
