@@ -87,45 +87,50 @@ export class CustomerService extends BaseService {
     create = async (enterpriseId: number, data: CustomerInput, userId: number) =>
         this.safeQuery(
             async () => {
-                if (data.person && data.person.cityId) {
-                    const city = await prisma.city.findFirst({
-                        where: { id: data.person.cityId },
-                        select: { id: true, stateId: true, state: { select: { countryId: true } } },
-                    });
+                if (data.person) {
+                    const { cityId, stateId, countryId } = data.person;
 
-                    if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
-                    if (data.person.stateId && city.stateId !== data.person.stateId) {
+                    const [city, state, country] = await Promise.all([
+                        prisma.city.findFirst({
+                            where: { id: cityId ?? 0 },
+                            select: {
+                                id: true,
+                                stateId: true,
+                                state: { select: { countryId: true } },
+                            },
+                        }),
+                        prisma.state.findFirst({
+                            where: { id: stateId ?? 0 },
+                            select: { id: true },
+                        }),
+                        prisma.country.findFirst({
+                            where: { id: countryId ?? 0 },
+                            select: { id: true },
+                        }),
+                    ]);
+
+                    if (cityId && !city)
+                        throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+                    if (stateId && !state)
+                        throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
+                    if (countryId && !country)
+                        throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
+
+                    if (city && stateId && city.stateId !== stateId) {
                         throw new AppError(
                             "Cidade não pertence ao estado informado",
                             400,
                             "FK:MISMATCH"
                         );
                     }
-                    if (data.person.countryId && city.state.countryId !== data.person.countryId) {
+
+                    if (city && countryId && city.state.countryId !== countryId) {
                         throw new AppError(
                             "Cidade não pertence ao país informado",
                             400,
                             "FK:MISMATCH"
                         );
                     }
-                }
-
-                if (data.person && data.person.stateId) {
-                    const state = await prisma.state.findFirst({
-                        where: { id: data.person.stateId },
-                        select: { id: true },
-                    });
-
-                    if (!state) throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
-                }
-
-                if (data.person && data.person.countryId) {
-                    const country = await prisma.country.findFirst({
-                        where: { id: data.person.countryId },
-                        select: { id: true },
-                    });
-
-                    if (!country) throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
                 }
 
                 const result = await prisma.$transaction(async (tx) => {
@@ -244,53 +249,56 @@ export class CustomerService extends BaseService {
     update = async (id: number, enterpriseId: number, data: CustomerInput, userId: number) =>
         this.safeQuery(
             async () => {
-                if (data.person && data.person.cityId) {
-                    const city = await prisma.city.findFirst({
-                        where: { id: data.person.cityId },
-                        select: { id: true, stateId: true, state: { select: { countryId: true } } },
-                    });
+                if (data.person) {
+                    const { cityId, stateId, countryId, taxId } = data.person;
 
-                    if (!city) throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
-                    if (data.person.stateId && city.stateId !== data.person.stateId) {
+                    const [city, state, country] = await Promise.all([
+                        prisma.city.findFirst({
+                            where: { id: cityId ?? 0 },
+                            select: {
+                                id: true,
+                                stateId: true,
+                                state: { select: { countryId: true } },
+                            },
+                        }),
+                        prisma.state.findFirst({
+                            where: { id: stateId ?? 0 },
+                            select: { id: true },
+                        }),
+                        prisma.country.findFirst({
+                            where: { id: countryId ?? 0 },
+                            select: { id: true },
+                        }),
+                    ]);
+
+                    if (cityId && !city)
+                        throw new AppError("Cidade não encontrada", 404, "FK:NOT_FOUND");
+                    if (stateId && !state)
+                        throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
+                    if (countryId && !country)
+                        throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
+
+                    if (city && stateId && city.stateId !== stateId) {
                         throw new AppError(
                             "Cidade não pertence ao estado informado",
                             400,
                             "FK:MISMATCH"
                         );
                     }
-                    if (data.person.countryId && city.state.countryId !== data.person.countryId) {
+
+                    if (city && countryId && city.state.countryId !== countryId) {
                         throw new AppError(
                             "Cidade não pertence ao país informado",
                             400,
                             "FK:MISMATCH"
                         );
                     }
-                }
 
-                if (data.person && data.person.stateId) {
-                    const state = await prisma.state.findFirst({
-                        where: { id: data.person.stateId },
-                        select: { id: true },
-                    });
-
-                    if (!state) throw new AppError("Estado não encontrado", 404, "FK:NOT_FOUND");
-                }
-
-                if (data.person && data.person.countryId) {
-                    const country = await prisma.country.findFirst({
-                        where: { id: data.person.countryId },
-                        select: { id: true },
-                    });
-
-                    if (!country) throw new AppError("País não encontrado", 404, "FK:NOT_FOUND");
-                }
-
-                if (data.person && data.person.taxId) {
                     const duplicate = await prisma.customer.findFirst({
                         where: {
                             enterpriseId,
                             person: {
-                                taxId: data.person.taxId,
+                                taxId: taxId,
                             },
                         },
                         include: {

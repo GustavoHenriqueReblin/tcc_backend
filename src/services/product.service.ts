@@ -65,33 +65,23 @@ export class ProductService extends BaseService {
     create = async (enterpriseId: number, data: ProductInput, userId: number) =>
         this.safeQuery(
             async () => {
-                if (data && data.productDefinitionId) {
-                    const productDefinition = await prisma.productDefinition.findFirst({
-                        where: { id: data.productDefinitionId },
+                const [productDefinition, unity] = await Promise.all([
+                    prisma.productDefinition.findFirst({
+                        where: { id: data.productDefinitionId ?? 0 },
                         select: { id: true },
-                    });
+                    }),
 
-                    if (!productDefinition)
-                        throw new AppError(
-                            "Definição do produto não encontrada",
-                            404,
-                            "FK:NOT_FOUND"
-                        );
-                }
-
-                if (data && data.unityId) {
-                    const unity = await prisma.unity.findFirst({
-                        where: { id: data.unityId },
+                    prisma.unity.findFirst({
+                        where: { id: data.unityId ?? 0 },
                         select: { id: true },
-                    });
+                    }),
+                ]);
 
-                    if (!unity)
-                        throw new AppError(
-                            "Unidade do produto não encontrada",
-                            404,
-                            "FK:NOT_FOUND"
-                        );
-                }
+                if (data.productDefinitionId && !productDefinition)
+                    throw new AppError("Definição do produto não encontrada", 404, "FK:NOT_FOUND");
+
+                if (data.unityId && !unity)
+                    throw new AppError("Unidade do produto não encontrada", 404, "FK:NOT_FOUND");
 
                 const created = await prisma.$transaction(async (tx) => {
                     const prod = await tx.product.create({

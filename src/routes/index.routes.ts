@@ -8,6 +8,7 @@ import supplierRoutes from "@routes/supplier.routes";
 import unityRoutes from "@routes/unity.routes";
 import productDefinitionRoutes from "@routes/productDefinition.routes";
 import warehouseRoutes from "@routes/warehouse.routes";
+import inventoryMovementRoutes from "@routes/inventoryMovement.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/unities", unityRoutes);
 router.use("/product-definitions", productDefinitionRoutes);
 router.use("/suppliers", supplierRoutes);
 router.use("/warehouses", warehouseRoutes);
+router.use("/inventoryMovement", inventoryMovementRoutes);
 
 export default router;
