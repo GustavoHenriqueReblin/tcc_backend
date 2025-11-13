@@ -14,7 +14,7 @@
     "prisma:generate": "dotenv -e .env -- prisma generate --schema=prisma/schema.prisma",
     "prisma:seed": "dotenv -e .env -- ts-node -r tsconfig-paths/register prisma/seed.ts",
     "prisma:reset": "dotenv -e .env -- prisma migrate reset --schema=prisma/schema.prisma",
-    "test": "npm run prisma:seed && npx playwright test"
+    "test": "npm run prisma:seed && npx playwright test --workers=1"
   },
   "repository": {
     "type": "git",

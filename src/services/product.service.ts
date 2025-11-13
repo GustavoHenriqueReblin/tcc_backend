@@ -2,6 +2,8 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
+import { MovementType } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export interface ProductInventoryInput {
     costValue: number;
@@ -107,6 +109,22 @@ export class ProductService extends BaseService {
                         },
                     });
 
+                    const warehouse = await tx.warehouse.findFirst({
+                        where: { enterpriseId },
+                    });
+                    await tx.inventoryMovement.create({
+                        data: {
+                            direction: MovementType.IN,
+                            quantity: data.inventory.quantity,
+                            balance: new Decimal(data.inventory.quantity),
+                            source: "ADJUSTMENT",
+                            unitCost: data.inventory.costValue,
+                            enterpriseId,
+                            productId: prod.id,
+                            warehouseId: warehouse!.id,
+                        },
+                    });
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -160,7 +178,14 @@ export class ProductService extends BaseService {
                         );
                 }
 
-                const exists = await prisma.product.findFirst({ where: { id, enterpriseId } });
+                const exists = await prisma.product.findFirst({
+                    where: { id, enterpriseId },
+                    include: {
+                        productInventory: {
+                            select: { quantity: true, costValue: true },
+                        },
+                    },
+                });
                 if (!exists) throw new AppError("Produto não encontrado", 404, "PRODUCT:update");
 
                 const updated = await prisma.$transaction(async (tx) => {
@@ -189,6 +214,30 @@ export class ProductService extends BaseService {
                             saleValue: data.inventory.saleValue,
                             quantity: data.inventory.quantity,
                             updatedAt: new Date(),
+                        },
+                    });
+
+                    const warehouse = await tx.warehouse.findFirst({
+                        where: { enterpriseId },
+                    });
+                    const currentQty = exists.productInventory?.[0]?.quantity ?? new Decimal(0);
+                    const newQty = new Decimal(data.inventory.quantity);
+                    const direction = newQty.greaterThan(currentQty)
+                        ? MovementType.IN
+                        : MovementType.OUT;
+                    await tx.inventoryMovement.create({
+                        data: {
+                            direction,
+                            quantity: newQty.minus(currentQty).abs(),
+                            balance: newQty,
+                            source: "ADJUSTMENT",
+                            unitCost:
+                                newQty.greaterThan(currentQty) && data.inventory.costValue
+                                    ? new Decimal(data.inventory.costValue)
+                                    : undefined,
+                            enterpriseId,
+                            productId: id,
+                            warehouseId: warehouse!.id,
                         },
                     });
 

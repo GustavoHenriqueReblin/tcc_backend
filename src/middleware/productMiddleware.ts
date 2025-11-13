@@ -45,7 +45,15 @@ export const validateProductFields = (req: Request, res: Response, next: NextFun
         return res.status(400).json({ message: PRODUCT_ERROR.MISSING_FIELDS });
     }
 
-    if (!product.name || !inventory.costValue || !inventory.quantity || !inventory.saleValue) {
+    if (
+        !product.name ||
+        inventory.costValue === null ||
+        inventory.costValue === undefined ||
+        inventory.quantity === null ||
+        inventory.quantity === undefined ||
+        inventory.saleValue === null ||
+        inventory.saleValue === undefined
+    ) {
         return res.status(400).json({ message: PRODUCT_ERROR.MISSING_FIELDS });
     }
 

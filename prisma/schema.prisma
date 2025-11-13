@@ -370,7 +370,7 @@ model Product {
   enterprise          Enterprise         @relation(fields: [enterpriseId], references: [id])
   productDefinition   ProductDefinition? @relation(fields: [productDefinitionId], references: [id])
   unity               Unity?             @relation(fields: [unityId], references: [id])
-  productInventory    ProductInventory?
+  productInventory    ProductInventory[]
   inventoryMovement   InventoryMovement[]
 
   @@map("product")
@@ -379,7 +379,7 @@ model Product {
 model ProductInventory {
   id           Int        @id @default(autoincrement())
   enterpriseId Int
-  productId    Int        @unique
+  productId    Int
   costValue    Decimal    @db.Decimal(14, 6) 
   saleValue    Decimal    @db.Decimal(14, 6)
   quantity     Decimal    @db.Decimal(14, 6)
@@ -416,6 +416,7 @@ model InventoryMovement {
   direction       MovementType       
   source          MovementSource     
   quantity        Decimal            @db.Decimal(14, 6)
+  balance         Decimal            @db.Decimal(14, 6)
   unitCost        Decimal?           @db.Decimal(14, 6)
   reference       String?            @db.VarChar(80) // NF, código colheita...
   notes           String?   

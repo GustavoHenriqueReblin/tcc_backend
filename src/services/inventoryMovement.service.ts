@@ -63,6 +63,12 @@ export class InventoryMovementService extends BaseService {
     create = async (enterpriseId: number, data: InventoryMovementInput, userId: number) =>
         this.safeQuery(
             async () => {
+                if (data.quantity <= 0)
+                    throw new AppError(
+                        "Quantidade deve ser maior que 0",
+                        400,
+                        "INVENTORY_MOVEMENT:quantity"
+                    );
                 const [product, warehouse, supplier] = await Promise.all([
                     prisma.product.findFirst({
                         where: { id: data.productId, enterpriseId },
@@ -88,24 +94,42 @@ export class InventoryMovementService extends BaseService {
                     throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
 
                 const created = await prisma.$transaction(async (tx) => {
+                    const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
+                    const movedQty = new Decimal(data.quantity);
+                    const newBalance =
+                        data.direction === MovementType.IN
+                            ? currentQty.plus(movedQty)
+                            : currentQty.minus(movedQty);
+
                     const inventoryMovement = await tx.inventoryMovement.create({
                         data: {
                             ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,
-                            ...data,
+                            productId: data.productId,
+                            warehouseId: data.warehouseId,
+                            lotId: data.lotId ?? null,
+                            direction: data.direction,
+                            source: data.source,
+                            quantity: movedQty,
+                            balance: newBalance,
+                            unitCost:
+                                data.unitCost !== undefined && data.unitCost !== null
+                                    ? new Decimal(data.unitCost)
+                                    : null,
+                            reference: data.reference ?? null,
+                            notes: data.notes ?? null,
+                            supplierId: data.supplierId ?? null,
                         },
                     });
 
-                    const productQuantity = product.productInventory?.quantity ?? new Decimal(0);
                     await tx.productInventory.update({
-                        where: { productId: data.productId },
+                        where: {
+                            enterpriseId_productId: { enterpriseId, productId: data.productId },
+                        },
                         data: {
-                            quantity:
-                                data.direction === MovementType.IN
-                                    ? productQuantity.plus(data.quantity)
-                                    : productQuantity.minus(data.quantity),
+                            quantity: newBalance,
                             ...(data.direction === MovementType.IN &&
                                 data.unitCost && { costValue: new Decimal(data.unitCost) }),
                         },
