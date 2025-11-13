@@ -66,6 +66,22 @@ enum MovementSource {
   ADJUSTMENT // ajuste manual
 }
 
+enum ProductionOrderStatus {
+  PLANNED     // planejada
+  RUNNING     // em execução
+  FINISHED    // finalizada
+  CANCELED    // cancelada
+}
+
+enum OrderStatus {
+  PENDING      // aguardando
+  APPROVED     // aprovado
+  SHIPPED      // enviado
+  RECEIVED     // recebido (só compras)
+  FINISHED     // concluído
+  CANCELED     // cancelado
+}
+
 model Country {
   id              Int        @id @default(autoincrement())
   name            String     @db.VarChar(40)
@@ -107,50 +123,59 @@ model City {
 }
 
 model Enterprise {
-  id                Int            @id @default(autoincrement())
-  countryId         Int    
-  stateId           Int    
-  cityId            Int    
-  name              String?        @db.VarChar(80) // Nome Fantasia / Apelido
-  legalName         String?        @db.VarChar(80) // Razão Social / Nome
-  taxId             String?        @db.VarChar(20) // CNPJ/CPF
-  responsiblePerson String?        @db.VarChar(40) // Responsável
-  email             String?    
-  phone             String?    
-  cellphone         String?    
-  stateRegistration String?        @db.VarChar(40) // IE
-  cityRegistration  String?        @db.VarChar(40) // IM
-  maritalStatus     MaritalStatus? // Estado Civil
-  neighborhood      String?        @db.VarChar(40) // Bairro
-  street            String?        @db.VarChar(40) // Rua
-  number            String?        @db.VarChar(40)// Número
-  complement        String?        @db.VarChar(80) // Complemento
-  postalCode        String?        @db.VarChar(20) // CEP
-  notes             String?    
-  logo              String?       
-  branch            Branch         @default(INDUSTRY)
-  plan              Plan           @default(START)
-  status            Status         @default(ACTIVE)
-  createdAt         DateTime       @default(dbgenerated("CURRENT_TIMESTAMP"))
-  updatedAt         DateTime       @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
-    
-  country           Country        @relation(fields: [countryId], references: [id])
-  state             State          @relation(fields: [stateId], references: [id])
-  city              City           @relation(fields: [cityId], references: [id])
-  people            Person[]
-  users             User[]
-  audits            Audit[]
-  logs              Log[]
-  customers         Customer[]
-  suppliers         Supplier[]
-  deliveryAddress   DeliveryAddress[]
-  tokens            Token[]
-  productDefinition ProductDefinition[]
-  unity             Unity[]
-  product           Product[]
-  productInventory  ProductInventory[]
-  warehouse         Warehouse[]
-  inventoryMovement InventoryMovement[]
+  id                   Int            @id @default(autoincrement())
+  countryId            Int    
+  stateId              Int    
+  cityId               Int    
+  name                 String?        @db.VarChar(80) // Nome Fantasia / Apelido
+  legalName            String?        @db.VarChar(80) // Razão Social / Nome
+  taxId                String?        @db.VarChar(20) // CNPJ/CPF
+  responsiblePerson    String?        @db.VarChar(40) // Responsável
+  email                String?    
+  phone                String?    
+  cellphone            String?    
+  stateRegistration    String?        @db.VarChar(40) // IE
+  cityRegistration     String?        @db.VarChar(40) // IM
+  maritalStatus        MaritalStatus? // Estado Civil
+  neighborhood         String?        @db.VarChar(40) // Bairro
+  street               String?        @db.VarChar(40) // Rua
+  number               String?        @db.VarChar(40)// Número
+  complement           String?        @db.VarChar(80) // Complemento
+  postalCode           String?        @db.VarChar(20) // CEP
+  notes                String?    
+  logo                 String?       
+  branch               Branch         @default(INDUSTRY)
+  plan                 Plan           @default(START)
+  status               Status         @default(ACTIVE)
+  createdAt            DateTime       @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt            DateTime       @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+       
+  country              Country        @relation(fields: [countryId], references: [id])
+  state                State          @relation(fields: [stateId], references: [id])
+  city                 City           @relation(fields: [cityId], references: [id])
+  people               Person[]
+  users                User[]
+  audits               Audit[]
+  logs                 Log[]
+  customers            Customer[]
+  suppliers            Supplier[]
+  deliveryAddress      DeliveryAddress[]
+  tokens               Token[]
+  productDefinition    ProductDefinition[]
+  unity                Unity[]
+  product              Product[]
+  productInventory     ProductInventory[]
+  warehouse            Warehouse[]
+  inventoryMovement    InventoryMovement[]
+  lot                  Lot[]
+  recipe               Recipe[]
+  recipeItem           RecipeItem[]
+  productionOrder      ProductionOrder[]
+  productionOrderInput ProductionOrderInput[]
+  saleOrder            SaleOrder[]
+  saleOrderItem        SaleOrderItem[]
+  purchaseOrder        PurchaseOrder[]
+  purchaseOrderItem    PurchaseOrderItem[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
@@ -226,6 +251,7 @@ model Customer {
   enterprise      Enterprise   @relation(fields: [enterpriseId], references: [id])
   person          Person       @relation(fields: [personId], references: [id])
   deliveryAddress DeliveryAddress[]
+  saleOrder       SaleOrder[]
 
   @@map("customer")
 }
@@ -250,6 +276,7 @@ model Supplier {
   enterprise        Enterprise          @relation(fields: [enterpriseId], references: [id])
   person            Person              @relation(fields: [personId], references: [id])
   inventoryMovement InventoryMovement[]  
+  purchaseOrder     PurchaseOrder[]  
 
   @@map("supplier")
 }
@@ -372,6 +399,13 @@ model Product {
   unity               Unity?             @relation(fields: [unityId], references: [id])
   productInventory    ProductInventory[]
   inventoryMovement   InventoryMovement[]
+  recipe              Recipe[]
+  recipeItems         RecipeItem[]
+  productionOrders    ProductionOrder[]
+  saleOrderItems      SaleOrderItem[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  productionInputs    ProductionOrderInput[]
+  lot                 Lot[]
 
   @@map("product")
 }
@@ -428,10 +462,171 @@ model InventoryMovement {
   product         Product            @relation(fields: [productId], references: [id])
   warehouse       Warehouse          @relation(fields: [warehouseId], references: [id])
   supplier        Supplier?          @relation(fields: [supplierId], references: [id])
+  lot             Lot?               @relation("LotToMovements", fields: [lotId], references: [id])
 
   @@index([enterpriseId, productId])
   @@index([warehouseId])
   @@index([direction])
   @@index([source])
   @@map("inventoryMovement")
+}
+
+model Lot {
+  id              Int                 @id @default(autoincrement())
+  enterpriseId    Int       
+  code            String              @unique @db.VarChar(40)
+  productId       Int?       
+  harvestDate     DateTime?       
+  expiration      DateTime?       
+  notes           String?       
+         
+  createdAt       DateTime            @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt       DateTime            @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+         
+  enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
+  product         Product?            @relation(fields: [productId], references: [id])
+  movements       InventoryMovement[] @relation("LotToMovements")
+  productionOrder ProductionOrder[]
+
+  @@map("lot")
+}
+
+model Recipe {
+  id            Int          @id @default(autoincrement())
+  enterpriseId  Int        
+  productId     Int  
+  description   String?                
+  notes         String?        
+        
+  createdAt     DateTime     @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt     DateTime     @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+        
+  enterprise    Enterprise   @relation(fields: [enterpriseId], references: [id])
+  product       Product      @relation(fields: [productId], references: [id])
+  items         RecipeItem[]
+
+  @@map("recipe")
+}
+
+model RecipeItem {
+  id            Int         @id @default(autoincrement())
+  enterpriseId  Int        
+  recipeId      Int
+  productId     Int
+  quantity      Decimal     @db.Decimal(14, 6)
+
+  enterprise    Enterprise  @relation(fields: [enterpriseId], references: [id])
+  recipe        Recipe      @relation(fields: [recipeId], references: [id])
+  product       Product     @relation(fields: [productId], references: [id])
+
+  @@map("recipeItem")
+}
+
+model ProductionOrder {
+  id              Int                    @id @default(autoincrement())
+  enterpriseId    Int    
+  code            String                 @unique @db.VarChar(40)
+  productId       Int                    // produto final
+  lotId           Int?                   // lote gerado
+  status          ProductionOrderStatus  @default(PLANNED)
+  plannedQty      Decimal                @db.Decimal(14, 6)
+  producedQty     Decimal?               @db.Decimal(14, 6)
+  wasteQty        Decimal?               @db.Decimal(14, 6)
+  startDate       DateTime?    
+  endDate         DateTime?    
+  notes           String?    
+    
+  createdAt       DateTime               @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt       DateTime               @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    
+  enterprise      Enterprise             @relation(fields: [enterpriseId], references: [id])
+  product         Product                @relation(fields: [productId], references: [id])
+  lot             Lot?                   @relation(fields: [lotId], references: [id])
+  inputs          ProductionOrderInput[]
+
+  @@map("productionOrder")
+}
+
+model ProductionOrderInput {
+  id                 Int             @id @default(autoincrement())
+  enterpriseId       Int
+  productionOrderId  Int
+  productId          Int
+  quantity           Decimal         @db.Decimal(14, 6)
+  unitCost           Decimal?        @db.Decimal(14, 6)
+
+  enterprise         Enterprise      @relation(fields: [enterpriseId], references: [id])
+  productionOrder    ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  product            Product         @relation(fields: [productId], references: [id])
+
+  @@map("productionOrderInput")
+}
+
+model SaleOrder {
+  id            Int         @id @default(autoincrement())
+  enterpriseId  Int   
+  customerId    Int   
+  code          String      @unique @db.VarChar(40)
+  status        OrderStatus @default(PENDING)
+  totalValue    Decimal     @db.Decimal(14, 6)
+  notes         String?   
+   
+  createdAt     DateTime    @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt     DateTime    @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+   
+  enterprise    Enterprise  @relation(fields: [enterpriseId], references: [id])
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  items         SaleOrderItem[]
+
+  @@map("saleOrder")
+}
+
+model SaleOrderItem {
+  id                Int        @id @default(autoincrement())
+  enterpriseId      Int
+  saleOrderId       Int
+  productId         Int
+  quantity          Decimal    @db.Decimal(14, 6)
+  unitPrice         Decimal    @db.Decimal(14, 6)
+  productUnitPrice  Decimal    @db.Decimal(14, 6)
+  unitCost          Decimal    @db.Decimal(14, 6)
+
+  enterprise        Enterprise @relation(fields: [enterpriseId], references: [id])
+  saleOrder         SaleOrder  @relation(fields: [saleOrderId], references: [id])
+  product           Product    @relation(fields: [productId], references: [id])
+
+  @@map("saleOrderItem")
+}
+
+model PurchaseOrder {
+  id            Int         @id @default(autoincrement())
+  enterpriseId  Int       
+  supplierId    Int       
+  code          String      @unique @db.VarChar(40)
+  status        OrderStatus @default(PENDING)
+  notes         String?       
+       
+  createdAt     DateTime    @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updatedAt     DateTime    @default(dbgenerated("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+       
+  enterprise    Enterprise  @relation(fields: [enterpriseId], references: [id])
+  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+  items         PurchaseOrderItem[]
+
+  @@map("purchaseOrder")
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  enterpriseId    Int
+  purchaseOrderId Int
+  productId       Int
+  quantity        Decimal       @db.Decimal(14, 6)
+  unitCost        Decimal       @db.Decimal(14, 6)
+
+  enterprise      Enterprise    @relation(fields: [enterpriseId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+
+  @@map("purchaseOrderItem")
 }

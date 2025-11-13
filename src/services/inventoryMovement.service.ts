@@ -53,7 +53,7 @@ export class InventoryMovementService extends BaseService {
         this.safeQuery(
             async () =>
                 prisma.inventoryMovement.findUnique({
-                    where: { id, enterpriseId } as unknown as { id: number },
+                    where: { id, enterpriseId },
                     include: { product: true, warehouse: true, supplier: true },
                 }),
             "INVENTORY_MOVEMENT:getById",

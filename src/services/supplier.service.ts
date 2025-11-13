@@ -81,7 +81,7 @@ export class SupplierService extends BaseService {
         this.safeQuery(
             async () => {
                 return prisma.supplier.findUnique({
-                    where: { id, enterpriseId } as unknown as { id: number },
+                    where: { id, enterpriseId },
                     include: { person: true },
                 });
             },

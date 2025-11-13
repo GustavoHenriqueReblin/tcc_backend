@@ -9,6 +9,15 @@ import unityRoutes from "@routes/unity.routes";
 import productDefinitionRoutes from "@routes/productDefinition.routes";
 import warehouseRoutes from "@routes/warehouse.routes";
 import inventoryMovementRoutes from "@routes/inventoryMovement.routes";
+import lotRoutes from "@routes/lot.routes";
+import recipeRoutes from "@routes/recipe.routes";
+import recipeItemRoutes from "@routes/recipeItem.routes";
+import productionOrderRoutes from "@routes/productionOrder.routes";
+import productionOrderInputRoutes from "@routes/productionOrderInput.routes";
+import saleOrderRoutes from "@routes/saleOrder.routes";
+import saleOrderItemRoutes from "@routes/saleOrderItem.routes";
+import purchaseOrderRoutes from "@routes/purchaseOrder.routes";
+import purchaseOrderItemRoutes from "@routes/purchaseOrderItem.routes";
 
 const router = Router();
 
@@ -22,5 +31,14 @@ router.use("/product-definitions", productDefinitionRoutes);
 router.use("/suppliers", supplierRoutes);
 router.use("/warehouses", warehouseRoutes);
 router.use("/inventoryMovement", inventoryMovementRoutes);
+router.use("/lots", lotRoutes);
+router.use("/recipes", recipeRoutes);
+router.use("/recipe-items", recipeItemRoutes);
+router.use("/production-orders", productionOrderRoutes);
+router.use("/production-order-inputs", productionOrderInputRoutes);
+router.use("/sale-orders", saleOrderRoutes);
+router.use("/sale-order-items", saleOrderItemRoutes);
+router.use("/purchase-orders", purchaseOrderRoutes);
+router.use("/purchase-order-items", purchaseOrderItemRoutes);
 
 export default router;
