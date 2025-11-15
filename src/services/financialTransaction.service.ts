@@ -162,7 +162,7 @@ export class FinancialTransactionService extends BaseService {
 
                 if (!existing) {
                     throw new AppError(
-                        "LanAamento financeiro não encontrado",
+                        "Lançamento financeiro não encontrado",
                         404,
                         "FINANCIAL_TRANSACTION:update"
                     );
