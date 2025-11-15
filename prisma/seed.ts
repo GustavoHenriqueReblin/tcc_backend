@@ -9,6 +9,9 @@ import {
     MaritalStatus,
     PersonType,
     ProductDefinitionType,
+    PaymentStatus,
+    PaymentMethod,
+    TransactionType,
 } from "@prisma/client";
 import { insertGeoData } from "../src/cron/updateGeoData";
 import { env } from "../src/config/env";
@@ -39,6 +42,9 @@ export const clearData = async () => {
         await prisma.lot.deleteMany({ where: { enterpriseId: id } });
 
         // Demais dados
+        await prisma.financialTransaction.deleteMany({ where: { enterpriseId: id } });
+        await prisma.accountsReceivable.deleteMany({ where: { enterpriseId: id } });
+        await prisma.accountsPayable.deleteMany({ where: { enterpriseId: id } });
         await prisma.audit.deleteMany({ where: { enterpriseId: id } });
         await prisma.log.deleteMany({ where: { enterpriseId: id } });
         await prisma.token.deleteMany({ where: { enterpriseId: id } });
@@ -753,6 +759,39 @@ export const generateData = async () => {
                     unitCost: 4.51,
                 },
             });
+
+            // Conta a receber ligada ao pedido de venda
+            const receivable = await prisma.accountsReceivable.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    customerId: anyCustomer.id,
+                    saleOrderId: sale.id,
+                    description: "Conta a receber inicial",
+                    value: 79.2,
+                    dueDate: new Date(),
+                    paymentDate: null,
+                    method: PaymentMethod.PIX,
+                    status: PaymentStatus.PENDING,
+                    notes: "Gerada a partir do pedido inicial",
+                },
+            });
+
+            // Lançamento financeiro de crédito referente à venda
+            await prisma.financialTransaction.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    type: TransactionType.CREDIT,
+                    value: 79.2,
+                    date: new Date(),
+                    category: "Venda",
+                    description: "Crédito previsto da venda inicial",
+                    accountsReceivableId: receivable.id,
+                    accountsPayableId: null,
+                    notes: "Seed inicial",
+                },
+            });
         }
 
         // Compra
@@ -789,6 +828,39 @@ export const generateData = async () => {
                     },
                 });
             }
+
+            // Conta a pagar ligada à compra
+            const payable = await prisma.accountsPayable.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    supplierId: anySupplier.id,
+                    purchaseOrderId: purchase.id,
+                    description: "Conta a pagar inicial",
+                    value: 107.5,
+                    dueDate: new Date(),
+                    paymentDate: null,
+                    method: PaymentMethod.BANK_SLIP,
+                    status: PaymentStatus.PENDING,
+                    notes: "Gerada a partir da compra inicial",
+                },
+            });
+
+            // Lançamento financeiro de débito referente à compra
+            await prisma.financialTransaction.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    type: TransactionType.DEBIT,
+                    value: 107.5,
+                    date: new Date(),
+                    category: "Compra",
+                    description: "Débito previsto da compra inicial",
+                    accountsReceivableId: null,
+                    accountsPayableId: payable.id,
+                    notes: "Seed inicial",
+                },
+            });
         }
     }
 
