@@ -74,11 +74,7 @@ export class AssetService extends BaseService {
                 });
 
                 if (!category) {
-                    throw new AppError(
-                        "Categoria de ativo não encontrada",
-                        404,
-                        "FK:NOT_FOUND"
-                    );
+                    throw new AppError("Categoria de ativo não encontrada", 404, "FK:NOT_FOUND");
                 }
 
                 const created = await prisma.$transaction(async (tx) => {
