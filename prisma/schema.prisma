@@ -103,6 +103,25 @@ enum PaymentMethod {
   OTHER
 }
 
+enum AssetStatus {
+  ACTIVE // em uso
+  INACTIVE // parado, não utilizado
+  SOLD // vendido
+  DISPOSED // descartado
+  LOST // perdido / não localizado
+}
+
+enum AssetMaintenanceType {
+  CLEANING // limpeza
+  LUBRICATION // lubrificação
+  ADJUSTMENT // ajuste
+  PART_REPLACEMENT // troca de peça
+  INSPECTION // inspeção
+  CORRECTIVE // corretiva
+  PREVENTIVE // preventiva
+  OTHER
+}
+
 model Country {
   id              Int               @id @default(autoincrement())
   name            String            @db.VarChar(40)
@@ -112,6 +131,7 @@ model Country {
   people          Person[]
   deliveryAddress DeliveryAddress[]
 
+  /// Tabela de países cadastrados.
   @@map("country")
 }
 
@@ -127,6 +147,7 @@ model State {
   people          Person[]
   deliveryAddress DeliveryAddress[]
 
+  /// Tabela de estados vinculados a um país.
   @@map("state")
 }
 
@@ -140,6 +161,7 @@ model City {
   people          Person[]
   deliveryAddress DeliveryAddress[]
 
+  /// Tabela de cidades vinculadas a um estado.
   @@map("city")
 }
 
@@ -200,8 +222,12 @@ model Enterprise {
   AccountsReceivable   AccountsReceivable[]
   AccountsPayable      AccountsPayable[]
   FinancialTransaction FinancialTransaction[]
+  Asset                Asset[]
+  AssetMaintenance     AssetMaintenance[]
+  AssetCategory        AssetCategory[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
+  /// Empresas/empreendimentos que utilizam o sistema.
   @@map("enterprise")
 }
 
@@ -238,6 +264,7 @@ model Person {
   suppliers  Supplier[]
 
   @@unique([enterpriseId, taxId])
+  /// Pessoas físicas ou jurídicas vinculadas à empresa.
   @@map("person")
 }
 
@@ -257,6 +284,7 @@ model User {
   tokens     Token[]
   audits     Audit[]
 
+  /// Usuários de acesso ao sistema.
   @@map("user")
 }
 
@@ -278,6 +306,7 @@ model Customer {
   saleOrder          SaleOrder[]
   AccountsReceivable AccountsReceivable[]
 
+  /// Clientes atendidos pela empresa.
   @@map("customer")
 }
 
@@ -304,6 +333,7 @@ model Supplier {
   purchaseOrder     PurchaseOrder[]
   AccountsPayable   AccountsPayable[]
 
+  /// Fornecedores de produtos e serviços da empresa.
   @@map("supplier")
 }
 
@@ -332,6 +362,7 @@ model DeliveryAddress {
   state      State?     @relation(fields: [stateId], references: [id])
   country    Country?   @relation(fields: [countryId], references: [id])
 
+  /// Endereços de entrega associados a clientes/fornecedores.
   @@map("deliveryAddress")
 }
 
@@ -349,6 +380,7 @@ model Token {
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
 
   @@index([userId])
+  /// Tokens de autenticação e recuperação de acesso.
   @@map("token")
 }
 
@@ -363,6 +395,7 @@ model Audit {
   user       User       @relation(fields: [userId], references: [id])
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
 
+  /// Registros de auditoria de ações dos usuários.
   @@map("audit")
 }
 
@@ -376,6 +409,7 @@ model Log {
 
   enterprise Enterprise? @relation(fields: [enterpriseId], references: [id])
 
+  /// Logs técnicos e de erro do sistema.
   @@map("log")
 }
 
@@ -392,6 +426,7 @@ model ProductDefinition {
   product    Product[]
 
   @@unique([enterpriseId, name])
+  /// Definições conceituais de tipos de produtos.
   @@map("productDefinition")
 }
 
@@ -407,6 +442,7 @@ model Unity {
   product    Product[]
 
   @@unique([enterpriseId, simbol])
+  /// Unidades de medida utilizadas nos produtos.
   @@map("unity")
 }
 
@@ -433,6 +469,7 @@ model Product {
   productionInputs   ProductionOrderInput[]
   lot                Lot[]
 
+  /// Produtos cadastrados para venda ou produção.
   @@map("product")
 }
 
@@ -450,6 +487,7 @@ model ProductInventory {
   product    Product    @relation(fields: [productId], references: [id])
 
   @@unique([enterpriseId, productId])
+  /// Estoque e valores atuais de cada produto.
   @@map("productInventory")
 }
 
@@ -464,6 +502,7 @@ model Warehouse {
   movements  InventoryMovement[]
 
   @@unique([enterpriseId, code])
+  /// Depósitos/almoxarifados da empresa.
   @@map("warehouse")
 }
 
@@ -494,6 +533,7 @@ model InventoryMovement {
   @@index([warehouseId])
   @@index([direction])
   @@index([source])
+  /// Movimentações de estoque (entradas e saídas).
   @@map("inventoryMovement")
 }
 
@@ -513,6 +553,7 @@ model Lot {
   movements       InventoryMovement[] @relation("LotToMovements")
   productionOrder ProductionOrder[]
 
+  /// Lotes de produtos associados a produção ou compra.
   @@map("lot")
 }
 
@@ -529,6 +570,7 @@ model Recipe {
   product    Product      @relation(fields: [productId], references: [id])
   items      RecipeItem[]
 
+  /// Receitas/fórmulas de produção de um produto.
   @@map("recipe")
 }
 
@@ -545,6 +587,7 @@ model RecipeItem {
   recipe     Recipe     @relation(fields: [recipeId], references: [id])
   product    Product    @relation(fields: [productId], references: [id])
 
+  /// Itens/componentes que compõem uma receita.
   @@map("recipeItem")
 }
 
@@ -569,6 +612,7 @@ model ProductionOrder {
   lot        Lot?                   @relation(fields: [lotId], references: [id])
   inputs     ProductionOrderInput[]
 
+  /// Ordens de produção planejadas e executadas.
   @@map("productionOrder")
 }
 
@@ -586,6 +630,7 @@ model ProductionOrderInput {
   productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
   product         Product         @relation(fields: [productId], references: [id])
 
+  /// Consumo de insumos em cada ordem de produção.
   @@map("productionOrderInput")
 }
 
@@ -605,6 +650,7 @@ model SaleOrder {
   items              SaleOrderItem[]
   AccountsReceivable AccountsReceivable[]
 
+  /// Pedidos de venda realizados para clientes.
   @@map("saleOrder")
 }
 
@@ -624,6 +670,7 @@ model SaleOrderItem {
   saleOrder  SaleOrder  @relation(fields: [saleOrderId], references: [id])
   product    Product    @relation(fields: [productId], references: [id])
 
+  /// Itens pertencentes a um pedido de venda.
   @@map("saleOrderItem")
 }
 
@@ -642,6 +689,7 @@ model PurchaseOrder {
   items           PurchaseOrderItem[]
   AccountsPayable AccountsPayable[]
 
+  /// Pedidos de compra realizados a fornecedores.
   @@map("purchaseOrder")
 }
 
@@ -659,6 +707,7 @@ model PurchaseOrderItem {
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
   product       Product       @relation(fields: [productId], references: [id])
 
+  /// Itens pertencentes a um pedido de compra.
   @@map("purchaseOrderItem")
 }
 
@@ -685,6 +734,7 @@ model AccountsReceivable {
   @@index([enterpriseId])
   @@index([customerId])
   @@index([saleOrderId])
+  /// Contas a receber da empresa.
   @@map("accountsReceivable")
 }
 
@@ -711,6 +761,7 @@ model AccountsPayable {
   @@index([enterpriseId])
   @@index([supplierId])
   @@index([purchaseOrderId])
+  /// Contas a pagar da empresa.
   @@map("accountsPayable")
 }
 
@@ -735,5 +786,69 @@ model FinancialTransaction {
   @@index([enterpriseId])
   @@index([accountsReceivableId])
   @@index([accountsPayableId])
+  /// Transações financeiras ligadas a contas a pagar e receber.
   @@map("financialTransaction")
+}
+
+model AssetCategory {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  name         String   @db.VarChar(40)
+  description  String?  @db.VarChar(120)
+  createdAt    DateTime @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  assets     Asset[]
+
+  @@unique([enterpriseId, name])
+  /// Categorias dos bens patrimoniais (ex: máquinas, veículos, informática, móveis).
+  @@map("assetCategory")
+}
+
+model Asset {
+  id               Int         @id @default(autoincrement())
+  enterpriseId     Int
+  categoryId       Int // vínculo com AssetCategory
+  name             String      @db.VarChar(80)
+  acquisitionDate  DateTime
+  acquisitionCost  Decimal     @db.Decimal(14, 6)
+  usefulLifeMonths Int // vida útil total (em meses)
+  salvageValue     Decimal     @db.Decimal(14, 6) // valor residual (sucata)
+  location         String?     @db.VarChar(80) // onde está o ativo
+  status           AssetStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime    @default(now()) @db.Timestamp(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamp(3)
+
+  enterprise  Enterprise         @relation(fields: [enterpriseId], references: [id])
+  category    AssetCategory      @relation(fields: [categoryId], references: [id])
+  maintenance AssetMaintenance[]
+
+  @@index([enterpriseId])
+  @@index([categoryId])
+  /// Bens patrimoniais da empresa (máquinas, veículos, etc.).
+  @@map("asset")
+}
+
+model AssetMaintenance {
+  id           Int                  @id @default(autoincrement())
+  enterpriseId Int
+  assetId      Int
+  type         AssetMaintenanceType @default(OTHER)
+  description  String?              @db.VarChar(200)
+  cost         Decimal?             @db.Decimal(14, 6)
+  date         DateTime
+  technician   String?              @db.VarChar(80)
+  notes        String?
+  createdAt    DateTime             @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime             @updatedAt @db.Timestamp(3)
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  asset      Asset      @relation(fields: [assetId], references: [id])
+
+  @@index([enterpriseId])
+  @@index([assetId])
+  /// Manutenções realizadas nos bens patrimoniais.
+  @@map("assetMaintenance")
 }

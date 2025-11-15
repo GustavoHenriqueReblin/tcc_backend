@@ -21,6 +21,9 @@ import purchaseOrderItemRoutes from "@routes/purchaseOrderItem.routes";
 import accountsReceivableRoutes from "@routes/accountsReceivable.routes";
 import accountsPayableRoutes from "@routes/accountsPayable.routes";
 import financialTransactionRoutes from "@routes/financialTransaction.routes";
+import assetCategoryRoutes from "@routes/assetCategory.routes";
+import assetRoutes from "@routes/asset.routes";
+import assetMaintenanceRoutes from "@routes/assetMaintenance.routes";
 
 const router = Router();
 
@@ -46,5 +49,8 @@ router.use("/purchase-order-items", purchaseOrderItemRoutes);
 router.use("/accounts-receivable", accountsReceivableRoutes);
 router.use("/accounts-payable", accountsPayableRoutes);
 router.use("/financial-transactions", financialTransactionRoutes);
+router.use("/asset-categories", assetCategoryRoutes);
+router.use("/assets", assetRoutes);
+router.use("/asset-maintenance", assetMaintenanceRoutes);
 
 export default router;
