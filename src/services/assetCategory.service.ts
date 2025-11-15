@@ -137,8 +137,8 @@ export class AssetCategoryService extends BaseService {
                     const category = await tx.assetCategory.update({
                         where: { id },
                         data: {
-                            name: data.name ?? existing.name,
-                            description: data.description ?? existing.description,
+                            name: data.name,
+                            description: data.description,
                         },
                     });
 

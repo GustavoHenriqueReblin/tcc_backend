@@ -12,6 +12,8 @@ import {
     PaymentStatus,
     PaymentMethod,
     TransactionType,
+    AssetStatus,
+    AssetMaintenanceType,
 } from "@prisma/client";
 import { insertGeoData } from "../src/cron/updateGeoData";
 import { env } from "../src/config/env";
@@ -58,6 +60,9 @@ export const clearData = async () => {
         await prisma.deliveryAddress.deleteMany({ where: { enterpriseId: id } });
         await prisma.customer.deleteMany({ where: { enterpriseId: id } });
         await prisma.supplier.deleteMany({ where: { enterpriseId: id } });
+        await prisma.assetMaintenance.deleteMany({ where: { enterpriseId: id } });
+        await prisma.asset.deleteMany({ where: { enterpriseId: id } });
+        await prisma.assetCategory.deleteMany({ where: { enterpriseId: id } });
         await prisma.person.deleteMany({ where: { enterpriseId: id } });
         await prisma.enterprise.deleteMany({ where: { id } });
     }
@@ -458,6 +463,155 @@ export const generateData = async () => {
                 where: { enterpriseId_code: { enterpriseId, code: wh.code } },
                 update: wh,
                 create: wh,
+            });
+        }
+
+        // Ativos e categorias de ativos padrão
+        const assetCategoriesData = [
+            {
+                id: genId(),
+                enterpriseId,
+                name: "Máquinas",
+                description: "Equipamentos industriais e máquinas de produção",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                name: "Veiculos",
+                description: "Veículos utilizados na operação",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                name: "Informática",
+                description: "Computadores, servidores e periféricos",
+            },
+        ];
+
+        const assetCategories = [];
+
+        for (const catData of assetCategoriesData) {
+            const existingCat = await prisma.assetCategory.findFirst({
+                where: { enterpriseId, name: catData.name },
+            });
+
+            if (existingCat) {
+                const category = await prisma.assetCategory.update({
+                    where: { id: existingCat.id },
+                    data: catData,
+                });
+                assetCategories.push(category);
+            } else {
+                const category = await prisma.assetCategory.create({
+                    data: catData,
+                });
+                assetCategories.push(category);
+            }
+        }
+
+        const today = new Date();
+        const assetsData = [
+            {
+                id: genId(),
+                enterpriseId,
+                categoryId: assetCategories[0].id,
+                name: "Envasadora Linha 1",
+                acquisitionDate: today,
+                acquisitionCost: 50000,
+                usefulLifeMonths: 120,
+                salvageValue: 5000,
+                location: "Planta 1 - Linha de envase",
+                status: AssetStatus.ACTIVE,
+                notes: "Equipamento principal de envase",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                categoryId: assetCategories[1].id,
+                name: "Caminhao Bau 01",
+                acquisitionDate: today,
+                acquisitionCost: 200000,
+                usefulLifeMonths: 180,
+                salvageValue: 30000,
+                location: "Patio externo",
+                status: AssetStatus.ACTIVE,
+                notes: "Veículo de distribuição regional",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                categoryId: assetCategories[2].id,
+                name: "Servidor de Aplicacao",
+                acquisitionDate: today,
+                acquisitionCost: 15000,
+                usefulLifeMonths: 60,
+                salvageValue: 2000,
+                location: "Sala de TI",
+                status: AssetStatus.ACTIVE,
+                notes: "Servidor principal do sistema",
+            },
+        ];
+
+        const assets = [];
+
+        for (const assetData of assetsData) {
+            const existingAsset = await prisma.asset.findFirst({
+                where: { enterpriseId, name: assetData.name },
+            });
+
+            if (existingAsset) {
+                const asset = await prisma.asset.update({
+                    where: { id: existingAsset.id },
+                    data: assetData,
+                });
+                assets.push(asset);
+            } else {
+                const asset = await prisma.asset.create({
+                    data: assetData,
+                });
+                assets.push(asset);
+            }
+        }
+
+        const maintenancesData = [
+            {
+                id: genId(),
+                enterpriseId,
+                assetId: assets[0].id,
+                type: AssetMaintenanceType.PREVENTIVE,
+                description: "Revisão preventiva anual",
+                cost: 1500,
+                date: new Date(),
+                technician: "Equipe interna",
+                notes: "Troca de filtros e lubrificação",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                assetId: assets[0].id,
+                type: AssetMaintenanceType.CORRECTIVE,
+                description: "Troca de rolamentos",
+                cost: 3200,
+                date: new Date(),
+                technician: "Assistência técnica",
+                notes: "Parada de emergência após ruído",
+            },
+            {
+                id: genId(),
+                enterpriseId,
+                assetId: assets[1].id,
+                type: AssetMaintenanceType.INSPECTION,
+                description: "Vistoria de freios e suspensão",
+                cost: 800,
+                date: new Date(),
+                technician: "Oficina parceira",
+                notes: "Recomendado alinhamento a cada 10 mil km",
+            },
+        ];
+
+        for (const maint of maintenancesData) {
+            await prisma.assetMaintenance.create({
+                data: maint,
             });
         }
 
