@@ -6,7 +6,7 @@ import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
 
-test("Lista lançamentos financeiros e valida paginação básica", async ({ request }) => {
+test("Lista lancamentos financeiros e valida paginacao basica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/financial-transactions`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -17,14 +17,35 @@ test("Lista lançamentos financeiros e valida paginação básica", async ({ req
     expect(data.transactions.length).toBeLessThanOrEqual(10);
 });
 
-test("Filtro type inválido deve retornar 400", async ({ request }) => {
+test("Lista lancamentos financeiros filtrando por type retorna subconjunto", async ({
+    request,
+}) => {
+    const allRes = await request.get(`${baseUrl}/financial-transactions`);
+    expect(allRes.status()).toBe(200);
+    const { data: all } = await allRes.json();
+
+    const creditRes = await request.get(
+        `${baseUrl}/financial-transactions?type=${TransactionType.CREDIT}`
+    );
+    expect(creditRes.status()).toBe(200);
+    const { data: credit } = await creditRes.json();
+
+    expect(credit.transactions.length).toBeLessThanOrEqual(all.transactions.length);
+});
+
+test("Validacao de query: page/limit invalidos e type invalido", async ({ request }) => {
+    const resNumbers = await request.get(`${baseUrl}/financial-transactions?page=abc&limit=xyz`);
+    expect(resNumbers.status()).toBe(400);
+    const bodyNumbers = await resNumbers.json();
+    expect(bodyNumbers.message).toContain(FINANCIAL_TRANSACTION_ERROR.PAGINATION);
+
     const res = await request.get(`${baseUrl}/financial-transactions?type=INVALID`);
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toContain(FINANCIAL_TRANSACTION_ERROR.INVALID_TYPE);
 });
 
-test("Cria, busca e atualiza lançamento financeiro", async ({ request }) => {
+test("Cria, busca e atualiza lancamento financeiro com conta a receber", async ({ request }) => {
     const recRes = await request.get(`${baseUrl}/accounts-receivable`);
     expect(recRes.status()).toBe(200);
     const { data: rlist } = await recRes.json();
@@ -36,7 +57,7 @@ test("Cria, busca e atualiza lançamento financeiro", async ({ request }) => {
         value: 50.5,
         date: new Date().toISOString(),
         category: "Teste",
-        description: "Lançamento financeiro de teste",
+        description: "Lancamento financeiro de teste",
         accountsReceivableId: receivable?.id ?? null,
         accountsPayableId: null,
         notes: "Criado via teste automatizado",
@@ -54,6 +75,7 @@ test("Cria, busca e atualiza lançamento financeiro", async ({ request }) => {
     const { data: fetched } = await getRes.json();
     expect(fetched).toBeTruthy();
     expect(fetched.id).toBe(created.id);
+    expect(fetched.receivable).toBeTruthy();
 
     const updateRes = await request.put(`${baseUrl}/financial-transactions/${created.id}`, {
         data: {
@@ -61,7 +83,7 @@ test("Cria, busca e atualiza lançamento financeiro", async ({ request }) => {
             value: 75.25,
             date: new Date().toISOString(),
             category: "Teste atualizado",
-            description: "Lançamento financeiro atualizado",
+            description: "Lancamento financeiro atualizado",
             accountsReceivableId: created.accountsReceivableId,
             accountsPayableId: created.accountsPayableId,
             notes: "Atualizado via teste automatizado",
@@ -71,4 +93,189 @@ test("Cria, busca e atualiza lançamento financeiro", async ({ request }) => {
     const { data: updated } = await updateRes.json();
     expect(Number(updated.value)).toBeCloseTo(75.25, 6);
     expect(updated.type).toBe(TransactionType.DEBIT);
+});
+
+test("Cria lancamento financeiro com conta a pagar", async ({ request }) => {
+    const payRes = await request.get(`${baseUrl}/accounts-payable`);
+    expect(payRes.status()).toBe(200);
+    const { data: plist } = await payRes.json();
+    const payable = plist.payables[0];
+
+    const payload = {
+        id: genId(),
+        type: TransactionType.DEBIT,
+        value: 99.9,
+        date: new Date().toISOString(),
+        category: "Teste debito",
+        description: "Lancamento financeiro de debito",
+        accountsReceivableId: null,
+        accountsPayableId: payable?.id ?? null,
+        notes: "Criado via teste automatizado 2",
+    };
+
+    const createRes = await request.post(`${baseUrl}/financial-transactions`, { data: payload });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+    expect(created).toBeTruthy();
+    expect(created.type).toBe(TransactionType.DEBIT);
+    expect(Number(created.value)).toBeCloseTo(99.9, 6);
+
+    const getRes = await request.get(`${baseUrl}/financial-transactions/${created.id}`);
+    expect(getRes.status()).toBe(200);
+    const { data: fetched } = await getRes.json();
+    expect(fetched).toBeTruthy();
+    expect(fetched.payable).toBeTruthy();
+});
+
+test("Buscar lancamento financeiro por id inexistente retorna data = null", async ({ request }) => {
+    const res = await request.get(`${baseUrl}/financial-transactions/-9999999`);
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    expect(data).toBeNull();
+});
+
+test("Criar lancamento financeiro sem campos obrigatorios deve falhar (400)", async ({
+    request,
+}) => {
+    const res = await request.post(`${baseUrl}/financial-transactions`, {
+        data: {
+            description: "Sem type e value",
+        },
+    });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain(FINANCIAL_TRANSACTION_ERROR.MISSING_FIELDS);
+});
+
+test("Criar lancamento financeiro com valor menor ou igual a zero deve falhar (400)", async ({
+    request,
+}) => {
+    const res = await request.post(`${baseUrl}/financial-transactions`, {
+        data: {
+            type: TransactionType.CREDIT,
+            value: 0,
+        },
+    });
+    expect(res.status()).toBe(400);
+});
+
+test("Criar lancamento financeiro com type invalido deve falhar (400)", async ({ request }) => {
+    const res = await request.post(`${baseUrl}/financial-transactions`, {
+        data: {
+            type: "INVALID",
+            value: 10,
+        },
+    });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain(FINANCIAL_TRANSACTION_ERROR.WRONG_FIELD_VALUE);
+});
+
+test("Criar lancamento financeiro com accountsReceivableId inexistente deve falhar (404)", async ({
+    request,
+}) => {
+    const res = await request.post(`${baseUrl}/financial-transactions`, {
+        data: {
+            type: TransactionType.CREDIT,
+            value: 10,
+            accountsReceivableId: 9999999,
+        },
+    });
+    expect(res.status()).toBe(404);
+});
+
+test("Criar lancamento financeiro com accountsPayableId inexistente deve falhar (404)", async ({
+    request,
+}) => {
+    const res = await request.post(`${baseUrl}/financial-transactions`, {
+        data: {
+            type: TransactionType.DEBIT,
+            value: 10,
+            accountsPayableId: 9999999,
+        },
+    });
+    expect(res.status()).toBe(404);
+});
+
+test("Atualizar lancamento financeiro inexistente retorna 404", async ({ request }) => {
+    const res = await request.put(`${baseUrl}/financial-transactions/9999999`, {
+        data: {
+            type: TransactionType.CREDIT,
+            value: 10,
+        },
+    });
+    expect(res.status()).toBe(404);
+});
+
+test("Atualizar lancamento financeiro com valor menor ou igual a zero deve falhar (400)", async ({
+    request,
+}) => {
+    const listRes = await request.get(`${baseUrl}/financial-transactions`);
+    const { data: list } = await listRes.json();
+    const existing = list.transactions[0];
+    expect(existing).toBeTruthy();
+
+    const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
+        data: {
+            type: existing.type,
+            value: 0,
+            date: new Date().toISOString(),
+            category: existing.category,
+            description: existing.description,
+            accountsReceivableId: existing.accountsReceivableId,
+            accountsPayableId: existing.accountsPayableId,
+            notes: existing.notes,
+        },
+    });
+    expect(res.status()).toBe(400);
+});
+
+test("Atualizar lancamento financeiro com type invalido deve falhar (400)", async ({ request }) => {
+    const listRes = await request.get(`${baseUrl}/financial-transactions`);
+    const { data: list } = await listRes.json();
+    const existing = list.transactions[0];
+
+    const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
+        data: {
+            type: "INVALID",
+            value: Number(existing.value),
+        },
+    });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain(FINANCIAL_TRANSACTION_ERROR.WRONG_FIELD_VALUE);
+});
+
+test("Atualizar lancamento financeiro com accountsReceivableId inexistente deve falhar (404)", async ({
+    request,
+}) => {
+    const listRes = await request.get(`${baseUrl}/financial-transactions`);
+    const { data: list } = await listRes.json();
+    const existing = list.transactions[0];
+
+    const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
+        data: {
+            type: existing.type,
+            value: Number(existing.value),
+            accountsReceivableId: 9999999,
+        },
+    });
+    expect(res.status()).toBe(404);
+});
+
+test("Atualizar lancamento financeiro com accountsPayableId inexistente deve falhar (404)", async ({
+    request,
+}) => {
+    const listRes = await request.get(`${baseUrl}/financial-transactions`);
+    const { data: list } = await listRes.json();
+    const existing = list.transactions[0];
+
+    const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
+        data: {
+            type: existing.type,
+            value: Number(existing.value),
+            accountsPayableId: 9999999,
+        },
+    });
+    expect(res.status()).toBe(404);
 });
