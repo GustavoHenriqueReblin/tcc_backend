@@ -25,6 +25,20 @@ export const clearData = async () => {
     });
 
     for (const { id } of testEnterprises) {
+        // Itens (filhos) primeiro
+        await prisma.saleOrderItem.deleteMany({ where: { enterpriseId: id } });
+        await prisma.purchaseOrderItem.deleteMany({ where: { enterpriseId: id } });
+        await prisma.productionOrderInput.deleteMany({ where: { enterpriseId: id } });
+        await prisma.recipeItem.deleteMany({ where: { enterpriseId: id } });
+
+        // Tabelas principais
+        await prisma.productionOrder.deleteMany({ where: { enterpriseId: id } });
+        await prisma.saleOrder.deleteMany({ where: { enterpriseId: id } });
+        await prisma.purchaseOrder.deleteMany({ where: { enterpriseId: id } });
+        await prisma.recipe.deleteMany({ where: { enterpriseId: id } });
+        await prisma.lot.deleteMany({ where: { enterpriseId: id } });
+
+        // Demais dados
         await prisma.audit.deleteMany({ where: { enterpriseId: id } });
         await prisma.log.deleteMany({ where: { enterpriseId: id } });
         await prisma.token.deleteMany({ where: { enterpriseId: id } });
@@ -602,6 +616,177 @@ export const generateData = async () => {
             } else {
                 await prisma.productInventory.create({
                     data: { enterpriseId, ...inv },
+                });
+            }
+        }
+
+        // Lotes, receitas, ordens de produção, vendas e compras (dados básicos)
+        const lotCode = `LOT-${Math.abs(enterpriseId)}-001`;
+        await prisma.lot.upsert({
+            where: { code: lotCode },
+            update: {
+                enterpriseId,
+                productId: productFinished.id,
+                notes: "Lote inicial",
+            },
+            create: {
+                id: genId(),
+                enterpriseId,
+                code: lotCode,
+                productId: productFinished.id,
+                harvestDate: new Date(),
+                expiration: null,
+                notes: "Lote inicial",
+            },
+        });
+
+        // Receita para o produto acabado
+        let recipe = await prisma.recipe.findFirst({
+            where: { enterpriseId, productId: productFinished.id },
+        });
+        if (!recipe) {
+            recipe = await prisma.recipe.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    productId: productFinished.id,
+                    description: "Receita padrão do Suco de Uva 1L",
+                    notes: null,
+                },
+            });
+        }
+        // Limpa itens e recria com os 3 primeiros insumos
+        const rmProducts = await prisma.product.findMany({
+            where: { enterpriseId, productDefinitionId: rawMaterialDef!.id },
+            take: 3,
+            orderBy: { id: "asc" },
+        });
+        await prisma.recipeItem.deleteMany({ where: { enterpriseId, recipeId: recipe.id } });
+        for (let idx = 0; idx < rmProducts.length; idx++) {
+            const qty = idx === 2 ? 1 : 0.5 + idx * 0.1;
+            await prisma.recipeItem.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    recipeId: recipe.id,
+                    productId: rmProducts[idx].id,
+                    quantity: qty,
+                },
+            });
+        }
+
+        // Ordem de produção
+        const prodOrderCode = `PROD-${Math.abs(enterpriseId)}-001`;
+        const prodOrder = await prisma.productionOrder.upsert({
+            where: { code: prodOrderCode },
+            update: {
+                enterpriseId,
+                productId: productFinished.id,
+                lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
+                plannedQty: 100.0,
+                notes: "Ordem inicial",
+            },
+            create: {
+                id: genId(),
+                enterpriseId,
+                code: prodOrderCode,
+                productId: productFinished.id,
+                lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
+                plannedQty: 100.0,
+                producedQty: null,
+                wasteQty: null,
+                startDate: null,
+                endDate: null,
+                notes: "Ordem inicial",
+            },
+        });
+        // Insumos da ordem
+        await prisma.productionOrderInput.deleteMany({
+            where: { enterpriseId, productionOrderId: prodOrder.id },
+        });
+        for (let idx = 0; idx < rmProducts.length; idx++) {
+            await prisma.productionOrderInput.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    productionOrderId: prodOrder.id,
+                    productId: rmProducts[idx].id,
+                    quantity: 10 + idx * 5,
+                    unitCost: 2 + idx,
+                },
+            });
+        }
+
+        // Pedido de venda
+        const anyCustomer = await prisma.customer.findFirst({ where: { enterpriseId } });
+        if (anyCustomer) {
+            const saleCode = `SO-${Math.abs(enterpriseId)}-001`;
+            const sale = await prisma.saleOrder.upsert({
+                where: { code: saleCode },
+                update: {
+                    enterpriseId,
+                    customerId: anyCustomer.id,
+                    totalValue: 79.2,
+                    notes: "Pedido inicial",
+                },
+                create: {
+                    id: genId(),
+                    enterpriseId,
+                    customerId: anyCustomer.id,
+                    code: saleCode,
+                    totalValue: 79.2,
+                    notes: "Pedido inicial",
+                },
+            });
+            await prisma.saleOrderItem.deleteMany({
+                where: { enterpriseId, saleOrderId: sale.id },
+            });
+            await prisma.saleOrderItem.create({
+                data: {
+                    id: genId(),
+                    enterpriseId,
+                    saleOrderId: sale.id,
+                    productId: productFinished.id,
+                    quantity: 10,
+                    unitPrice: 7.92,
+                    productUnitPrice: 7.92,
+                    unitCost: 4.51,
+                },
+            });
+        }
+
+        // Compra
+        const anySupplier = await prisma.supplier.findFirst({ where: { enterpriseId } });
+        if (anySupplier) {
+            const purchCode = `PO-${Math.abs(enterpriseId)}-001`;
+            const purchase = await prisma.purchaseOrder.upsert({
+                where: { code: purchCode },
+                update: {
+                    enterpriseId,
+                    supplierId: anySupplier.id,
+                    notes: "Compra inicial",
+                },
+                create: {
+                    id: genId(),
+                    enterpriseId,
+                    supplierId: anySupplier.id,
+                    code: purchCode,
+                    notes: "Compra inicial",
+                },
+            });
+            await prisma.purchaseOrderItem.deleteMany({
+                where: { enterpriseId, purchaseOrderId: purchase.id },
+            });
+            if (rmProducts[0]) {
+                await prisma.purchaseOrderItem.create({
+                    data: {
+                        id: genId(),
+                        enterpriseId,
+                        purchaseOrderId: purchase.id,
+                        productId: rmProducts[0].id,
+                        quantity: 50,
+                        unitCost: 2.15,
+                    },
                 });
             }
         }
