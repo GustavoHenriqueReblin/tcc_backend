@@ -20,12 +20,7 @@ export interface ProductionOrderInputData {
 }
 
 export class ProductionOrderService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        status?: ProductionOrderStatus
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: ProductionOrderStatus) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -38,7 +33,9 @@ export class ProductionOrderService extends BaseService {
                         take: limit,
                         orderBy: { createdAt: "desc" },
                     }),
-                    prisma.productionOrder.count({ where: { enterpriseId, ...(status && { status }) } }),
+                    prisma.productionOrder.count({
+                        where: { enterpriseId, ...(status && { status }) },
+                    }),
                 ]);
 
                 return {
@@ -65,11 +62,7 @@ export class ProductionOrderService extends BaseService {
             enterpriseId
         );
 
-    create = async (
-        enterpriseId: number,
-        data: ProductionOrderInputData,
-        userId: number
-    ) =>
+    create = async (enterpriseId: number, data: ProductionOrderInputData, userId: number) =>
         this.safeQuery(
             async () => {
                 const [codeTaken, product, lot] = await Promise.all([
@@ -86,7 +79,8 @@ export class ProductionOrderService extends BaseService {
                         : Promise.resolve(null),
                 ]);
 
-                if (codeTaken) throw new AppError("Ordem já existe", 409, "PRODUCTION_ORDER:create");
+                if (codeTaken)
+                    throw new AppError("Ordem já existe", 409, "PRODUCTION_ORDER:create");
                 if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
                 if (data.lotId && !lot)
                     throw new AppError("Lote não encontrado", 404, "FK:NOT_FOUND");
@@ -143,12 +137,20 @@ export class ProductionOrderService extends BaseService {
     ) =>
         this.safeQuery(
             async () => {
-                const existing = await prisma.productionOrder.findFirst({ where: { id, enterpriseId } });
+                const existing = await prisma.productionOrder.findFirst({
+                    where: { id, enterpriseId },
+                });
                 if (!existing)
-                    throw new AppError("Ordem de produção não encontrada", 404, "PRODUCTION_ORDER:update");
+                    throw new AppError(
+                        "Ordem de produção não encontrada",
+                        404,
+                        "PRODUCTION_ORDER:update"
+                    );
 
                 if (data.code && data.code !== existing.code) {
-                    const codeTaken = await prisma.productionOrder.findFirst({ where: { code: data.code } });
+                    const codeTaken = await prisma.productionOrder.findFirst({
+                        where: { code: data.code },
+                    });
                     if (codeTaken)
                         throw new AppError("Ordem já existe", 409, "PRODUCTION_ORDER:update:code");
                 }
@@ -216,4 +218,3 @@ export class ProductionOrderService extends BaseService {
             enterpriseId
         );
 }
-

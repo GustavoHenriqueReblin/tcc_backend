@@ -21,4 +21,3 @@ router.post("/", validateRecipeItemFields, createRecipeItem);
 router.put("/:id", validateRecipeItemFields, updateRecipeItem);
 
 export default router;
-

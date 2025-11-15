@@ -21,4 +21,3 @@ router.post("/", validateProductionOrderFields, createProductionOrder);
 router.put("/:id", validateProductionOrderFields, updateProductionOrder);
 
 export default router;
-

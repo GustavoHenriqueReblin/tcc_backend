@@ -15,12 +15,7 @@ export interface SaleOrderItemInput {
 }
 
 export class SaleOrderItemService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        saleOrderId?: number
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, saleOrderId?: number) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -33,7 +28,9 @@ export class SaleOrderItemService extends BaseService {
                         take: limit,
                         orderBy: { id: "desc" },
                     }),
-                    prisma.saleOrderItem.count({ where: { enterpriseId, ...(saleOrderId && { saleOrderId }) } }),
+                    prisma.saleOrderItem.count({
+                        where: { enterpriseId, ...(saleOrderId && { saleOrderId }) },
+                    }),
                 ]);
 
                 return {
@@ -111,17 +108,18 @@ export class SaleOrderItemService extends BaseService {
             enterpriseId
         );
 
-    update = async (
-        id: number,
-        enterpriseId: number,
-        data: SaleOrderItemInput,
-        userId: number
-    ) =>
+    update = async (id: number, enterpriseId: number, data: SaleOrderItemInput, userId: number) =>
         this.safeQuery(
             async () => {
-                const existing = await prisma.saleOrderItem.findFirst({ where: { id, enterpriseId } });
+                const existing = await prisma.saleOrderItem.findFirst({
+                    where: { id, enterpriseId },
+                });
                 if (!existing)
-                    throw new AppError("Item do pedido não encontrado", 404, "SALE_ORDER_ITEM:update");
+                    throw new AppError(
+                        "Item do pedido não encontrado",
+                        404,
+                        "SALE_ORDER_ITEM:update"
+                    );
 
                 if (data.saleOrderId) {
                     const order = await prisma.saleOrder.findFirst({
@@ -182,4 +180,3 @@ export class SaleOrderItemService extends BaseService {
             enterpriseId
         );
 }
-

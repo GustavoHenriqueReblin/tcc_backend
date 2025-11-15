@@ -6,7 +6,10 @@ import {
     createRecipe,
     updateRecipe,
 } from "@controllers/recipe.controller";
-import { validateRecipeFields, validateRecipePaginationAndFilter } from "@middleware/recipeMiddleware";
+import {
+    validateRecipeFields,
+    validateRecipePaginationAndFilter,
+} from "@middleware/recipeMiddleware";
 
 const router = Router();
 
@@ -18,4 +21,3 @@ router.post("/", validateRecipeFields, createRecipe);
 router.put("/:id", validateRecipeFields, updateRecipe);
 
 export default router;
-

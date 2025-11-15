@@ -13,12 +13,7 @@ export interface ProductionOrderInputInput {
 }
 
 export class ProductionOrderInputService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        productionOrderId?: number
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, productionOrderId?: number) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -31,7 +26,9 @@ export class ProductionOrderInputService extends BaseService {
                         take: limit,
                         orderBy: { id: "desc" },
                     }),
-                    prisma.productionOrderInput.count({ where: { enterpriseId, ...(productionOrderId && { productionOrderId }) } }),
+                    prisma.productionOrderInput.count({
+                        where: { enterpriseId, ...(productionOrderId && { productionOrderId }) },
+                    }),
                 ]);
 
                 return {
@@ -58,11 +55,7 @@ export class ProductionOrderInputService extends BaseService {
             enterpriseId
         );
 
-    create = async (
-        enterpriseId: number,
-        data: ProductionOrderInputInput,
-        userId: number
-    ) =>
+    create = async (enterpriseId: number, data: ProductionOrderInputInput, userId: number) =>
         this.safeQuery(
             async () => {
                 const [order, product] = await Promise.all([
@@ -139,11 +132,7 @@ export class ProductionOrderInputService extends BaseService {
                         select: { id: true },
                     });
                     if (!order)
-                        throw new AppError(
-                            "Ordem de produção não encontrada",
-                            404,
-                            "FK:NOT_FOUND"
-                        );
+                        throw new AppError("Ordem de produção não encontrada", 404, "FK:NOT_FOUND");
                 }
 
                 if (data.productId) {
@@ -158,8 +147,7 @@ export class ProductionOrderInputService extends BaseService {
                     const item = await tx.productionOrderInput.update({
                         where: { id },
                         data: {
-                            productionOrderId:
-                                data.productionOrderId ?? existing.productionOrderId,
+                            productionOrderId: data.productionOrderId ?? existing.productionOrderId,
                             productId: data.productId ?? existing.productId,
                             quantity:
                                 data.quantity !== undefined
@@ -190,4 +178,3 @@ export class ProductionOrderInputService extends BaseService {
             enterpriseId
         );
 }
-

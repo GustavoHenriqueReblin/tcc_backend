@@ -29,7 +29,7 @@ export default [
         "error",
         { tabWidth: 4, useTabs: false, singleQuote: false, semi: true, trailingComma: "es5" }
       ],
-      "indent": ["error", 4, { "SwitchCase": 1 }],
+      "indent": "off",
       "@typescript-eslint/indent": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["off"],

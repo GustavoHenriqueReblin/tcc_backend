@@ -42,4 +42,3 @@ export const updateRecipeItem = async (req: Request, res: Response) => {
     const result = await service.update(Number(id), enterpriseId, req.body, userId);
     return sendResponse(res, result, "Recipe item updated successfully");
 };
-

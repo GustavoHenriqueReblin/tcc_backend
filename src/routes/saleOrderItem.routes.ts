@@ -21,4 +21,3 @@ router.post("/", validateSaleOrderItemFields, createSaleOrderItem);
 router.put("/:id", validateSaleOrderItemFields, updateSaleOrderItem);
 
 export default router;
-

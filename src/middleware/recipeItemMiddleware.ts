@@ -34,11 +34,7 @@ export const validateRecipeItemPaginationAndFilter = (
     next();
 };
 
-export const validateRecipeItemFields = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const validateRecipeItemFields = (req: Request, res: Response, next: NextFunction) => {
     const item = req.body as RecipeItemInput;
 
     if (!item || !item.recipeId || !item.productId || item.quantity === undefined) {
@@ -47,4 +43,3 @@ export const validateRecipeItemFields = (
 
     next();
 };
-

@@ -47,4 +47,3 @@ export const validateSaleOrderFields = (req: Request, res: Response, next: NextF
 
     next();
 };
-

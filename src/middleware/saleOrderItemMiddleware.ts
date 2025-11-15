@@ -33,11 +33,7 @@ export const validateSaleOrderItemPaginationAndFilter = (
     next();
 };
 
-export const validateSaleOrderItemFields = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const validateSaleOrderItemFields = (req: Request, res: Response, next: NextFunction) => {
     const item = req.body as SaleOrderItemInput;
 
     if (
@@ -54,4 +50,3 @@ export const validateSaleOrderItemFields = (
 
     next();
 };
-

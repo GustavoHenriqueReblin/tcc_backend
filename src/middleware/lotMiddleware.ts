@@ -7,11 +7,7 @@ export const LOT_ERROR = {
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
 };
 
-export const validateLotPaginationAndFilter = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const validateLotPaginationAndFilter = (req: Request, res: Response, next: NextFunction) => {
     const { page = "1", limit = "10" } = req.query;
 
     const pageNum = Number(page);
@@ -36,4 +32,3 @@ export const validateLotFields = (req: Request, res: Response, next: NextFunctio
 
     next();
 };
-

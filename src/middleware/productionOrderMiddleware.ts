@@ -34,11 +34,7 @@ export const validateProductionOrderPaginationAndFilter = (
     next();
 };
 
-export const validateProductionOrderFields = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const validateProductionOrderFields = (req: Request, res: Response, next: NextFunction) => {
     const order = req.body as ProductionOrderInputData;
 
     if (!order || !order.code || !order.productId || order.plannedQty === undefined) {
@@ -51,4 +47,3 @@ export const validateProductionOrderFields = (
 
     next();
 };
-

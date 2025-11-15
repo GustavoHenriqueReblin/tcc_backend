@@ -12,12 +12,7 @@ export interface RecipeItemInput {
 }
 
 export class RecipeItemService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        recipeId?: number
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, recipeId?: number) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -30,7 +25,9 @@ export class RecipeItemService extends BaseService {
                         take: limit,
                         orderBy: { id: "desc" },
                     }),
-                    prisma.recipeItem.count({ where: { enterpriseId, ...(recipeId && { recipeId }) } }),
+                    prisma.recipeItem.count({
+                        where: { enterpriseId, ...(recipeId && { recipeId }) },
+                    }),
                 ]);
 
                 return {
@@ -105,12 +102,7 @@ export class RecipeItemService extends BaseService {
             enterpriseId
         );
 
-    update = async (
-        id: number,
-        enterpriseId: number,
-        data: RecipeItemInput,
-        userId: number
-    ) =>
+    update = async (id: number, enterpriseId: number, data: RecipeItemInput, userId: number) =>
         this.safeQuery(
             async () => {
                 const existing = await prisma.recipeItem.findFirst({ where: { id, enterpriseId } });
@@ -164,4 +156,3 @@ export class RecipeItemService extends BaseService {
             enterpriseId
         );
 }
-

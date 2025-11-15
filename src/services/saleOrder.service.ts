@@ -15,12 +15,7 @@ export interface SaleOrderInput {
 }
 
 export class SaleOrderService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        status?: OrderStatus
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: OrderStatus) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -111,10 +106,13 @@ export class SaleOrderService extends BaseService {
         this.safeQuery(
             async () => {
                 const existing = await prisma.saleOrder.findFirst({ where: { id, enterpriseId } });
-                if (!existing) throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:update");
+                if (!existing)
+                    throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:update");
 
                 if (data.code && data.code !== existing.code) {
-                    const codeTaken = await prisma.saleOrder.findFirst({ where: { code: data.code } });
+                    const codeTaken = await prisma.saleOrder.findFirst({
+                        where: { code: data.code },
+                    });
                     if (codeTaken)
                         throw new AppError("Pedido já existe", 409, "SALE_ORDER:update:code");
                 }
@@ -124,7 +122,8 @@ export class SaleOrderService extends BaseService {
                         where: { id: data.customerId, enterpriseId },
                         select: { id: true },
                     });
-                    if (!customer) throw new AppError("Cliente não encontrado", 404, "FK:NOT_FOUND");
+                    if (!customer)
+                        throw new AppError("Cliente não encontrado", 404, "FK:NOT_FOUND");
                 }
 
                 const updated = await prisma.$transaction(async (tx) => {
@@ -161,4 +160,3 @@ export class SaleOrderService extends BaseService {
             enterpriseId
         );
 }
-

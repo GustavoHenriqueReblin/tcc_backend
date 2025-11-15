@@ -36,4 +36,3 @@ export const validateRecipeFields = (req: Request, res: Response, next: NextFunc
 
     next();
 };
-

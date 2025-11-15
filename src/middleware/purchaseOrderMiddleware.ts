@@ -33,11 +33,7 @@ export const validatePurchaseOrderPaginationAndFilter = (
     next();
 };
 
-export const validatePurchaseOrderFields = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const validatePurchaseOrderFields = (req: Request, res: Response, next: NextFunction) => {
     const order = req.body as PurchaseOrderInput;
 
     if (!order || !order.supplierId || !order.code) {
@@ -46,4 +42,3 @@ export const validatePurchaseOrderFields = (
 
     next();
 };
-

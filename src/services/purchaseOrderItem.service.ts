@@ -13,12 +13,7 @@ export interface PurchaseOrderItemInput {
 }
 
 export class PurchaseOrderItemService extends BaseService {
-    getAll = async (
-        enterpriseId: number,
-        page = 1,
-        limit = 10,
-        purchaseOrderId?: number
-    ) =>
+    getAll = async (enterpriseId: number, page = 1, limit = 10, purchaseOrderId?: number) =>
         this.safeQuery(
             async () => {
                 const skip = (page - 1) * limit;
@@ -31,7 +26,9 @@ export class PurchaseOrderItemService extends BaseService {
                         take: limit,
                         orderBy: { id: "desc" },
                     }),
-                    prisma.purchaseOrderItem.count({ where: { enterpriseId, ...(purchaseOrderId && { purchaseOrderId }) } }),
+                    prisma.purchaseOrderItem.count({
+                        where: { enterpriseId, ...(purchaseOrderId && { purchaseOrderId }) },
+                    }),
                 ]);
 
                 return {
@@ -58,11 +55,7 @@ export class PurchaseOrderItemService extends BaseService {
             enterpriseId
         );
 
-    create = async (
-        enterpriseId: number,
-        data: PurchaseOrderItemInput,
-        userId: number
-    ) =>
+    create = async (enterpriseId: number, data: PurchaseOrderItemInput, userId: number) =>
         this.safeQuery(
             async () => {
                 const [order, product] = await Promise.all([
@@ -180,4 +173,3 @@ export class PurchaseOrderItemService extends BaseService {
             enterpriseId
         );
 }
-

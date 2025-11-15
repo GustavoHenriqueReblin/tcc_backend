@@ -64,8 +64,7 @@ export class LotService extends BaseService {
                     }),
                 ]);
 
-                if (existingCode)
-                    throw new AppError("Lote já existe", 409, "LOT:create");
+                if (existingCode) throw new AppError("Lote já existe", 409, "LOT:create");
                 if (data.productId && !product)
                     throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
 
@@ -78,9 +77,7 @@ export class LotService extends BaseService {
                             enterpriseId,
                             code: data.code,
                             productId: data.productId ?? null,
-                            harvestDate: data.harvestDate
-                                ? new Date(data.harvestDate)
-                                : null,
+                            harvestDate: data.harvestDate ? new Date(data.harvestDate) : null,
                             expiration: data.expiration ? new Date(data.expiration) : null,
                             notes: data.notes ?? null,
                         },
@@ -112,8 +109,7 @@ export class LotService extends BaseService {
 
                 if (data.code && data.code !== existing.code) {
                     const codeTaken = await prisma.lot.findFirst({ where: { code: data.code } });
-                    if (codeTaken)
-                        throw new AppError("Lote já existe", 409, "LOT:update:code");
+                    if (codeTaken) throw new AppError("Lote já existe", 409, "LOT:update:code");
                 }
 
                 if (data.productId) {
@@ -159,4 +155,3 @@ export class LotService extends BaseService {
             enterpriseId
         );
 }
-

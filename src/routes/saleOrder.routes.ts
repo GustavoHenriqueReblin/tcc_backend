@@ -6,7 +6,10 @@ import {
     createSaleOrder,
     updateSaleOrder,
 } from "@controllers/saleOrder.controller";
-import { validateSaleOrderFields, validateSaleOrderPaginationAndFilter } from "@middleware/saleOrderMiddleware";
+import {
+    validateSaleOrderFields,
+    validateSaleOrderPaginationAndFilter,
+} from "@middleware/saleOrderMiddleware";
 
 const router = Router();
 
@@ -18,4 +21,3 @@ router.post("/", validateSaleOrderFields, createSaleOrder);
 router.put("/:id", validateSaleOrderFields, updateSaleOrder);
 
 export default router;
-
