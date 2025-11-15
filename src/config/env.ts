@@ -26,7 +26,6 @@ const envSchema = z.object({
     APP_SECRET: z.string().min(10, "APP_SECRET must be at least 10 characters long"),
     JWT_EXPIRES_IN: z.string().default("2d"),
     DOMAIN: z.string().default("localhost"),
-    TZ: z.string().default("America/Sao_Paulo"),
 });
 
 const parsed = envSchema.safeParse(process.env);
