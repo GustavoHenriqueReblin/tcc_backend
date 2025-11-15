@@ -18,6 +18,9 @@ import saleOrderRoutes from "@routes/saleOrder.routes";
 import saleOrderItemRoutes from "@routes/saleOrderItem.routes";
 import purchaseOrderRoutes from "@routes/purchaseOrder.routes";
 import purchaseOrderItemRoutes from "@routes/purchaseOrderItem.routes";
+import accountsReceivableRoutes from "@routes/accountsReceivable.routes";
+import accountsPayableRoutes from "@routes/accountsPayable.routes";
+import financialTransactionRoutes from "@routes/financialTransaction.routes";
 
 const router = Router();
 
@@ -40,5 +43,8 @@ router.use("/sale-orders", saleOrderRoutes);
 router.use("/sale-order-items", saleOrderItemRoutes);
 router.use("/purchase-orders", purchaseOrderRoutes);
 router.use("/purchase-order-items", purchaseOrderItemRoutes);
+router.use("/accounts-receivable", accountsReceivableRoutes);
+router.use("/accounts-payable", accountsPayableRoutes);
+router.use("/financial-transactions", financialTransactionRoutes);
 
 export default router;

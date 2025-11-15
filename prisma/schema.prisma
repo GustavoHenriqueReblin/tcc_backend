@@ -82,6 +82,27 @@ enum OrderStatus {
   CANCELED // cancelado
 }
 
+enum TransactionType {
+  CREDIT // entrada
+  DEBIT // saída
+}
+
+enum PaymentStatus {
+  PENDING // aguardando
+  PAID // pago
+  OVERDUE // vencido
+  CANCELLED // cancelado
+}
+
+enum PaymentMethod {
+  CASH // dinheiro
+  PIX
+  CARD
+  BANK_SLIP // boleto
+  TRANSFER // transferência bancária
+  OTHER
+}
+
 model Country {
   id              Int               @id @default(autoincrement())
   name            String            @db.VarChar(40)
@@ -176,6 +197,9 @@ model Enterprise {
   saleOrderItem        SaleOrderItem[]
   purchaseOrder        PurchaseOrder[]
   purchaseOrderItem    PurchaseOrderItem[]
+  AccountsReceivable   AccountsReceivable[]
+  AccountsPayable      AccountsPayable[]
+  FinancialTransaction FinancialTransaction[]
 
   @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
   @@map("enterprise")
@@ -248,10 +272,11 @@ model Customer {
   createdAt    DateTime   @default(now()) @db.Timestamp(3)
   updatedAt    DateTime   @updatedAt @db.Timestamp(3)
 
-  enterprise      Enterprise        @relation(fields: [enterpriseId], references: [id])
-  person          Person            @relation(fields: [personId], references: [id])
-  deliveryAddress DeliveryAddress[]
-  saleOrder       SaleOrder[]
+  enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
+  person             Person               @relation(fields: [personId], references: [id])
+  deliveryAddress    DeliveryAddress[]
+  saleOrder          SaleOrder[]
+  AccountsReceivable AccountsReceivable[]
 
   @@map("customer")
 }
@@ -277,6 +302,7 @@ model Supplier {
   person            Person              @relation(fields: [personId], references: [id])
   inventoryMovement InventoryMovement[]
   purchaseOrder     PurchaseOrder[]
+  AccountsPayable   AccountsPayable[]
 
   @@map("supplier")
 }
@@ -574,9 +600,10 @@ model SaleOrder {
   createdAt    DateTime    @default(now()) @db.Timestamp(3)
   updatedAt    DateTime    @updatedAt @db.Timestamp(3)
 
-  enterprise Enterprise      @relation(fields: [enterpriseId], references: [id])
-  customer   Customer        @relation(fields: [customerId], references: [id])
-  items      SaleOrderItem[]
+  enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
+  customer           Customer             @relation(fields: [customerId], references: [id])
+  items              SaleOrderItem[]
+  AccountsReceivable AccountsReceivable[]
 
   @@map("saleOrder")
 }
@@ -610,9 +637,10 @@ model PurchaseOrder {
   createdAt    DateTime    @default(now()) @db.Timestamp(3)
   updatedAt    DateTime    @updatedAt @db.Timestamp(3)
 
-  enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
-  supplier   Supplier            @relation(fields: [supplierId], references: [id])
-  items      PurchaseOrderItem[]
+  enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  items           PurchaseOrderItem[]
+  AccountsPayable AccountsPayable[]
 
   @@map("purchaseOrder")
 }
@@ -632,4 +660,80 @@ model PurchaseOrderItem {
   product       Product       @relation(fields: [productId], references: [id])
 
   @@map("purchaseOrderItem")
+}
+
+model AccountsReceivable {
+  id           Int            @id @default(autoincrement())
+  enterpriseId Int
+  customerId   Int? // pode ser avulso
+  saleOrderId  Int? // pode vir da venda (opcional)
+  description  String?        @db.VarChar(120)
+  value        Decimal        @db.Decimal(14, 6)
+  dueDate      DateTime
+  paymentDate  DateTime?
+  method       PaymentMethod?
+  status       PaymentStatus  @default(PENDING)
+  notes        String?
+  createdAt    DateTime       @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime       @updatedAt @db.Timestamp(3)
+
+  enterprise   Enterprise             @relation(fields: [enterpriseId], references: [id])
+  customer     Customer?              @relation(fields: [customerId], references: [id])
+  saleOrder    SaleOrder?             @relation(fields: [saleOrderId], references: [id])
+  transactions FinancialTransaction[]
+
+  @@index([enterpriseId])
+  @@index([customerId])
+  @@index([saleOrderId])
+  @@map("accountsReceivable")
+}
+
+model AccountsPayable {
+  id              Int            @id @default(autoincrement())
+  enterpriseId    Int
+  supplierId      Int? // também pode ser avulso
+  purchaseOrderId Int? // opcional
+  description     String?        @db.VarChar(120)
+  value           Decimal        @db.Decimal(14, 6)
+  dueDate         DateTime
+  paymentDate     DateTime?
+  method          PaymentMethod?
+  status          PaymentStatus  @default(PENDING)
+  notes           String?
+  createdAt       DateTime       @default(now()) @db.Timestamp(3)
+  updatedAt       DateTime       @updatedAt @db.Timestamp(3)
+
+  enterprise    Enterprise             @relation(fields: [enterpriseId], references: [id])
+  supplier      Supplier?              @relation(fields: [supplierId], references: [id])
+  purchaseOrder PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
+  transactions  FinancialTransaction[]
+
+  @@index([enterpriseId])
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+  @@map("accountsPayable")
+}
+
+model FinancialTransaction {
+  id                   Int             @id @default(autoincrement())
+  enterpriseId         Int
+  type                 TransactionType
+  value                Decimal         @db.Decimal(14, 6)
+  date                 DateTime        @default(now()) @db.Timestamp(3)
+  category             String?         @db.VarChar(60) // Venda, Compra, Diesel, Embalagens...
+  description          String?         @db.VarChar(120)
+  accountsReceivableId Int?
+  accountsPayableId    Int?
+  notes                String?
+  createdAt            DateTime        @default(now()) @db.Timestamp(3)
+  updatedAt            DateTime        @updatedAt @db.Timestamp(3)
+
+  enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
+  receivable AccountsReceivable? @relation(fields: [accountsReceivableId], references: [id])
+  payable    AccountsPayable?    @relation(fields: [accountsPayableId], references: [id])
+
+  @@index([enterpriseId])
+  @@index([accountsReceivableId])
+  @@index([accountsPayableId])
+  @@map("financialTransaction")
 }
