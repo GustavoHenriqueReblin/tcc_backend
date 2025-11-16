@@ -6,7 +6,12 @@ import { testConnection } from "@config/db";
 import { errorHandler } from "@middleware/errorHandler";
 
 const app = express();
-app.use(cors());
+app.use(
+    cors({
+        origin: "http://localhost:3000",
+        credentials: true,
+    })
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use("/api/v1", routes);
