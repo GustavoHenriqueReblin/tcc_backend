@@ -4,11 +4,12 @@ import routes from "@routes/index.routes";
 import cookieParser from "cookie-parser";
 import { testConnection } from "@config/db";
 import { errorHandler } from "@middleware/errorHandler";
+import { env } from "@config/env";
 
 const app = express();
 app.use(
     cors({
-        origin: "http://localhost:3000",
+        origin: `http://${env.DOMAIN}:${env.CLIENT_PORT}`,
         credentials: true,
     })
 );

@@ -25,9 +25,9 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         });
     }
 
-    res.cookie("token", result.token, {
+    res.cookie("__Host-erp-access", result.token, {
         httpOnly: true,
-        secure: env.ENVIRONMENT === "PRODUCTION",
+        secure: true,
         sameSite: "strict",
         maxAge: parseTimeToMs(env.JWT_EXPIRES_IN),
     });
@@ -42,7 +42,7 @@ export const logout = async (req: Request, res: Response) => {
 
     const result = await service.logout(token);
 
-    res.clearCookie("token", {
+    res.clearCookie("__Host-erp-access", {
         httpOnly: true,
         secure: true,
         sameSite: "strict",

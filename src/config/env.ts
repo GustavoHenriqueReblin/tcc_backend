@@ -17,6 +17,11 @@ const envSchema = z.object({
         .string()
         .transform((val) => parseInt(val, 10))
         .refine((val) => !isNaN(val) && val > 0, "PORT must be a valid number")
+        .default(3333),
+    CLIENT_PORT: z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => !isNaN(val) && val > 0, "PORT must be a valid number")
         .default(3000),
 
     DATABASE_URL: z.string().url(),
