@@ -6,6 +6,29 @@ import { Request } from "@middleware/authMiddleware";
 
 const service = new AuthService();
 
+export const me = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        if (!req.auth) {
+            res.clearCookie("__Host-erp-access", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "strict",
+            });
+            return res.status(401).json({
+                error: true,
+                message: "Not authenticated",
+            });
+        }
+
+        return sendResponse(res, req.auth, "Authenticated");
+    } catch {
+        return res.status(500).json({
+            error: true,
+            message: "Internal server error",
+        });
+    }
+};
+
 export const login = async (req: Request, res: Response): Promise<Response> => {
     const { username, password } = req?.body ?? {};
 
@@ -37,7 +60,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const logout = async (req: Request, res: Response) => {
-    const token = req.cookies?.token as string;
+    const token = req.cookies?.["__Host-erp-access"];
     if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
 
     const result = await service.logout(token);

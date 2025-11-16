@@ -22,7 +22,7 @@ export const authMiddleware = async (
     next: NextFunction
 ): Promise<Response | void> => {
     try {
-        const token = req.cookies?.token;
+        const token = req.cookies?.["__Host-erp-access"];
         if (!token) {
             return res.status(401).json({ error: true, message: "Token not provided" });
         }
@@ -43,6 +43,11 @@ export const authMiddleware = async (
 
         const tokenRecord = await prisma.token.findUnique({ where: { token } });
         if (!tokenRecord || !tokenRecord.valid || tokenRecord.expiresAt < new Date()) {
+            res.clearCookie("__Host-erp-access", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "strict",
+            });
             return res.status(401).json({ error: true, message: "Token revoked or expired" });
         }
 

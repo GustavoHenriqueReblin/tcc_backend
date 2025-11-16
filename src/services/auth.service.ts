@@ -78,7 +78,7 @@ export class AuthService extends BaseService {
 
     logout = async (token: string) =>
         this.safeQuery(async () => {
-            let decoded: TokenPayload;
+            let decoded: TokenPayload | undefined = undefined;
 
             try {
                 const payload = jwt.verify(token, env.APP_SECRET);
@@ -87,26 +87,22 @@ export class AuthService extends BaseService {
                 }
 
                 decoded = payload as unknown as TokenPayload;
-            } catch {
-                throw new AppError("Token inválido ou expirado", 401);
-            }
+            } catch {}
 
-            const deleted = await this.prisma.token.deleteMany({
+            await this.prisma.token.deleteMany({
                 where: { token },
             });
 
-            if (deleted.count === 0) {
-                throw new AppError("Sessão não encontrada ou já encerrada", 404);
+            if (decoded) {
+                await this.prisma.audit.create({
+                    data: {
+                        userId: decoded.sub,
+                        enterpriseId: decoded.enterpriseId,
+                        action: `User ${decoded.username} has logged out`,
+                        entity: "Auth",
+                    },
+                });
             }
-
-            await this.prisma.audit.create({
-                data: {
-                    userId: decoded.sub,
-                    enterpriseId: decoded.enterpriseId,
-                    action: `User ${decoded.username} has logged out`,
-                    entity: "Auth",
-                },
-            });
 
             return { message: "User logouted successfully" };
         }, "AUTH:logout");
