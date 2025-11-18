@@ -87,7 +87,9 @@ export class AuthService extends BaseService {
                 }
 
                 decoded = payload as unknown as TokenPayload;
-            } catch {}
+            } catch {
+                // ignore
+            }
 
             await this.prisma.token.deleteMany({
                 where: { token },
