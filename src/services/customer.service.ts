@@ -46,7 +46,7 @@ export class CustomerService extends BaseService {
                             enterpriseId,
                             ...(includeInactive ? {} : { status: Status.ACTIVE }),
                         },
-                        include: { person: true, deliveryAddress: true },
+                        include: { person: { include: { city: true, state: true, country: true } }, deliveryAddress: true },
                         skip,
                         take: limit,
                         orderBy: { createdAt: "desc" },
