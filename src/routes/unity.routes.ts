@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllUnities,
     getUnityById,
@@ -10,7 +10,7 @@ import {
     validateUnityFields,
     validateUnityQuery,
     validateUnitiesQuery,
-} from "@middleware/unityMiddleware";
+} from "@middleware/unity.middleware";
 
 export const unityAllowedSortFields = ["simbol", "description", "createdAt", "updatedAt"];
 

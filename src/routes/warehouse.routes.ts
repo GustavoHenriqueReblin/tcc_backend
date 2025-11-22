@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateWarehouseFields,
     validateWarehouseQuery,
     validateWarehousesQuery,
-} from "@middleware/warehouseMiddleware";
+} from "@middleware/warehouse.middleware";
 import {
     getAllWarehouses,
     getWarehouseById,

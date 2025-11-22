@@ -1,7 +1,7 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
-import { INVENTORY_MOVEMENT_ERROR } from "../src/middleware/inventoryMovementMiddleware";
+import { INVENTORY_MOVEMENT_ERROR } from "../src/middleware/inventoryMovement.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

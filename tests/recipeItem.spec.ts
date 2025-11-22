@@ -1,6 +1,6 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
-import { RECIPE_ITEM_ERROR } from "../src/middleware/recipeItemMiddleware";
+import { RECIPE_ITEM_ERROR } from "../src/middleware/recipeItem.middleware";
 import { ProductDefinitionType } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 

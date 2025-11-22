@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAllUsers, createUser } from "@controllers/user.controller";
-import { authMiddleware } from "@middleware/authMiddleware";
-import { validateUsersQuery } from "@middleware/userMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
+import { validateUsersQuery } from "@middleware/user.middleware";
 
 export const userPersonAllowedSortFields = ["name", "legalName", "taxId"];
 export const userAllowedSortFields = ["username", "createdAt", "updatedAt"];

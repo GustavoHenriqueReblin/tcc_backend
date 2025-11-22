@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateSupplierFields,
     validateSupplierQuery,
     validateSuppliersQuery,
-} from "@middleware/supplierMiddleware";
+} from "@middleware/supplier.middleware";
 import {
     getAllSuppliers,
     getSupplierById,

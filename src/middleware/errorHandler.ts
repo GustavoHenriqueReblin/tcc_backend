@@ -1,5 +1,5 @@
 import type { Response, NextFunction } from "express";
-import { Request } from "./authMiddleware";
+import { Request } from "./auth.middleware";
 import { AppError } from "@utils/appError";
 
 export const errorHandler = async (

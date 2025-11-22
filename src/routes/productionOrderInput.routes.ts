@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllProductionOrderInputs,
     getProductionOrderInputById,
@@ -9,7 +9,7 @@ import {
 import {
     validateProductionOrderInputFields,
     validateProductionOrderInputPaginationAndFilter,
-} from "@middleware/productionOrderInputMiddleware";
+} from "@middleware/productionOrderInput.middleware";
 
 const router = Router();
 

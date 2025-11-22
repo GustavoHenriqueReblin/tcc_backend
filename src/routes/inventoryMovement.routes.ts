@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateInventoryMovementPaginationAndFilter,
     validateInventoryMovementsQuery,
-} from "@middleware/inventoryMovementMiddleware";
+} from "@middleware/inventoryMovement.middleware";
 import { getInventoryMovements } from "@controllers/inventoryMovement.controller";
 
 export const inventoryMovementAllowedSortFields = [

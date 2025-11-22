@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllAccountsReceivable,
     getAccountsReceivableById,
@@ -9,7 +9,7 @@ import {
 import {
     validateAccountsReceivableFields,
     validateAccountsReceivablePaginationAndFilter,
-} from "@middleware/accountsReceivableMiddleware";
+} from "@middleware/accountsReceivable.middleware";
 
 const router = Router();
 

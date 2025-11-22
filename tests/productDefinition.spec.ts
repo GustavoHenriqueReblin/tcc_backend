@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
-import { PRODUCT_DEFINITION_ERROR } from "../src/middleware/productDefinitionMiddleware";
+import { PRODUCT_DEFINITION_ERROR } from "../src/middleware/productDefinition.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

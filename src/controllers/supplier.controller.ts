@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { SupplierService } from "@services/supplier.service";
 import { sendResponse } from "@utils/functions";
-import { Request } from "@middleware/authMiddleware";
+import { Request } from "@middleware/auth.middleware";
 
 const service = new SupplierService();
 

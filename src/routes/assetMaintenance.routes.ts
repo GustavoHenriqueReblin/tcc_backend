@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateAssetMaintenanceFields,
     validateAssetMaintenancePaginationAndFilter,
-} from "@middleware/assetMaintenanceMiddleware";
+} from "@middleware/assetMaintenance.middleware";
 import {
     getAllAssetMaintenances,
     getAssetMaintenanceById,

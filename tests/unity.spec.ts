@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
-import { UNITY_ERROR } from "../src/middleware/unityMiddleware";
+import { UNITY_ERROR } from "../src/middleware/unity.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

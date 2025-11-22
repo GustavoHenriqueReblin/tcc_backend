@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAddresses,
     getAddressById,
@@ -10,7 +10,7 @@ import {
     validateDeliveryAddressId,
     validateDeliveryAddressFields,
     validateDeliveryAddressQuery,
-} from "@middleware/deliveryAddressMiddleware";
+} from "@middleware/deliveryAddress.middleware";
 
 export const deliveryAddressAllowedSortFields = [
     "label",

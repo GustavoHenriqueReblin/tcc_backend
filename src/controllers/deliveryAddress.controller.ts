@@ -1,4 +1,4 @@
-import { Request } from "@middleware/authMiddleware";
+import { Request } from "@middleware/auth.middleware";
 import { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { DeliveryAddressService } from "@services/deliveryAddress.service";

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllProductionOrders,
     getProductionOrderById,
@@ -11,7 +11,7 @@ import {
     validateProductionOrderQuery,
     validateProductionOrderPaginationAndFilter,
     validateProductionOrdersQuery,
-} from "@middleware/productionOrderMiddleware";
+} from "@middleware/productionOrder.middleware";
 
 export const productionOrderAllowedSortFields = [
     "code",

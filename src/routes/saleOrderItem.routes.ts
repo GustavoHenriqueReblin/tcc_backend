@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllSaleOrderItems,
     getSaleOrderItemById,
@@ -9,7 +9,7 @@ import {
 import {
     validateSaleOrderItemFields,
     validateSaleOrderItemPaginationAndFilter,
-} from "@middleware/saleOrderItemMiddleware";
+} from "@middleware/saleOrderItem.middleware";
 
 const router = Router();
 

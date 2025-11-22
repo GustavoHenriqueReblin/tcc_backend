@@ -1,6 +1,9 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
-import { validateAssetFields, validateAssetPaginationAndFilter } from "@middleware/assetMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
+import {
+    validateAssetFields,
+    validateAssetPaginationAndFilter,
+} from "@middleware/asset.middleware";
 import {
     getAllAssets,
     getAssetById,

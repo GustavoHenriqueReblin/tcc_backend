@@ -1,7 +1,7 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { AssetMaintenance, AssetMaintenanceType, AssetStatus } from "@prisma/client";
-import { ASSET_MAINTENANCE_ERROR } from "../src/middleware/assetMaintenanceMiddleware";
+import { ASSET_MAINTENANCE_ERROR } from "../src/middleware/assetMaintenance.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
-import { WAREHOUSE_ERROR } from "../src/middleware/warehouseMiddleware";
+import { WAREHOUSE_ERROR } from "../src/middleware/warehouse.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

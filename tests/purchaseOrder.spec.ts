@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
-import { PURCHASE_ORDER_ERROR } from "../src/middleware/purchaseOrderMiddleware";
+import { PURCHASE_ORDER_ERROR } from "../src/middleware/purchaseOrder.middleware";
 import { OrderStatus } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 

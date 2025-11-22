@@ -1,6 +1,6 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
-import { PRODUCTION_ORDER_INPUT_ERROR } from "../src/middleware/productionOrderInputMiddleware";
+import { PRODUCTION_ORDER_INPUT_ERROR } from "../src/middleware/productionOrderInput.middleware";
 import { ProductDefinitionType } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 

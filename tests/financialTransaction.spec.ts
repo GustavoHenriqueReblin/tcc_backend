@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { TransactionType } from "@prisma/client";
-import { FINANCIAL_TRANSACTION_ERROR } from "../src/middleware/financialTransactionMiddleware";
+import { FINANCIAL_TRANSACTION_ERROR } from "../src/middleware/financialTransaction.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

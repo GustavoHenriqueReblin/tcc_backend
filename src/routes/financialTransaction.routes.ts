@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllFinancialTransactions,
     getFinancialTransactionById,
@@ -9,7 +9,7 @@ import {
 import {
     validateFinancialTransactionFields,
     validateFinancialTransactionPaginationAndFilter,
-} from "@middleware/financialTransactionMiddleware";
+} from "@middleware/financialTransaction.middleware";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
-import { ASSET_CATEGORY_ERROR } from "../src/middleware/assetCategoryMiddleware";
+import { ASSET_CATEGORY_ERROR } from "../src/middleware/assetCategory.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

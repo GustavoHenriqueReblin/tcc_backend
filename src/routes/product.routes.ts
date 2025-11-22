@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllProducts,
     getProductById,
@@ -10,7 +10,7 @@ import {
     validateProductFields,
     validateProductQuery,
     validateProductsQuery,
-} from "@middleware/productMiddleware";
+} from "@middleware/product.middleware";
 
 export const productAllowedSortFields = [
     "name",

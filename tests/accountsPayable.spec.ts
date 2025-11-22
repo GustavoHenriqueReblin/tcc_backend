@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
-import { ACCOUNTS_PAYABLE_ERROR } from "../src/middleware/accountsPayableMiddleware";
+import { ACCOUNTS_PAYABLE_ERROR } from "../src/middleware/accountsPayable.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;

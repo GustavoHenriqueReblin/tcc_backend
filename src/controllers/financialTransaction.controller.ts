@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
-import { Request } from "@middleware/authMiddleware";
+import { Request } from "@middleware/auth.middleware";
 import { FinancialTransactionService } from "@services/financialTransaction.service";
 import { TransactionType } from "@prisma/client";
 

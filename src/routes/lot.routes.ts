@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import { getAllLots, getLotById, createLot, updateLot } from "@controllers/lot.controller";
-import { validateLotFields, validateLotPaginationAndFilter } from "@middleware/lotMiddleware";
+import { validateLotFields, validateLotPaginationAndFilter } from "@middleware/lot.middleware";
 
 const router = Router();
 

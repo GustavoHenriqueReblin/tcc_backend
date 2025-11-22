@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/authMiddleware";
+import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllAccountsPayable,
     getAccountsPayableById,
@@ -9,7 +9,7 @@ import {
 import {
     validateAccountsPayableFields,
     validateAccountsPayablePaginationAndFilter,
-} from "@middleware/accountsPayableMiddleware";
+} from "@middleware/accountsPayable.middleware";
 
 const router = Router();
 

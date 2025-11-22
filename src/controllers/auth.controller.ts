@@ -2,7 +2,7 @@ import type { Response } from "express";
 import { AuthService } from "@services/auth.service";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
 import { env } from "@config/env";
-import { Request } from "@middleware/authMiddleware";
+import { Request } from "@middleware/auth.middleware";
 
 const service = new AuthService();
 

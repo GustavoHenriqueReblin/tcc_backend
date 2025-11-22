@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { Status, PersonType, Supplier } from "@prisma/client";
 import { SupplierInput } from "../src/services/supplier.service";
-import { SUPPLIER_ERROR } from "../src/middleware/supplierMiddleware";
+import { SUPPLIER_ERROR } from "../src/middleware/supplier.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
