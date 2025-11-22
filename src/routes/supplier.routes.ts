@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
 import {
     validateSupplierFields,
-    validateSupplierPaginationAndFilter,
+    validateSupplierQuery,
+    validateSuppliersQuery,
 } from "@middleware/supplierMiddleware";
 import {
     getAllSuppliers,
@@ -13,10 +14,17 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, validateSupplierPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllSuppliers);
-router.get("/:id", getSupplierById);
+router.get(
+    "/",
+    validateSuppliersQuery({
+        allowSearch: true,
+        allowedSortFields: ["name", "legalName", "createdAt", "updatedAt", "taxId"],
+    }),
+    getAllSuppliers
+);
+router.get("/:id", validateSupplierQuery, getSupplierById);
 router.post("/", validateSupplierFields, createSupplier);
 router.put("/:id", validateSupplierFields, updateSupplier);
 

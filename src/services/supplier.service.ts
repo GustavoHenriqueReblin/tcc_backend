@@ -40,28 +40,53 @@ export interface SupplierInput {
 }
 
 export class SupplierService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, includeInactive: boolean) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        includeInactive: boolean,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+                const where = {
+                    enterpriseId,
+                    ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { person: { name: { contains: search } } },
+                                  { person: { legalName: { contains: search } } },
+                                  { person: { taxId: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = ["name", "legalName", "createdAt", "updatedAt", "taxId"];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+                const orderBy = ["name", "legalName", "taxId"].includes(safeSortBy)
+                    ? { person: { [safeSortBy]: safeSortOrder } }
+                    : { [safeSortBy]: safeSortOrder };
 
                 const [suppliers, total] = await prisma.$transaction([
                     prisma.supplier.findMany({
-                        where: {
-                            enterpriseId,
-                            ...(includeInactive ? {} : { status: Status.ACTIVE }),
-                        },
+                        where,
                         include: { person: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy,
                     }),
-                    prisma.supplier.count({
-                        where: {
-                            enterpriseId,
-                            ...(includeInactive ? {} : { status: Status.ACTIVE }),
-                        },
-                    }),
+                    prisma.supplier.count({ where }),
                 ]);
 
                 return {

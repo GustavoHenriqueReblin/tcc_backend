@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { Status, PersonType, Supplier } from "@prisma/client";
+import { SupplierInput } from "../src/services/supplier.service";
 import { SUPPLIER_ERROR } from "../src/middleware/supplierMiddleware";
 import { genId } from "./utils/idGenerator";
 
@@ -64,6 +65,18 @@ test("Validação de query: page/limit inválidos e includeInactive inválido", 
     expect(bodyIncInvalid.message).toContain(SUPPLIER_ERROR.INCLUDE_INACTIVE);
 });
 
+test("Validação de sort e sortBy", async ({ request }) => {
+    const resSortOrder = await request.get(`${baseUrl}/suppliers?sortOrder=ascending`);
+    expect(resSortOrder.status()).toBe(400);
+    const bodySortOrder = await resSortOrder.json();
+    expect(bodySortOrder.message).toContain(SUPPLIER_ERROR.SORT);
+
+    const resSortBy = await request.get(`${baseUrl}/suppliers?sortBy=invalidField`);
+    expect(resSortBy.status()).toBe(400);
+    const bodySortBy = await resSortBy.json();
+    expect(bodySortBy.message).toContain(SUPPLIER_ERROR.SORT_BY);
+});
+
 test("Busca fornecedor por Id existente inclui pessoa", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/suppliers`);
     expect(listRes.status()).toBe(200);
@@ -84,6 +97,13 @@ test("Busca fornecedor por Id inexistente retorna data = null", async ({ request
     expect(res.status()).toBe(200);
     const { data } = await res.json();
     expect(data).toBeNull();
+});
+
+test("Validação de Id do fornecedor", async ({ request }) => {
+    const resInvalidId = await request.get(`${baseUrl}/suppliers/not-a-number`);
+    expect(resInvalidId.status()).toBe(400);
+    const bodyInvalidId = await resInvalidId.json();
+    expect(bodyInvalidId.message).toContain(SUPPLIER_ERROR.ID);
 });
 
 test("Cria fornecedor com pessoa nova", async ({ request }) => {
@@ -209,4 +229,32 @@ test("Atualiza fornecedor inexistente deve retornar 404", async ({ request }) =>
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error).toBeTruthy();
+});
+
+test("Busca com search e ordenação por nome", async ({ request }) => {
+    const listRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
+    expect(listRes.status()).toBe(200);
+    const { data: list } = await listRes.json();
+
+    const firstSupplier = list.suppliers[0];
+    const searchTerm = firstSupplier.person.name.slice(0, 3);
+
+    const resSearch = await request.get(
+        `${baseUrl}/suppliers?search=${encodeURIComponent(searchTerm)}&sortBy=name&sortOrder=asc&includeInactive=true`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+    expect(searchData.suppliers.length).toBeGreaterThan(0);
+    expect(
+        searchData.suppliers.every(
+            (s: SupplierInput) =>
+                s.person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.person.legalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.person.taxId.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+
+    const names = searchData.suppliers.map((s: SupplierInput) => s.person.name.toLowerCase());
+    const sortedNames = [...names].sort();
+    expect(names).toEqual(sortedNames);
 });

@@ -232,15 +232,12 @@ test("Busca por search retorna somente clientes correspondentes", async ({ reque
     });
 
     expect(createRes.status()).toBe(200);
-    console.log('Busca no param: ' + uniqueName);
 
     const res = await request.get(`${baseUrl}/customers?search=${uniqueName}`);
     expect(res.status()).toBe(200);
 
     const { data } = await res.json();
-    expect(
-        data.customers.some((c: CustomerInput) => c.person.name === uniqueName)
-    ).toBeTruthy();
+    expect(data.customers.some((c: CustomerInput) => c.person.name === uniqueName)).toBeTruthy();
 });
 
 test("Ordenação crescente e decrescente por nome funciona corretamente", async ({ request }) => {
@@ -251,7 +248,11 @@ test("Ordenação crescente e decrescente por nome funciona corretamente", async
     await request.post(`${baseUrl}/customers`, {
         data: {
             id: genId(),
-            person: { id: genId(), name: aName, taxId: `999.${Date.now().toString().slice(-6)}-11` },
+            person: {
+                id: genId(),
+                name: aName,
+                taxId: `999.${Date.now().toString().slice(-6)}-11`,
+            },
         },
     });
 
@@ -259,7 +260,11 @@ test("Ordenação crescente e decrescente por nome funciona corretamente", async
     await request.post(`${baseUrl}/customers`, {
         data: {
             id: genId(),
-            person: { id: genId(), name: zName, taxId: `999.${Date.now().toString().slice(-6)}-22` },
+            person: {
+                id: genId(),
+                name: zName,
+                taxId: `999.${Date.now().toString().slice(-6)}-22`,
+            },
         },
     });
 

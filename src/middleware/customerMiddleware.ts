@@ -33,7 +33,7 @@ export function validateCustomersQuery(options: CustomerQueryValidationOptions =
 
     return (req: Request, res: Response, next: NextFunction) => {
         let { page = "1", limit = "10", search, sortBy, sortOrder, includeInactive } = req.query;
-        
+
         const pageNum = Number(page);
         const limitNum = Number(limit);
 
