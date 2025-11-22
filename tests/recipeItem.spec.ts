@@ -103,3 +103,54 @@ test("Criar item sem campos obrigatórios deve falhar (400)", async ({ request }
     const body = await res.json();
     expect(body.message).toContain(RECIPE_ITEM_ERROR.MISSING_FIELDS);
 });
+
+test("Busca itens da receita com search no produto e ordena por quantidade", async ({
+    request,
+}) => {
+    const finished = await createProduct(
+        request,
+        ProductDefinitionType.FINISHED_PRODUCT,
+        "PROD_FIN_SRCH"
+    );
+    const recipeRes = await request.post(`${baseUrl}/recipes`, {
+        data: { id: genId(), productId: finished.id, description: "Rec busca", notes: null },
+    });
+    expect(recipeRes.status()).toBe(200);
+    const { data: recipe } = await recipeRes.json();
+
+    const searchTerm = `RAW_SEARCH_${Date.now().toString().slice(-4)}`;
+    const raw1 = await createProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        `${searchTerm}_B`
+    );
+    const raw2 = await createProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        `${searchTerm}_A`
+    );
+
+    const createPayloads = [
+        { id: genId(), recipeId: recipe.id, productId: raw1.id, quantity: 5.5 },
+        { id: genId(), recipeId: recipe.id, productId: raw2.id, quantity: 2.25 },
+    ];
+    for (const payload of createPayloads) {
+        const resCreate = await request.post(`${baseUrl}/recipe-items`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/recipe-items?search=${searchTerm}&sortBy=quantity&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.items.filter((item: { product: { name: string } }) =>
+        item.product.name.includes(searchTerm)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const quantities = matching.map((item: { quantity: string }) => Number(item.quantity));
+    const sorted = [...quantities].sort((a, b) => a - b);
+    expect(quantities).toEqual(sorted);
+});

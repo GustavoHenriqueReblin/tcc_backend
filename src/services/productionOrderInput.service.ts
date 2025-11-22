@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
+import { productionOrderInputAllowedSortFields } from "@routes/productionOrderInput.routes";
 
 export interface ProductionOrderInputInput {
     id?: number;
@@ -13,22 +14,49 @@ export interface ProductionOrderInputInput {
 }
 
 export class ProductionOrderInputService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, productionOrderId?: number) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        productionOrderId?: number,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(typeof productionOrderId === "number" ? { productionOrderId } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { product: { name: { contains: search } } },
+                                  { product: { barcode: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = productionOrderInputAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [items, total] = await prisma.$transaction([
                     prisma.productionOrderInput.findMany({
-                        where: { enterpriseId, ...(productionOrderId && { productionOrderId }) },
+                        where,
                         include: { productionOrder: true, product: true },
                         skip,
                         take: limit,
-                        orderBy: { id: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.productionOrderInput.count({
-                        where: { enterpriseId, ...(productionOrderId && { productionOrderId }) },
-                    }),
+                    prisma.productionOrderInput.count({ where }),
                 ]);
 
                 return {

@@ -8,15 +8,29 @@ import {
 } from "@controllers/productionOrderInput.controller";
 import {
     validateProductionOrderInputFields,
-    validateProductionOrderInputPaginationAndFilter,
+    validateProductionOrderInputListQuery,
+    validateProductionOrderInputQuery,
 } from "@middleware/productionOrderInput.middleware";
+
+export const productionOrderInputAllowedSortFields = [
+    "quantity",
+    "unitCost",
+    "createdAt",
+    "updatedAt",
+];
 
 const router = Router();
 
-router.use(authMiddleware, validateProductionOrderInputPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllProductionOrderInputs);
-router.get("/:id", getProductionOrderInputById);
+router.get(
+    "/",
+    validateProductionOrderInputListQuery({
+        allowedSortFields: productionOrderInputAllowedSortFields,
+    }),
+    getAllProductionOrderInputs
+);
+router.get("/:id", validateProductionOrderInputQuery, getProductionOrderInputById);
 router.post("/", validateProductionOrderInputFields, createProductionOrderInput);
 router.put("/:id", validateProductionOrderInputFields, updateProductionOrderInput);
 

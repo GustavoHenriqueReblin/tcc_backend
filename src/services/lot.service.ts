@@ -2,6 +2,7 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
+import { lotAllowedSortFields } from "@routes/lot.routes";
 
 export interface LotInput {
     id?: number;
@@ -13,20 +14,44 @@ export interface LotInput {
 }
 
 export class LotService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(search
+                        ? {
+                              OR: [{ code: { contains: search } }, { notes: { contains: search } }],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = lotAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [lots, total] = await prisma.$transaction([
                     prisma.lot.findMany({
-                        where: { enterpriseId },
+                        where,
                         include: { product: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.lot.count({ where: { enterpriseId } }),
+                    prisma.lot.count({ where }),
                 ]);
 
                 return {

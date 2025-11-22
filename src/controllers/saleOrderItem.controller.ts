@@ -6,14 +6,17 @@ import { SaleOrderItemService } from "@services/saleOrderItem.service";
 const service = new SaleOrderItemService();
 
 export const getAllSaleOrderItems = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", saleOrderId } = req.query;
+    const { page = "1", limit = "10", saleOrderId, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        saleOrderId ? Number(saleOrderId) : undefined
+        saleOrderId ? Number(saleOrderId) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Sale order items fetched successfully");
 };

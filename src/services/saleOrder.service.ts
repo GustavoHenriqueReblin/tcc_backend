@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { OrderStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { saleOrderAllowedSortFields } from "@routes/saleOrder.routes";
 
 export interface SaleOrderInput {
     id?: number;
@@ -15,20 +16,50 @@ export interface SaleOrderInput {
 }
 
 export class SaleOrderService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: OrderStatus) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        status?: OrderStatus,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(status ? { status } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { code: { contains: search } },
+                                  { customer: { person: { name: { contains: search } } } },
+                                  { customer: { person: { taxId: { contains: search } } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = saleOrderAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [orders, total] = await prisma.$transaction([
                     prisma.saleOrder.findMany({
-                        where: { enterpriseId, ...(status && { status }) },
+                        where,
                         include: { customer: { include: { person: true } }, items: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.saleOrder.count({ where: { enterpriseId, ...(status && { status }) } }),
+                    prisma.saleOrder.count({ where }),
                 ]);
 
                 return {

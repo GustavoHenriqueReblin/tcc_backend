@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
+import { saleOrderItemAllowedSortFields } from "@routes/saleOrderItem.routes";
 
 export interface SaleOrderItemInput {
     id?: number;
@@ -15,22 +16,49 @@ export interface SaleOrderItemInput {
 }
 
 export class SaleOrderItemService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, saleOrderId?: number) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        saleOrderId?: number,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(typeof saleOrderId === "number" ? { saleOrderId } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { product: { name: { contains: search } } },
+                                  { product: { barcode: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = saleOrderItemAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [items, total] = await prisma.$transaction([
                     prisma.saleOrderItem.findMany({
-                        where: { enterpriseId, ...(saleOrderId && { saleOrderId }) },
+                        where,
                         include: { saleOrder: true, product: true },
                         skip,
                         take: limit,
-                        orderBy: { id: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.saleOrderItem.count({
-                        where: { enterpriseId, ...(saleOrderId && { saleOrderId }) },
-                    }),
+                    prisma.saleOrderItem.count({ where }),
                 ]);
 
                 return {

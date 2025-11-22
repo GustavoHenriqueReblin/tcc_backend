@@ -8,15 +8,24 @@ import {
 } from "@controllers/purchaseOrder.controller";
 import {
     validatePurchaseOrderFields,
-    validatePurchaseOrderPaginationAndFilter,
+    validatePurchaseOrderListQuery,
+    validatePurchaseOrderQuery,
 } from "@middleware/purchaseOrder.middleware";
+
+export const purchaseOrderAllowedSortFields = ["code", "status", "createdAt", "updatedAt"];
 
 const router = Router();
 
-router.use(authMiddleware, validatePurchaseOrderPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllPurchaseOrders);
-router.get("/:id", getPurchaseOrderById);
+router.get(
+    "/",
+    validatePurchaseOrderListQuery({
+        allowedSortFields: purchaseOrderAllowedSortFields,
+    }),
+    getAllPurchaseOrders
+);
+router.get("/:id", validatePurchaseOrderQuery, getPurchaseOrderById);
 router.post("/", validatePurchaseOrderFields, createPurchaseOrder);
 router.put("/:id", validatePurchaseOrderFields, updatePurchaseOrder);
 

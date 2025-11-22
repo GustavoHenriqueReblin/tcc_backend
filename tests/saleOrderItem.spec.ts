@@ -31,10 +31,10 @@ const createAuxDefinition = async (request: APIRequestContext) => {
     return data;
 };
 
-const createAuxProduct = async (request: APIRequestContext) => {
+const createAuxProduct = async (request: APIRequestContext, namePrefix = "PROD_SOI") => {
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request);
-    const nameBase = `PROD_SOI_${Date.now().toString().slice(-6)}`;
+    const nameBase = `${namePrefix}_${Date.now().toString().slice(-6)}`;
     const payload = {
         id: genId(),
         productDefinitionId: def.id,
@@ -120,4 +120,54 @@ test("Criar item sem campos obrigatórios deve falhar (400)", async ({ request }
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toContain(SALE_ORDER_ITEM_ERROR.MISSING_FIELDS);
+});
+
+test("Busca itens de pedido de venda com search por produto e ordena por unitPrice", async ({
+    request,
+}) => {
+    const order = await createSaleOrder(request);
+    const searchTerm = `SOI_SEARCH_${Date.now().toString().slice(-4)}`;
+    const productA = await createAuxProduct(request, `${searchTerm}B`);
+    const productB = await createAuxProduct(request, `${searchTerm}A`);
+
+    const payloads = [
+        {
+            id: genId(),
+            saleOrderId: order.id,
+            productId: productA.id,
+            quantity: 1.5,
+            unitPrice: 12.5,
+            productUnitPrice: 12.5,
+            unitCost: 6.25,
+        },
+        {
+            id: genId(),
+            saleOrderId: order.id,
+            productId: productB.id,
+            quantity: 2,
+            unitPrice: 8.75,
+            productUnitPrice: 8.75,
+            unitCost: 4.5,
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/sale-order-items`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/sale-order-items?search=${searchTerm}&sortBy=unitPrice&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.items.filter((item: { product: { name: string } }) =>
+        item.product.name.includes(searchTerm)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const prices = matching.map((item: { unitPrice: string }) => Number(item.unitPrice));
+    const sorted = [...prices].sort((a, b) => a - b);
+    expect(prices).toEqual(sorted);
 });

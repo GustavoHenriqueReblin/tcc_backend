@@ -97,3 +97,40 @@ test("Criar receita sem productId deve falhar (400)", async ({ request }) => {
     const body = await res.json();
     expect(body.message).toContain(RECIPE_ERROR.MISSING_FIELDS);
 });
+
+test("Busca receitas com search e ordenaAA�o por description", async ({ request }) => {
+    const product = await createAuxProduct(request);
+    const prefix = `REC_SEARCH_${Date.now().toString().slice(-4)}`;
+
+    const payloads = [
+        { id: genId(), productId: product.id, description: `${prefix}Z`, notes: "nota 1" },
+        {
+            id: genId(),
+            productId: product.id,
+            description: `${prefix}A`,
+            notes: `${prefix} nota 2`,
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/recipes`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/recipes?search=${prefix}&sortBy=description&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.recipes.filter((recipe: { description?: string | null }) =>
+        recipe.description?.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const descriptions = matching.map(
+        (recipe: { description?: string | null }) => recipe.description?.toString() ?? ""
+    );
+    const sorted = [...descriptions].sort();
+    expect(descriptions).toEqual(sorted);
+});

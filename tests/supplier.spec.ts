@@ -258,3 +258,52 @@ test("Busca com search e ordenação por nome", async ({ request }) => {
     const sortedNames = [...names].sort();
     expect(names).toEqual(sortedNames);
 });
+
+test("Busca fornecedores por CPF/CNPJ e ordena por createdAt", async ({ request }) => {
+    const taxIdBase = `777.${Date.now().toString().slice(-6)}`;
+    const suppliersPayload = [
+        {
+            id: genId(),
+            person: {
+                id: genId(),
+                name: "Fornecedor Search 1",
+                legalName: "Fornecedor Search 1 LTDA",
+                taxId: `${taxIdBase}-01`,
+            },
+            contactName: "Contato Search 1",
+        },
+        {
+            id: genId(),
+            person: {
+                id: genId(),
+                name: "Fornecedor Search 2",
+                legalName: "Fornecedor Search 2 LTDA",
+                taxId: `${taxIdBase}-02`,
+            },
+            contactName: "Contato Search 2",
+        },
+    ];
+
+    for (const payload of suppliersPayload) {
+        const resCreate = await request.post(`${baseUrl}/suppliers`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+        await resCreate.json();
+    }
+
+    const res = await request.get(
+        `${baseUrl}/suppliers?search=${encodeURIComponent(taxIdBase)}&sortBy=createdAt&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.suppliers.filter((supplier: { person: { taxId?: string | null } }) =>
+        supplier.person.taxId?.startsWith(taxIdBase)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const taxIds = matching.map(
+        (supplier: { person: { taxId?: string | null } }) => supplier.person.taxId
+    );
+    expect(taxIds[0]).toBe(`${taxIdBase}-01`);
+    expect(taxIds[1]).toBe(`${taxIdBase}-02`);
+});

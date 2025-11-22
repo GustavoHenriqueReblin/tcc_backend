@@ -115,3 +115,60 @@ test("Criar insumo sem campos obrigatórios deve falhar (400)", async ({ request
     const body = await res.json();
     expect(body.message).toContain(PRODUCTION_ORDER_INPUT_ERROR.MISSING_FIELDS);
 });
+
+test("Busca insumos da ordem com search no produto e ordena por unitCost", async ({ request }) => {
+    const prod = await createProduct(request, ProductDefinitionType.FINISHED_PRODUCT, "PFIN_SRCH");
+    const order = await createOrder(request, prod.id);
+
+    const searchTerm = `POI_SEARCH_${Date.now().toString().slice(-4)}`;
+    const raw1 = await createProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        `${searchTerm}_B`
+    );
+    const raw2 = await createProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        `${searchTerm}_A`
+    );
+
+    const payloads = [
+        {
+            id: genId(),
+            productionOrderId: order.id,
+            productId: raw1.id,
+            quantity: 3,
+            unitCost: 5.5,
+        },
+        {
+            id: genId(),
+            productionOrderId: order.id,
+            productId: raw2.id,
+            quantity: 4,
+            unitCost: 2.75,
+        },
+    ];
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/production-order-inputs`, {
+            data: payload,
+        });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/production-order-inputs?search=${searchTerm}&sortBy=unitCost&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.items.filter((item: { product: { name: string } }) =>
+        item.product.name.includes(searchTerm)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const unitCosts = matching.map((item: { unitCost: string | null }) =>
+        item.unitCost ? Number(item.unitCost) : 0
+    );
+    const sorted = [...unitCosts].sort((a, b) => a - b);
+    expect(unitCosts).toEqual(sorted);
+});

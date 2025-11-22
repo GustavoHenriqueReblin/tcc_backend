@@ -68,3 +68,46 @@ test("Criar compra com code duplicado retorna 409", async ({ request }) => {
     });
     expect(res2.status()).toBe(409);
 });
+
+test("Busca compras com search por fornecedor e ordena por code", async ({ request }) => {
+    const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
+    expect(supRes.status()).toBe(200);
+    const { data: slist } = await supRes.json();
+    const supplier = slist.suppliers[0];
+    expect(supplier).toBeTruthy();
+
+    const sourceName = supplier.person.name || supplier.person.legalName || supplier.person.taxId;
+    expect(sourceName).toBeTruthy();
+    const searchTerm = sourceName.slice(0, Math.min(4, sourceName.length));
+
+    const codePrefix = `POSRCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        { id: genId(), code: `${codePrefix}B`, supplierId: supplier.id, notes: `${codePrefix}B` },
+        { id: genId(), code: `${codePrefix}A`, supplierId: supplier.id, notes: `${codePrefix}A` },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/purchase-orders`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/purchase-orders?search=${encodeURIComponent(searchTerm)}&sortBy=code&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.orders.filter((order: { code: string }) =>
+        order.code.startsWith(codePrefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const codes = matching.map((order: { code: string }) => order.code);
+    const sorted = [...codes].sort();
+    expect(codes).toEqual(sorted);
+    expect(
+        matching.every((order: { supplier: { person: { name?: string | null } } }) =>
+            order.supplier.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+});

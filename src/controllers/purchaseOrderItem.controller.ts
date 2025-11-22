@@ -6,14 +6,17 @@ import { PurchaseOrderItemService } from "@services/purchaseOrderItem.service";
 const service = new PurchaseOrderItemService();
 
 export const getAllPurchaseOrderItems = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", purchaseOrderId } = req.query;
+    const { page = "1", limit = "10", purchaseOrderId, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        purchaseOrderId ? Number(purchaseOrderId) : undefined
+        purchaseOrderId ? Number(purchaseOrderId) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Purchase order items fetched successfully");
 };

@@ -8,15 +8,31 @@ import {
 } from "@controllers/saleOrderItem.controller";
 import {
     validateSaleOrderItemFields,
-    validateSaleOrderItemPaginationAndFilter,
+    validateSaleOrderItemListQuery,
+    validateSaleOrderItemQuery,
 } from "@middleware/saleOrderItem.middleware";
+
+export const saleOrderItemAllowedSortFields = [
+    "quantity",
+    "unitPrice",
+    "productUnitPrice",
+    "unitCost",
+    "createdAt",
+    "updatedAt",
+];
 
 const router = Router();
 
-router.use(authMiddleware, validateSaleOrderItemPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllSaleOrderItems);
-router.get("/:id", getSaleOrderItemById);
+router.get(
+    "/",
+    validateSaleOrderItemListQuery({
+        allowedSortFields: saleOrderItemAllowedSortFields,
+    }),
+    getAllSaleOrderItems
+);
+router.get("/:id", validateSaleOrderItemQuery, getSaleOrderItemById);
 router.post("/", validateSaleOrderItemFields, createSaleOrderItem);
 router.put("/:id", validateSaleOrderItemFields, updateSaleOrderItem);
 

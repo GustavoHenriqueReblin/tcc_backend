@@ -112,3 +112,33 @@ test("Criar lote com code duplicado retorna 409", async ({ request }) => {
     });
     expect(res2.status()).toBe(409);
 });
+
+test("Busca lotes com search e ordenaAA�o por code", async ({ request }) => {
+    const product = await createAuxProduct(request);
+    const prefix = `LOTSEARCH_${Date.now().toString().slice(-4)}`;
+    const lotPayloads = [
+        { id: genId(), code: `${prefix}B`, productId: product.id, notes: `${prefix} note B` },
+        { id: genId(), code: `${prefix}A`, productId: product.id, notes: `${prefix} note A` },
+    ];
+
+    for (const payload of lotPayloads) {
+        const createRes = await request.post(`${baseUrl}/lots`, { data: payload });
+        expect(createRes.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/lots?search=${prefix}&sortBy=code&sortOrder=asc&limit=10`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.lots.filter((lot: { code: string }) => lot.code.includes(prefix));
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+    expect(
+        matching.every((lot: { notes?: string | null }) => lot.notes?.includes(prefix))
+    ).toBeTruthy();
+
+    const codes = matching.map((lot: { code: string }) => lot.code);
+    const sorted = [...codes].sort();
+    expect(codes).toEqual(sorted);
+});

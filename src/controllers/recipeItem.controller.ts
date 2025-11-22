@@ -6,14 +6,17 @@ import { RecipeItemService } from "@services/recipeItem.service";
 const service = new RecipeItemService();
 
 export const getAllRecipeItems = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", recipeId } = req.query;
+    const { page = "1", limit = "10", recipeId, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        recipeId ? Number(recipeId) : undefined
+        recipeId ? Number(recipeId) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Recipe items fetched successfully");
 };

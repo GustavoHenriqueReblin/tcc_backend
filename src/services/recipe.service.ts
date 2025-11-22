@@ -2,6 +2,7 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
+import { recipeAllowedSortFields } from "@routes/recipe.routes";
 
 export interface RecipeInput {
     id?: number;
@@ -11,20 +12,49 @@ export interface RecipeInput {
 }
 
 export class RecipeService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(search
+                        ? {
+                              OR: [
+                                  { description: { contains: search } },
+                                  { notes: { contains: search } },
+                                  { product: { name: { contains: search } } },
+                                  { product: { barcode: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = recipeAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [recipes, total] = await prisma.$transaction([
                     prisma.recipe.findMany({
-                        where: { enterpriseId },
+                        where,
                         include: { product: true, items: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.recipe.count({ where: { enterpriseId } }),
+                    prisma.recipe.count({ where }),
                 ]);
 
                 return {

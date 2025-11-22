@@ -69,3 +69,46 @@ test("Criar pedido com code duplicado retorna 409", async ({ request }) => {
     });
     expect(res2.status()).toBe(409);
 });
+
+test("Busca pedidos de venda com search e ordena por totalValue", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    expect(custRes.status()).toBe(200);
+    const { data: clist } = await custRes.json();
+    const customer = clist.customers[0];
+    expect(customer).toBeTruthy();
+
+    const sourceName = customer.person.name || customer.person.legalName || customer.person.taxId;
+    expect(sourceName).toBeTruthy();
+    const searchTerm = sourceName.slice(0, Math.min(4, sourceName.length));
+
+    const codePrefix = `SOSRCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        { id: genId(), code: `${codePrefix}B`, customerId: customer.id, totalValue: 75.5 },
+        { id: genId(), code: `${codePrefix}A`, customerId: customer.id, totalValue: 12.25 },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/sale-orders`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/sale-orders?search=${encodeURIComponent(searchTerm)}&sortBy=totalValue&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.orders.filter((order: { code: string }) =>
+        order.code.startsWith(codePrefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const totals = matching.map((order: { totalValue: string }) => Number(order.totalValue));
+    const sorted = [...totals].sort((a, b) => a - b);
+    expect(totals).toEqual(sorted);
+    expect(
+        matching.every((order: { customer: { person: { name?: string | null } } }) =>
+            order.customer.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+});

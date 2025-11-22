@@ -6,14 +6,17 @@ import { ProductionOrderInputService } from "@services/productionOrderInput.serv
 const service = new ProductionOrderInputService();
 
 export const getAllProductionOrderInputs = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", productionOrderId } = req.query;
+    const { page = "1", limit = "10", productionOrderId, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        productionOrderId ? Number(productionOrderId) : undefined
+        productionOrderId ? Number(productionOrderId) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Production order inputs fetched successfully");
 };

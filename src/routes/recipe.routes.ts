@@ -8,15 +8,24 @@ import {
 } from "@controllers/recipe.controller";
 import {
     validateRecipeFields,
-    validateRecipePaginationAndFilter,
+    validateRecipeListQuery,
+    validateRecipeQuery,
 } from "@middleware/recipe.middleware";
+
+export const recipeAllowedSortFields = ["description", "notes", "createdAt", "updatedAt"];
 
 const router = Router();
 
-router.use(authMiddleware, validateRecipePaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllRecipes);
-router.get("/:id", getRecipeById);
+router.get(
+    "/",
+    validateRecipeListQuery({
+        allowedSortFields: recipeAllowedSortFields,
+    }),
+    getAllRecipes
+);
+router.get("/:id", validateRecipeQuery, getRecipeById);
 router.post("/", validateRecipeFields, createRecipe);
 router.put("/:id", validateRecipeFields, updateRecipe);
 

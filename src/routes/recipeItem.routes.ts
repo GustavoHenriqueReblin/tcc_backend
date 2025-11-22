@@ -8,15 +8,24 @@ import {
 } from "@controllers/recipeItem.controller";
 import {
     validateRecipeItemFields,
-    validateRecipeItemPaginationAndFilter,
+    validateRecipeItemListQuery,
+    validateRecipeItemQuery,
 } from "@middleware/recipeItem.middleware";
+
+export const recipeItemAllowedSortFields = ["quantity", "createdAt", "updatedAt"];
 
 const router = Router();
 
-router.use(authMiddleware, validateRecipeItemPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllRecipeItems);
-router.get("/:id", getRecipeItemById);
+router.get(
+    "/",
+    validateRecipeItemListQuery({
+        allowedSortFields: recipeItemAllowedSortFields,
+    }),
+    getAllRecipeItems
+);
+router.get("/:id", validateRecipeItemQuery, getRecipeItemById);
 router.post("/", validateRecipeItemFields, createRecipeItem);
 router.put("/:id", validateRecipeItemFields, updateRecipeItem);
 

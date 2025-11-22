@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
+import { purchaseOrderItemAllowedSortFields } from "@routes/purchaseOrderItem.routes";
 
 export interface PurchaseOrderItemInput {
     id?: number;
@@ -13,22 +14,49 @@ export interface PurchaseOrderItemInput {
 }
 
 export class PurchaseOrderItemService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, purchaseOrderId?: number) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        purchaseOrderId?: number,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(typeof purchaseOrderId === "number" ? { purchaseOrderId } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { product: { name: { contains: search } } },
+                                  { product: { barcode: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = purchaseOrderItemAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [items, total] = await prisma.$transaction([
                     prisma.purchaseOrderItem.findMany({
-                        where: { enterpriseId, ...(purchaseOrderId && { purchaseOrderId }) },
+                        where,
                         include: { purchaseOrder: true, product: true },
                         skip,
                         take: limit,
-                        orderBy: { id: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.purchaseOrderItem.count({
-                        where: { enterpriseId, ...(purchaseOrderId && { purchaseOrderId }) },
-                    }),
+                    prisma.purchaseOrderItem.count({ where }),
                 ]);
 
                 return {
