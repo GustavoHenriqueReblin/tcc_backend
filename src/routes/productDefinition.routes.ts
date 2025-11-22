@@ -12,6 +12,14 @@ import {
     validateProductDefinitionsQuery,
 } from "@middleware/productDefinitionMiddleware";
 
+export const productDefinitionAllowedSortFields = [
+    "name",
+    "description",
+    "type",
+    "createdAt",
+    "updatedAt",
+];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -20,7 +28,7 @@ router.get(
     "/",
     validateProductDefinitionsQuery({
         allowSearch: true,
-        allowedSortFields: ["name", "description", "type", "createdAt", "updatedAt"],
+        allowedSortFields: productDefinitionAllowedSortFields,
     }),
     getAllProductDefinitions
 );

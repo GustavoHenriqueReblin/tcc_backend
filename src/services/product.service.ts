@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { MovementType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { productAllowedSortFields } from "@routes/product.routes";
 
 export interface ProductInventoryInput {
     costValue: number;
@@ -51,18 +52,8 @@ export class ProductService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = [
-                    "name",
-                    "barcode",
-                    "costValue",
-                    "saleValue",
-                    "quantity",
-                    "createdAt",
-                    "updatedAt",
-                ];
-
+                const validSortFields = productAllowedSortFields;
                 const safeSortBy: string = validSortFields.includes(sortBy) ? sortBy : "createdAt";
-
                 const safeSortOrder: "asc" | "desc" = sortOrder === "asc" ? "asc" : "desc";
 
                 const [productsRaw, total] = await prisma.$transaction([

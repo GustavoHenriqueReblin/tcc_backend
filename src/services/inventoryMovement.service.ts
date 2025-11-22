@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { MovementType, MovementSource } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { inventoryMovementAllowedSortFields } from "@routes/inventoryMovement.routes";
 
 export interface InventoryMovementInput {
     id?: number;
@@ -42,15 +43,7 @@ export class InventoryMovementService extends BaseService {
                     ...(search ? { reference: { contains: search } } : {}),
                 };
 
-                const validSortFields = [
-                    "direction",
-                    "source",
-                    "quantity",
-                    "balance",
-                    "unitCost",
-                    "createdAt",
-                    "updatedAt",
-                ];
+                const validSortFields = inventoryMovementAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

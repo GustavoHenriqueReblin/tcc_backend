@@ -12,6 +12,16 @@ import {
     validateProductsQuery,
 } from "@middleware/productMiddleware";
 
+export const productAllowedSortFields = [
+    "name",
+    "barcode",
+    "costValue",
+    "saleValue",
+    "quantity",
+    "createdAt",
+    "updatedAt",
+];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -20,15 +30,7 @@ router.get(
     "/",
     validateProductsQuery({
         allowSearch: true,
-        allowedSortFields: [
-            "name",
-            "barcode",
-            "costValue",
-            "saleValue",
-            "quantity",
-            "createdAt",
-            "updatedAt",
-        ],
+        allowedSortFields: productAllowedSortFields,
     }),
     getAllProducts
 );

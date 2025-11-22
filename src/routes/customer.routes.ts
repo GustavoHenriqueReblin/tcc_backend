@@ -12,6 +12,9 @@ import {
     updateCustomer,
 } from "@controllers/customer.controller";
 
+export const customerPersonAllowedSortFields = ["name", "legalName", "taxId"];
+export const customerAllowedSortFields = ["createdAt", "updatedAt"];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -20,7 +23,7 @@ router.get(
     "/",
     validateCustomersQuery({
         allowSearch: true,
-        allowedSortFields: ["name", "legalName", "createdAt", "updatedAt", "taxId"],
+        allowedSortFields: customerPersonAllowedSortFields.concat(customerAllowedSortFields),
     }),
     getAllCustomers
 );

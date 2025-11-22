@@ -2,6 +2,7 @@ import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { Status } from "@prisma/client";
 import { AppError } from "@utils/appError";
+import { deliveryAddressAllowedSortFields } from "@routes/deliveryAddress.routes";
 
 export interface DeliveryAddressInput {
     customerId: number;
@@ -52,17 +53,7 @@ export class DeliveryAddressService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = [
-                    "label",
-                    "street",
-                    "number",
-                    "neighborhood",
-                    "complement",
-                    "reference",
-                    "postalCode",
-                    "createdAt",
-                    "updatedAt",
-                ];
+                const validSortFields = deliveryAddressAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

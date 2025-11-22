@@ -12,6 +12,18 @@ import {
     validateDeliveryAddressQuery,
 } from "@middleware/deliveryAddressMiddleware";
 
+export const deliveryAddressAllowedSortFields = [
+    "label",
+    "street",
+    "number",
+    "neighborhood",
+    "complement",
+    "reference",
+    "postalCode",
+    "createdAt",
+    "updatedAt",
+];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -19,17 +31,7 @@ router.use(authMiddleware);
 router.get(
     "/:customerId",
     validateDeliveryAddressQuery({
-        allowedSortFields: [
-            "label",
-            "street",
-            "number",
-            "neighborhood",
-            "complement",
-            "reference",
-            "postalCode",
-            "createdAt",
-            "updatedAt",
-        ],
+        allowedSortFields: deliveryAddressAllowedSortFields,
     }),
     getAddresses
 );

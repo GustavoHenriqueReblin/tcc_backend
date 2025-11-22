@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
 import { ProductionOrderStatus } from "@prisma/client";
+import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
 
 export interface ProductionOrderInputData {
     id?: number;
@@ -51,17 +52,7 @@ export class ProductionOrderService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = [
-                    "code",
-                    "status",
-                    "plannedQty",
-                    "producedQty",
-                    "wasteQty",
-                    "startDate",
-                    "endDate",
-                    "createdAt",
-                    "updatedAt",
-                ];
+                const validSortFields = productionOrderAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

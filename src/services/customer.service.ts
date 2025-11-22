@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { Status, PersonType, MaritalStatus } from "@prisma/client";
 import { AppError } from "@utils/appError";
+import { customerAllowedSortFields, customerPersonAllowedSortFields } from "@routes/customer.routes";
 
 export interface CustomerInput {
     id?: number;
@@ -69,11 +70,11 @@ export class CustomerService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = ["name", "legalName", "createdAt", "updatedAt", "taxId"];
+                const validSortFields = customerPersonAllowedSortFields.concat(customerAllowedSortFields);
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
-                const orderBy = ["name", "legalName", "taxId"].includes(safeSortBy)
+                const orderBy = customerPersonAllowedSortFields.includes(safeSortBy)
                     ? { person: { [safeSortBy]: safeSortOrder } }
                     : { [safeSortBy]: safeSortOrder };
 

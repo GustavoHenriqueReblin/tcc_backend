@@ -2,6 +2,7 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
+import { unityAllowedSortFields } from "@routes/unity.routes";
 
 export interface UnityInput {
     id?: number;
@@ -37,7 +38,7 @@ export class UnityService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = ["simbol", "description", "createdAt", "updatedAt"];
+                const validSortFields = unityAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

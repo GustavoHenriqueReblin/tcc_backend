@@ -6,6 +6,16 @@ import {
 } from "@middleware/inventoryMovementMiddleware";
 import { getInventoryMovements } from "@controllers/inventoryMovement.controller";
 
+export const inventoryMovementAllowedSortFields = [
+    "direction",
+    "source",
+    "quantity",
+    "balance",
+    "unitCost",
+    "createdAt",
+    "updatedAt",
+];
+
 const router = Router();
 
 router.use(authMiddleware, validateInventoryMovementPaginationAndFilter);
@@ -14,15 +24,7 @@ router.get(
     "/",
     validateInventoryMovementsQuery({
         allowSearch: true,
-        allowedSortFields: [
-            "direction",
-            "source",
-            "quantity",
-            "balance",
-            "unitCost",
-            "createdAt",
-            "updatedAt",
-        ],
+        allowedSortFields: inventoryMovementAllowedSortFields,
     }),
     getInventoryMovements
 );

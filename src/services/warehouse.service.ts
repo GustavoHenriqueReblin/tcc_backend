@@ -2,6 +2,7 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
+import { warehouseAllowedSortFields } from "@routes/warehouse.routes";
 
 export interface WarehouseInput {
     id?: number;
@@ -39,7 +40,7 @@ export class WarehouseService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = ["code", "name", "description", "createdAt", "updatedAt"];
+                const validSortFields = warehouseAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

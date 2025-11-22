@@ -12,6 +12,9 @@ import {
     updateSupplier,
 } from "@controllers/supplier.controller";
 
+export const supplierPersonAllowedSortFields = ["name", "legalName", "taxId"];
+export const supplierAllowedSortFields = ["createdAt", "updatedAt"];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -20,7 +23,7 @@ router.get(
     "/",
     validateSuppliersQuery({
         allowSearch: true,
-        allowedSortFields: ["name", "legalName", "createdAt", "updatedAt", "taxId"],
+        allowedSortFields: supplierPersonAllowedSortFields.concat(supplierAllowedSortFields),
     }),
     getAllSuppliers
 );

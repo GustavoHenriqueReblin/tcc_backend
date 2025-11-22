@@ -13,6 +13,18 @@ import {
     validateProductionOrdersQuery,
 } from "@middleware/productionOrderMiddleware";
 
+export const productionOrderAllowedSortFields = [
+    "code",
+    "status",
+    "plannedQty",
+    "producedQty",
+    "wasteQty",
+    "startDate",
+    "endDate",
+    "createdAt",
+    "updatedAt",
+];
+
 const router = Router();
 
 router.use(authMiddleware, validateProductionOrderPaginationAndFilter);
@@ -21,17 +33,7 @@ router.get(
     "/",
     validateProductionOrdersQuery({
         allowSearch: true,
-        allowedSortFields: [
-            "code",
-            "status",
-            "plannedQty",
-            "producedQty",
-            "wasteQty",
-            "startDate",
-            "endDate",
-            "createdAt",
-            "updatedAt",
-        ],
+        allowedSortFields: productionOrderAllowedSortFields,
     }),
     getAllProductionOrders
 );

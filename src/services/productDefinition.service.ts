@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { ProductDefinitionType } from "@prisma/client";
+import { productDefinitionAllowedSortFields } from "@routes/productDefinition.routes";
 
 export interface ProductDefinitionInput {
     id?: number;
@@ -39,7 +40,7 @@ export class ProductDefinitionService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = ["name", "description", "type", "createdAt", "updatedAt"];
+                const validSortFields = productDefinitionAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 

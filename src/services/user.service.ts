@@ -1,5 +1,6 @@
 import { BaseService } from "@services/base.service";
 import { Status } from "@prisma/client";
+import { userAllowedSortFields, userPersonAllowedSortFields } from "@routes/user.routes";
 
 export class UserService extends BaseService {
     async getAll(
@@ -32,11 +33,11 @@ export class UserService extends BaseService {
                         : {}),
                 };
 
-                const validSortFields = ["name", "legalName", "username", "createdAt", "updatedAt"];
+                const validSortFields = userPersonAllowedSortFields.concat(userAllowedSortFields);
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
-                const orderBy = ["name", "legalName"].includes(safeSortBy)
+                const orderBy = userPersonAllowedSortFields.includes(safeSortBy)
                     ? { person: { [safeSortBy]: { sort: safeSortOrder } } }
                     : { [safeSortBy]: safeSortOrder };
 

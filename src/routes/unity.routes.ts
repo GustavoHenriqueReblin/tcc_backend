@@ -12,6 +12,8 @@ import {
     validateUnitiesQuery,
 } from "@middleware/unityMiddleware";
 
+export const unityAllowedSortFields = ["simbol", "description", "createdAt", "updatedAt"];
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -20,7 +22,7 @@ router.get(
     "/",
     validateUnitiesQuery({
         allowSearch: true,
-        allowedSortFields: ["simbol", "description", "createdAt", "updatedAt"],
+        allowedSortFields: unityAllowedSortFields,
     }),
     getAllUnities
 );
