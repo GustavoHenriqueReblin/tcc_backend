@@ -18,13 +18,13 @@ router.use(authMiddleware);
 
 router.get(
     "/",
-    getAllCustomers,
     validateCustomersQuery({
         allowSearch: true,
         allowedSortFields: ["name", "legalName", "createdAt", "updatedAt", "taxId"],
-    })
+    }),
+    getAllCustomers
 );
-router.get("/:id", getCustomerById, validateCustomerQuery);
+router.get("/:id", validateCustomerQuery, getCustomerById);
 router.post("/", validateCustomerFields, createCustomer);
 router.put("/:id", validateCustomerFields, updateCustomer);
 

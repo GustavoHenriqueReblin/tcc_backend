@@ -51,20 +51,19 @@ export class CustomerService extends BaseService {
                 sortOrder = sortOrder || "desc";
 
                 const skip = (page - 1) * limit;
-
                 const where = {
                     enterpriseId,
                     ...(includeInactive ? {} : { status: Status.ACTIVE }),
                     ...(search
                         ? {
                               OR: [
-                                  { person: { name: { contains: search, mode: "insensitive" } } },
+                                  { person: { name: { contains: search } } },
                                   {
                                       person: {
-                                          legalName: { contains: search, mode: "insensitive" },
+                                          legalName: { contains: search },
                                       },
                                   },
-                                  { person: { taxId: { contains: search, mode: "insensitive" } } },
+                                  { person: { taxId: { contains: search } } },
                               ],
                           }
                         : {}),

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
 import { Status, PersonType, Customer } from "@prisma/client";
+import { CustomerInput } from "../src/services/customer.service";
 import { CUSTOMER_ERROR } from "../src/middleware/customerMiddleware";
 import { genId } from "./utils/idGenerator";
 
@@ -213,4 +214,93 @@ test("Atualiza cliente inexistente deve retornar 404", async ({ request }) => {
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error).toBeTruthy();
+});
+
+test("Busca por search retorna somente clientes correspondentes", async ({ request }) => {
+    const uniqueName = `Busca${Date.now().toString().slice(-4)}`;
+
+    const createRes = await request.post(`${baseUrl}/customers`, {
+        data: {
+            id: genId(),
+            person: {
+                id: genId(),
+                name: uniqueName,
+                legalName: `${uniqueName} LTDA`,
+                taxId: `888.${Date.now().toString().slice(-6)}-00`,
+            },
+        },
+    });
+
+    expect(createRes.status()).toBe(200);
+    console.log('Busca no param: ' + uniqueName);
+
+    const res = await request.get(`${baseUrl}/customers?search=${uniqueName}`);
+    expect(res.status()).toBe(200);
+
+    const { data } = await res.json();
+    expect(
+        data.customers.some((c: CustomerInput) => c.person.name === uniqueName)
+    ).toBeTruthy();
+});
+
+test("Ordenação crescente e decrescente por nome funciona corretamente", async ({ request }) => {
+    const aName = "AAA Tester " + Date.now();
+    const zName = "ZZZ Tester " + Date.now();
+
+    // Cria cliente A
+    await request.post(`${baseUrl}/customers`, {
+        data: {
+            id: genId(),
+            person: { id: genId(), name: aName, taxId: `999.${Date.now().toString().slice(-6)}-11` },
+        },
+    });
+
+    // Cria cliente Z
+    await request.post(`${baseUrl}/customers`, {
+        data: {
+            id: genId(),
+            person: { id: genId(), name: zName, taxId: `999.${Date.now().toString().slice(-6)}-22` },
+        },
+    });
+
+    // ASC
+    const ascRes = await request.get(`${baseUrl}/customers?sortBy=name&sortOrder=asc`);
+    expect(ascRes.status()).toBe(200);
+
+    const ascList = (await ascRes.json()).data.customers;
+    expect(ascList[0].person.name).toBe(aName);
+
+    // DESC
+    const descRes = await request.get(`${baseUrl}/customers?sortBy=name&sortOrder=desc`);
+    expect(descRes.status()).toBe(200);
+
+    const descList = (await descRes.json()).data.customers;
+    expect(descList[0].person.name).toBe(zName);
+});
+
+test("sortBy inválido deve retornar 400", async ({ request }) => {
+    const res = await request.get(`${baseUrl}/customers?sortBy=campoInvalido`);
+    expect(res.status()).toBe(400);
+
+    const body = await res.json();
+    expect(body.message).toContain(CUSTOMER_ERROR.SORT_BY);
+});
+
+test("validateCustomerQuery: ID inválido deve retornar 400", async ({ request }) => {
+    const res = await request.get(`${baseUrl}/customers/abc`);
+    expect(res.status()).toBe(400);
+
+    const body = await res.json();
+    expect(body.message).toBe(CUSTOMER_ERROR.ID);
+});
+
+test("validateCustomerQuery: ID válido deve retornar cliente ou null", async ({ request }) => {
+    const listRes = await request.get(`${baseUrl}/customers`);
+    expect(listRes.status()).toBe(200);
+
+    const { data: list } = await listRes.json();
+    const validId = list.customers[0]?.id ?? 1;
+
+    const res = await request.get(`${baseUrl}/customers/${validId}`);
+    expect([200]).toContain(res.status());
 });

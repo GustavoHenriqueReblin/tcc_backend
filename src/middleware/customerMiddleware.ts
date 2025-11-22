@@ -3,10 +3,14 @@ import { CustomerInput } from "@services/customer.service";
 import { Request, Response, NextFunction } from "express";
 
 export const CUSTOMER_ERROR = {
+    ID: "Invalid Id parameter",
     PAGINATION: "page and limit must be numbers",
     INCLUDE_INACTIVE: "includeInactive must be 'true' or 'false'",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
+    SEARCH: "search filter is not allowed for this resource",
+    SORT: "sortOrder must be 'asc' or 'desc'",
+    SORT_BY: "Invalid sortBy field",
 };
 
 export interface CustomerQueryValidationOptions {
@@ -18,7 +22,7 @@ export const validateCustomerQuery = (req: Request, res: Response, next: NextFun
     const { id } = req.params;
 
     if (!id || isNaN(Number(id))) {
-        return res.status(400).json({ message: "Invalid ID parameter" });
+        return res.status(400).json({ message: CUSTOMER_ERROR.ID });
     }
 
     next();
@@ -29,13 +33,13 @@ export function validateCustomersQuery(options: CustomerQueryValidationOptions =
 
     return (req: Request, res: Response, next: NextFunction) => {
         let { page = "1", limit = "10", search, sortBy, sortOrder, includeInactive } = req.query;
-
+        
         const pageNum = Number(page);
         const limitNum = Number(limit);
 
         if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
             return res.status(400).json({
-                message: "page and limit must be valid numbers",
+                message: CUSTOMER_ERROR.PAGINATION,
             });
         }
 
@@ -45,29 +49,30 @@ export function validateCustomersQuery(options: CustomerQueryValidationOptions =
             includeInactive !== "false"
         ) {
             return res.status(400).json({
-                message: "includeInactive must be 'true' or 'false'",
+                message: CUSTOMER_ERROR.INCLUDE_INACTIVE,
             });
         }
 
         if (!allowSearch && search !== undefined) {
             return res.status(400).json({
-                message: "search filter is not allowed for this resource",
+                message: CUSTOMER_ERROR.SEARCH,
             });
         }
 
         if (typeof search === "string") {
             search = search.trim();
+            if (search.length === 0) search = undefined;
         }
 
         if (sortBy && !allowedSortFields.includes(sortBy.toString())) {
             return res.status(400).json({
-                message: `Invalid sortBy field. Allowed: ${allowedSortFields.join(", ")}`,
+                message: CUSTOMER_ERROR.SORT_BY,
             });
         }
 
         if (sortOrder && sortOrder !== "asc" && sortOrder !== "desc") {
             return res.status(400).json({
-                message: "sortOrder must be 'asc' or 'desc'",
+                message: CUSTOMER_ERROR.SORT,
             });
         }
 
