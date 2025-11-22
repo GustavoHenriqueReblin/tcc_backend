@@ -12,19 +12,45 @@ export interface ProductDefinitionInput {
 }
 
 export class ProductDefinitionService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(search
+                        ? {
+                              OR: [
+                                  { name: { contains: search } },
+                                  { description: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = ["name", "description", "type", "createdAt", "updatedAt"];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [productDefinitions, total] = await prisma.$transaction([
                     prisma.productDefinition.findMany({
-                        where: { enterpriseId },
+                        where,
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.productDefinition.count({ where: { enterpriseId } }),
+                    prisma.productDefinition.count({ where }),
                 ]);
 
                 return {

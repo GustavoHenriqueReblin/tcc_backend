@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { env } from "../src/config/env";
+import { UNITY_ERROR } from "../src/middleware/unityMiddleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
@@ -58,6 +59,56 @@ test("Buscar unity por id inexistente retorna data = null", async ({ request }) 
     expect(res.status()).toBe(200);
     const { data } = await res.json();
     expect(data).toBeNull();
+});
+
+test("Validação de id, paginação e ordenação de unity", async ({ request }) => {
+    const resInvalidId = await request.get(`${baseUrl}/unities/not-a-number`);
+    expect(resInvalidId.status()).toBe(400);
+    const bodyInvalidId = await resInvalidId.json();
+    expect(bodyInvalidId.message).toContain(UNITY_ERROR.ID);
+
+    const resInvalidPagination = await request.get(`${baseUrl}/unities?page=abc&limit=xyz`);
+    expect(resInvalidPagination.status()).toBe(400);
+    const bodyInvalidPagination = await resInvalidPagination.json();
+    expect(bodyInvalidPagination.message).toContain(UNITY_ERROR.PAGINATION);
+
+    const resInvalidSortOrder = await request.get(`${baseUrl}/unities?sortOrder=ascending`);
+    expect(resInvalidSortOrder.status()).toBe(400);
+    const bodyInvalidSortOrder = await resInvalidSortOrder.json();
+    expect(bodyInvalidSortOrder.message).toContain(UNITY_ERROR.SORT);
+
+    const resInvalidSortBy = await request.get(`${baseUrl}/unities?sortBy=unknown`);
+    expect(resInvalidSortBy.status()).toBe(400);
+    const bodyInvalidSortBy = await resInvalidSortBy.json();
+    expect(bodyInvalidSortBy.message).toContain(UNITY_ERROR.SORT_BY);
+});
+
+test("Busca e ordenação de unities", async ({ request }) => {
+    const listRes = await request.get(`${baseUrl}/unities`);
+    expect(listRes.status()).toBe(200);
+    const { data: list } = await listRes.json();
+    expect(list.unities.length).toBeGreaterThan(0);
+
+    const sample = list.unities[0];
+    const searchTerm = sample.simbol.slice(0, 1);
+
+    const resSearch = await request.get(
+        `${baseUrl}/unities?search=${encodeURIComponent(searchTerm)}&sortBy=simbol&sortOrder=asc`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+    expect(searchData.unities.length).toBeGreaterThan(0);
+    expect(
+        searchData.unities.every(
+            (unity: { simbol: string; description?: string | null }) =>
+                unity.simbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                unity.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+
+    const simbols = searchData.unities.map((u: { simbol: string }) => u.simbol.toLowerCase());
+    const sortedSimbols = [...simbols].sort();
+    expect(simbols).toEqual(sortedSimbols);
 });
 
 test("Atualizar unity inexistente retorna 404", async ({ request }) => {

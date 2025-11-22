@@ -11,19 +11,46 @@ export interface WarehouseInput {
 }
 
 export class WarehouseService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(search
+                        ? {
+                              OR: [
+                                  { code: { contains: search } },
+                                  { name: { contains: search } },
+                                  { description: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = ["code", "name", "description", "createdAt", "updatedAt"];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [warehouses, total] = await prisma.$transaction([
                     prisma.warehouse.findMany({
-                        where: { enterpriseId },
+                        where,
                         skip,
                         take: limit,
-                        orderBy: { id: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.warehouse.count({ where: { enterpriseId } }),
+                    prisma.warehouse.count({ where }),
                 ]);
 
                 return {

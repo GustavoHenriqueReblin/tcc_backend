@@ -8,15 +8,23 @@ import {
 } from "@controllers/productDefinition.controller";
 import {
     validateProductDefinitionFields,
-    validateProductDefinitionPaginationAndFilter,
+    validateProductDefinitionQuery,
+    validateProductDefinitionsQuery,
 } from "@middleware/productDefinitionMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware, validateProductDefinitionPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllProductDefinitions);
-router.get("/:id", getProductDefinitionById);
+router.get(
+    "/",
+    validateProductDefinitionsQuery({
+        allowSearch: true,
+        allowedSortFields: ["name", "description", "type", "createdAt", "updatedAt"],
+    }),
+    getAllProductDefinitions
+);
+router.get("/:id", validateProductDefinitionQuery, getProductDefinitionById);
 router.post("/", validateProductDefinitionFields, createProductDefinition);
 router.put("/:id", validateProductDefinitionFields, updateProductDefinition);
 

@@ -492,11 +492,13 @@ model ProductInventory {
 }
 
 model Warehouse {
-  id           Int     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   enterpriseId Int
-  code         String  @db.VarChar(20)
-  name         String  @db.VarChar(80)
-  description  String? @db.VarChar(120)
+  code         String   @db.VarChar(20)
+  name         String   @db.VarChar(80)
+  description  String?  @db.VarChar(120)
+  createdAt    DateTime @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime @updatedAt @db.Timestamp(3)
 
   enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
   movements  InventoryMovement[]

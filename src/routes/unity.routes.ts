@@ -6,14 +6,25 @@ import {
     createUnity,
     updateUnity,
 } from "@controllers/unity.controller";
-import { validateUnityFields, validateUnityPaginationAndFilter } from "@middleware/unityMiddleware";
+import {
+    validateUnityFields,
+    validateUnityQuery,
+    validateUnitiesQuery,
+} from "@middleware/unityMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware, validateUnityPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllUnities);
-router.get("/:id", getUnityById);
+router.get(
+    "/",
+    validateUnitiesQuery({
+        allowSearch: true,
+        allowedSortFields: ["simbol", "description", "createdAt", "updatedAt"],
+    }),
+    getAllUnities
+);
+router.get("/:id", validateUnityQuery, getUnityById);
 router.post("/", validateUnityFields, createUnity);
 router.put("/:id", validateUnityFields, updateUnity);
 

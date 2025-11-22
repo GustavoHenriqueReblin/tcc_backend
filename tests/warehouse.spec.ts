@@ -23,6 +23,23 @@ test("Validação de query: page/limit inválidos", async ({ request }) => {
     expect(bodyNumbers.message).toContain(WAREHOUSE_ERROR.PAGINATION);
 });
 
+test("Validação de id e ordenação do warehouse", async ({ request }) => {
+    const resInvalidId = await request.get(`${baseUrl}/warehouses/not-a-number`);
+    expect(resInvalidId.status()).toBe(400);
+    const bodyInvalidId = await resInvalidId.json();
+    expect(bodyInvalidId.message).toContain(WAREHOUSE_ERROR.ID);
+
+    const resInvalidSortOrder = await request.get(`${baseUrl}/warehouses?sortOrder=ascending`);
+    expect(resInvalidSortOrder.status()).toBe(400);
+    const bodyInvalidSortOrder = await resInvalidSortOrder.json();
+    expect(bodyInvalidSortOrder.message).toContain(WAREHOUSE_ERROR.SORT);
+
+    const resInvalidSortBy = await request.get(`${baseUrl}/warehouses?sortBy=unknown`);
+    expect(resInvalidSortBy.status()).toBe(400);
+    const bodyInvalidSortBy = await resInvalidSortBy.json();
+    expect(bodyInvalidSortBy.message).toContain(WAREHOUSE_ERROR.SORT_BY);
+});
+
 test("Cria, busca e atualiza warehouse", async ({ request }) => {
     const uniqueCode = `W${Date.now().toString().slice(-6)}`;
     const payload = {
@@ -86,4 +103,32 @@ test("Atualizar warehouse inexistente retorna 404", async ({ request }) => {
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error).toBeTruthy();
+});
+
+test("Busca e ordenação de warehouses", async ({ request }) => {
+    const listRes = await request.get(`${baseUrl}/warehouses`);
+    expect(listRes.status()).toBe(200);
+    const { data: list } = await listRes.json();
+    expect(list.warehouses.length).toBeGreaterThan(0);
+
+    const searchTerm = list.warehouses[0].code.slice(0, 2);
+
+    const resSearch = await request.get(
+        `${baseUrl}/warehouses?search=${encodeURIComponent(searchTerm)}&sortBy=code&sortOrder=asc`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+    expect(searchData.warehouses.length).toBeGreaterThan(0);
+    expect(
+        searchData.warehouses.every(
+            (wh: { code: string; name: string; description?: string | null }) =>
+                wh.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                wh.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                wh.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+
+    const codes = searchData.warehouses.map((w: { code: string }) => w.code.toLowerCase());
+    const sortedCodes = [...codes].sort();
+    expect(codes).toEqual(sortedCodes);
 });

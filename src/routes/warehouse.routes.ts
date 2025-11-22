@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
 import {
     validateWarehouseFields,
-    validateWarehousePaginationAndFilter,
+    validateWarehouseQuery,
+    validateWarehousesQuery,
 } from "@middleware/warehouseMiddleware";
 import {
     getAllWarehouses,
@@ -13,10 +14,17 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, validateWarehousePaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllWarehouses);
-router.get("/:id", getWarehouseById);
+router.get(
+    "/",
+    validateWarehousesQuery({
+        allowSearch: true,
+        allowedSortFields: ["code", "name", "description", "createdAt", "updatedAt"],
+    }),
+    getAllWarehouses
+);
+router.get("/:id", validateWarehouseQuery, getWarehouseById);
 router.post("/", validateWarehouseFields, createWarehouse);
 router.put("/:id", validateWarehouseFields, updateWarehouse);
 
