@@ -6,14 +6,17 @@ import { Request } from "@middleware/authMiddleware";
 const service = new CustomerService();
 
 export const getAllCustomers = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", includeInactive } = req.query;
+    const { page = "1", limit = "10", includeInactive, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        includeInactive === "true"
+        includeInactive === "true",
+        search?.toString(),
+        sortBy?.toString(),
+        sortOrder?.toString() as "asc" | "desc"
     );
     return sendResponse(res, result, "Customers fetched successfully");
 };

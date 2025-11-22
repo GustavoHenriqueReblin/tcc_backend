@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authMiddleware } from "@middleware/authMiddleware";
 import {
     validateCustomerFields,
-    validateCustomerPaginationAndFilter,
+    validateCustomerQuery,
+    validateCustomersQuery,
 } from "@middleware/customerMiddleware";
 import {
     getAllCustomers,
@@ -13,10 +14,17 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, validateCustomerPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllCustomers);
-router.get("/:id", getCustomerById);
+router.get(
+    "/",
+    getAllCustomers,
+    validateCustomersQuery({
+        allowSearch: true,
+        allowedSortFields: ["name", "legalName", "createdAt", "updatedAt", "taxId"],
+    })
+);
+router.get("/:id", getCustomerById, validateCustomerQuery);
 router.post("/", validateCustomerFields, createCustomer);
 router.put("/:id", validateCustomerFields, updateCustomer);
 

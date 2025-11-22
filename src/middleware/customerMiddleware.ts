@@ -9,34 +9,78 @@ export const CUSTOMER_ERROR = {
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
 };
 
-export const validateCustomerPaginationAndFilter = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    const { page = "1", limit = "10", includeInactive } = req.query;
+export interface CustomerQueryValidationOptions {
+    allowSearch?: boolean;
+    allowedSortFields?: string[];
+}
 
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
+export const validateCustomerQuery = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-    if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
-        return res.status(400).json({ message: CUSTOMER_ERROR.PAGINATION });
+    if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ message: "Invalid ID parameter" });
     }
-
-    if (
-        includeInactive !== undefined &&
-        includeInactive !== "true" &&
-        includeInactive !== "false"
-    ) {
-        return res.status(400).json({ message: CUSTOMER_ERROR.INCLUDE_INACTIVE });
-    }
-
-    req.query.page = pageNum.toString();
-    req.query.limit = limitNum.toString();
-    req.query.includeInactive = includeInactive?.toLowerCase() === "true" ? "true" : "false";
 
     next();
 };
+
+export function validateCustomersQuery(options: CustomerQueryValidationOptions = {}) {
+    const { allowSearch = true, allowedSortFields = [] } = options;
+
+    return (req: Request, res: Response, next: NextFunction) => {
+        let { page = "1", limit = "10", search, sortBy, sortOrder, includeInactive } = req.query;
+
+        const pageNum = Number(page);
+        const limitNum = Number(limit);
+
+        if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
+            return res.status(400).json({
+                message: "page and limit must be valid numbers",
+            });
+        }
+
+        if (
+            includeInactive !== undefined &&
+            includeInactive !== "true" &&
+            includeInactive !== "false"
+        ) {
+            return res.status(400).json({
+                message: "includeInactive must be 'true' or 'false'",
+            });
+        }
+
+        if (!allowSearch && search !== undefined) {
+            return res.status(400).json({
+                message: "search filter is not allowed for this resource",
+            });
+        }
+
+        if (typeof search === "string") {
+            search = search.trim();
+        }
+
+        if (sortBy && !allowedSortFields.includes(sortBy.toString())) {
+            return res.status(400).json({
+                message: `Invalid sortBy field. Allowed: ${allowedSortFields.join(", ")}`,
+            });
+        }
+
+        if (sortOrder && sortOrder !== "asc" && sortOrder !== "desc") {
+            return res.status(400).json({
+                message: "sortOrder must be 'asc' or 'desc'",
+            });
+        }
+
+        req.query.page = pageNum.toString();
+        req.query.limit = limitNum.toString();
+        req.query.search = search?.toString();
+        req.query.sortBy = sortBy?.toString();
+        req.query.sortOrder = sortOrder?.toString() || "desc";
+        req.query.includeInactive = includeInactive === "true" ? "true" : "false";
+
+        return next();
+    };
+}
 
 export const validateCustomerFields = (req: Request, res: Response, next: NextFunction) => {
     const customer = req.body as CustomerInput;

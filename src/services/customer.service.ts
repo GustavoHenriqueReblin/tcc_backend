@@ -35,28 +35,61 @@ export interface CustomerInput {
 }
 
 export class CustomerService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, includeInactive: boolean) =>
+    getAll = async (
+        enterpriseId: number,
+        page: number,
+        limit: number,
+        includeInactive: boolean,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { person: { name: { contains: search, mode: "insensitive" } } },
+                                  {
+                                      person: {
+                                          legalName: { contains: search, mode: "insensitive" },
+                                      },
+                                  },
+                                  { person: { taxId: { contains: search, mode: "insensitive" } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = ["name", "legalName", "createdAt", "updatedAt", "taxId"];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+                const orderBy = ["name", "legalName", "taxId"].includes(safeSortBy)
+                    ? { person: { [safeSortBy]: safeSortOrder } }
+                    : { [safeSortBy]: safeSortOrder };
 
                 const [customers, total] = await prisma.$transaction([
                     prisma.customer.findMany({
-                        where: {
-                            enterpriseId,
-                            ...(includeInactive ? {} : { status: Status.ACTIVE }),
-                        },
-                        include: { person: { include: { city: true, state: true, country: true } }, deliveryAddress: true },
+                        where,
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
-                    }),
-                    prisma.customer.count({
-                        where: {
-                            enterpriseId,
-                            ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                        orderBy,
+                        include: {
+                            person: { include: { city: true, state: true, country: true } },
+                            deliveryAddress: true,
                         },
                     }),
+                    prisma.customer.count({ where }),
                 ]);
 
                 return {
