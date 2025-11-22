@@ -8,8 +8,18 @@ const service = new DeliveryAddressService();
 export const getAddresses = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const customerId = Number(req.params.customerId);
+    const { page = "1", limit = "10", includeInactive, search, sortBy, sortOrder } = req.query;
 
-    const addresses = await service.getAll(enterpriseId, customerId);
+    const addresses = await service.getAll(
+        enterpriseId,
+        customerId,
+        Number(page),
+        Number(limit),
+        includeInactive === "true",
+        search?.toString(),
+        sortBy?.toString(),
+        sortOrder?.toString() as "asc" | "desc"
+    );
     return sendResponse(res, addresses, "Delivery addresses fetched successfully");
 };
 

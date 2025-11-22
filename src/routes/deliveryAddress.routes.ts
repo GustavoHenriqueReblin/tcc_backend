@@ -7,17 +7,34 @@ import {
     updateAddress,
 } from "@controllers/deliveryAddress.controller";
 import {
+    validateDeliveryAddressId,
     validateDeliveryAddressFields,
-    validateDeliveryAddressPaginationAndFilter,
+    validateDeliveryAddressQuery,
 } from "@middleware/deliveryAddressMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware, validateDeliveryAddressPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/:customerId", getAddresses);
-router.get("/detail/:id", getAddressById);
+router.get(
+    "/:customerId",
+    validateDeliveryAddressQuery({
+        allowedSortFields: [
+            "label",
+            "street",
+            "number",
+            "neighborhood",
+            "complement",
+            "reference",
+            "postalCode",
+            "createdAt",
+            "updatedAt",
+        ],
+    }),
+    getAddresses
+);
+router.get("/detail/:id", validateDeliveryAddressId, getAddressById);
 router.post("/", validateDeliveryAddressFields, createAddress);
-router.put("/:id", validateDeliveryAddressFields, updateAddress);
+router.put("/:id", validateDeliveryAddressId, validateDeliveryAddressFields, updateAddress);
 
 export default router;

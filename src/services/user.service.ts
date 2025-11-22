@@ -2,10 +2,66 @@ import { BaseService } from "@services/base.service";
 import { Status } from "@prisma/client";
 
 export class UserService extends BaseService {
-    async getAll() {
+    async getAll(
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        includeInactive = false,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) {
         return this.safeQuery(
-            () => this.prisma.user.findMany({ include: { person: true, enterprise: true } }),
-            "USER:getAll"
+            async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
+                const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { person: { name: { contains: search } } },
+                                  { username: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = ["name", "legalName", "username", "createdAt", "updatedAt"];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+                const orderBy = ["name", "legalName"].includes(safeSortBy)
+                    ? { person: { [safeSortBy]: { sort: safeSortOrder } } }
+                    : { [safeSortBy]: safeSortOrder };
+
+                const [users, total] = await this.prisma.$transaction([
+                    this.prisma.user.findMany({
+                        where,
+                        skip,
+                        take: limit,
+                        orderBy,
+                        include: { person: true, enterprise: true },
+                    }),
+                    this.prisma.user.count({ where }),
+                ]);
+
+                return {
+                    users,
+                    meta: {
+                        total,
+                        page,
+                        totalPages: Math.ceil(total / limit),
+                    },
+                };
+            },
+            "USER:getAll",
+            enterpriseId
         );
     }
 

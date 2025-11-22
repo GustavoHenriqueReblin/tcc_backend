@@ -20,20 +20,77 @@ export interface DeliveryAddressInput {
 }
 
 export class DeliveryAddressService extends BaseService {
-    getAll = async (enterpriseId: number, customerId: number) =>
+    getAll = async (
+        enterpriseId: number,
+        customerId: number,
+        page = 1,
+        limit = 10,
+        includeInactive = false,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
-                const addresses = await prisma.deliveryAddress.findMany({
-                    where: { enterpriseId, customerId },
-                    include: {
-                        city: true,
-                        state: true,
-                        country: true,
-                    },
-                    orderBy: { createdAt: "desc" },
-                });
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
 
-                return addresses;
+                const skip = (page - 1) * limit;
+                const where = {
+                    enterpriseId,
+                    customerId,
+                    ...(includeInactive ? {} : { status: Status.ACTIVE }),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { label: { contains: search } },
+                                  { street: { contains: search } },
+                                  { reference: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = [
+                    "label",
+                    "street",
+                    "number",
+                    "neighborhood",
+                    "complement",
+                    "reference",
+                    "postalCode",
+                    "createdAt",
+                    "updatedAt",
+                ];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+                const orderBy = { [safeSortBy]: safeSortOrder } as const;
+
+                const [addresses, total] = await prisma.$transaction([
+                    prisma.deliveryAddress.findMany({
+                        where,
+                        include: {
+                            city: true,
+                            state: true,
+                            country: true,
+                        },
+                        skip,
+                        take: limit,
+                        orderBy,
+                    }),
+                    prisma.deliveryAddress.count({ where }),
+                ]);
+
+                return {
+                    addresses,
+                    meta: {
+                        total,
+                        page,
+                        totalPages: Math.ceil(total / limit),
+                    },
+                };
             },
             "DELIVERY:getAll",
             enterpriseId
