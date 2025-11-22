@@ -21,24 +21,102 @@ export interface ProductInput {
 }
 
 export class ProductService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        includeInactive = false,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
 
-                const [products, total] = await prisma.$transaction([
+                const where = {
+                    enterpriseId,
+                    ...(includeInactive ? {} : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { name: { contains: search } },
+                                  { barcode: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = [
+                    "name",
+                    "barcode",
+                    "costValue",
+                    "saleValue",
+                    "quantity",
+                    "createdAt",
+                    "updatedAt",
+                ];
+
+                const safeSortBy: string = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+
+                const safeSortOrder: "asc" | "desc" = sortOrder === "asc" ? "asc" : "desc";
+
+                const [productsRaw, total] = await prisma.$transaction([
                     prisma.product.findMany({
-                        where: { enterpriseId },
-                        include: { productDefinition: true, unity: true, productInventory: true },
-                        skip,
-                        take: limit,
-                        orderBy: { createdAt: "desc" },
+                        where,
+                        include: {
+                            productDefinition: true,
+                            unity: true,
+                            productInventory: true,
+                        },
                     }),
-                    prisma.product.count({ where: { enterpriseId } }),
+                    prisma.product.count({ where }),
                 ]);
 
+                const aggregatedFields = ["costValue", "saleValue", "quantity"];
+
+                const productsWithInventory = productsRaw.map((p) => {
+                    const inv = p.productInventory[0];
+
+                    return {
+                        ...p,
+                        costValue: inv ? Number(inv.costValue) : 0,
+                        saleValue: inv ? Number(inv.saleValue) : 0,
+                        quantity: inv ? Number(inv.quantity) : 0,
+                    };
+                });
+
+                const sortedProducts = [...productsWithInventory].sort((a, b) => {
+                    const aValue = a[safeSortBy as keyof typeof a];
+                    const bValue = b[safeSortBy as keyof typeof b];
+
+                    if (aggregatedFields.includes(safeSortBy)) {
+                        const av = aValue as number;
+                        const bv = bValue as number;
+
+                        return safeSortOrder === "asc" ? av - bv : bv - av;
+                    }
+
+                    if (aValue instanceof Date && bValue instanceof Date) {
+                        return safeSortOrder === "asc"
+                            ? aValue.getTime() - bValue.getTime()
+                            : bValue.getTime() - aValue.getTime();
+                    }
+
+                    const av = String(aValue);
+                    const bv = String(bValue);
+
+                    return safeSortOrder === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+                });
+
+                const paginated = sortedProducts.slice(skip, skip + limit);
+
                 return {
-                    products,
+                    products: paginated,
                     meta: {
                         total,
                         page,

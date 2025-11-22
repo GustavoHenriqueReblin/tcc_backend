@@ -1,6 +1,7 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
+import { INVENTORY_MOVEMENT_ERROR } from "../src/middleware/inventoryMovementMiddleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
@@ -116,4 +117,66 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     expect(last.direction).toBe("OUT");
     expect(Number(last.quantity)).toBeCloseTo(higherQty - lowerQty, 6);
     expect(Number(last.balance)).toBeCloseTo(lowerQty, 6);
+});
+
+test("Validação, busca e ordenação de inventoryMovement", async ({ request }) => {
+    const resMissingProduct = await request.get(`${baseUrl}/inventoryMovement`);
+    expect(resMissingProduct.status()).toBe(400);
+    const bodyMissingProduct = await resMissingProduct.json();
+    expect(bodyMissingProduct.message).toContain(INVENTORY_MOVEMENT_ERROR.MISSING_PRODUCT);
+
+    const resInvalidPagination = await request.get(
+        `${baseUrl}/inventoryMovement?productId=1&page=abc&limit=xyz`
+    );
+    expect(resInvalidPagination.status()).toBe(400);
+    const bodyInvalidPagination = await resInvalidPagination.json();
+    expect(bodyInvalidPagination.message).toContain(INVENTORY_MOVEMENT_ERROR.PAGINATION);
+
+    const resInvalidSortOrder = await request.get(
+        `${baseUrl}/inventoryMovement?productId=1&sortOrder=ascending`
+    );
+    expect(resInvalidSortOrder.status()).toBe(400);
+    const bodyInvalidSortOrder = await resInvalidSortOrder.json();
+    expect(bodyInvalidSortOrder.message).toContain(INVENTORY_MOVEMENT_ERROR.SORT);
+
+    const resInvalidSortBy = await request.get(
+        `${baseUrl}/inventoryMovement?productId=1&sortBy=unknown`
+    );
+    expect(resInvalidSortBy.status()).toBe(400);
+    const bodyInvalidSortBy = await resInvalidSortBy.json();
+    expect(bodyInvalidSortBy.message).toContain(INVENTORY_MOVEMENT_ERROR.SORT_BY);
+
+    const unity = await createAuxUnity(request);
+    const def = await createAuxDefinition(request);
+
+    const createProductRes = await request.post(`${baseUrl}/products`, {
+        data: {
+            id: genId(),
+            productDefinitionId: def.id,
+            unityId: unity.id,
+            name: `PROD_MOV_${Date.now().toString().slice(-6)}`,
+            barcode: null,
+            inventory: { costValue: 2.2, saleValue: 4.4, quantity: 5.5 },
+        },
+    });
+    expect(createProductRes.status()).toBe(200);
+    const { data: createdProduct } = await createProductRes.json();
+
+    const listRes = await request.get(
+        `${baseUrl}/inventoryMovement?productId=${createdProduct.id}&sortBy=quantity&sortOrder=asc`
+    );
+    expect(listRes.status()).toBe(200);
+    const { data: list } = await listRes.json();
+    expect(list.movements.length).toBeGreaterThan(0);
+
+    const quantities = list.movements.map((mv: { quantity: string }) => Number(mv.quantity));
+    const sortedQuantities = [...quantities].sort((a, b) => a - b);
+    expect(quantities).toEqual(sortedQuantities);
+
+    const resSearch = await request.get(
+        `${baseUrl}/inventoryMovement?productId=${createdProduct.id}&search=unknown-ref`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+    expect(searchData.movements.length).toBeGreaterThanOrEqual(0);
 });

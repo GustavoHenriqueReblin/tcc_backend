@@ -63,6 +63,32 @@ test("Validação de query: status inválido", async ({ request }) => {
     expect(body.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_STATUS);
 });
 
+test("Validação de id, paginação e ordenação de production order", async ({ request }) => {
+    const resInvalidId = await request.get(`${baseUrl}/production-orders/not-a-number`);
+    expect(resInvalidId.status()).toBe(400);
+    const bodyInvalidId = await resInvalidId.json();
+    expect(bodyInvalidId.message).toContain(PRODUCTION_ORDER_ERROR.ID);
+
+    const resInvalidPagination = await request.get(
+        `${baseUrl}/production-orders?page=abc&limit=xyz`
+    );
+    expect(resInvalidPagination.status()).toBe(400);
+    const bodyInvalidPagination = await resInvalidPagination.json();
+    expect(bodyInvalidPagination.message).toContain(PRODUCTION_ORDER_ERROR.PAGINATION);
+
+    const resInvalidSortOrder = await request.get(
+        `${baseUrl}/production-orders?sortOrder=ascending`
+    );
+    expect(resInvalidSortOrder.status()).toBe(400);
+    const bodyInvalidSortOrder = await resInvalidSortOrder.json();
+    expect(bodyInvalidSortOrder.message).toContain(PRODUCTION_ORDER_ERROR.SORT);
+
+    const resInvalidSortBy = await request.get(`${baseUrl}/production-orders?sortBy=unknown`);
+    expect(resInvalidSortBy.status()).toBe(400);
+    const bodyInvalidSortBy = await resInvalidSortBy.json();
+    expect(bodyInvalidSortBy.message).toContain(PRODUCTION_ORDER_ERROR.SORT_BY);
+});
+
 test("Cria, busca e atualiza ordem de produção", async ({ request }) => {
     const product = await createAuxProduct(request);
     const code = `PRD${Date.now().toString().slice(-6)}`;
@@ -89,6 +115,38 @@ test("Cria, busca e atualiza ordem de produção", async ({ request }) => {
     expect(updRes.status()).toBe(200);
     const { data: updated } = await updRes.json();
     expect(updated.status).toBe(ProductionOrderStatus.RUNNING);
+});
+
+test("Busca e ordenação de production orders por produto", async ({ request }) => {
+    const product = await createAuxProduct(request);
+    const code = `PRSRCH${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/production-orders`, {
+        data: { id: genId(), code, productId: product.id, plannedQty: 15.5 },
+    });
+    expect(createRes.status()).toBe(200);
+
+    const searchTerm = (product.name as string).slice(0, 3);
+    const resSearch = await request.get(
+        `${baseUrl}/production-orders?search=${encodeURIComponent(searchTerm)}&sortBy=createdAt&sortOrder=asc`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+    expect(searchData.orders.length).toBeGreaterThan(0);
+
+    expect(
+        searchData.orders.every(
+            (order: { product: { name: string; barcode?: string | null } }) =>
+                order.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ).toBeTruthy();
+
+    const createdDates = searchData.orders.map((o: { createdAt: string }) =>
+        new Date(o.createdAt).getTime()
+    );
+    const sortedDates = [...createdDates].sort((a, b) => a - b);
+    expect(createdDates).toEqual(sortedDates);
 });
 
 test("Criar ordem com code duplicado retorna 409", async ({ request }) => {

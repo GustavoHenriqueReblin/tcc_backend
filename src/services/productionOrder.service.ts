@@ -20,21 +20,61 @@ export interface ProductionOrderInputData {
 }
 
 export class ProductionOrderService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: ProductionOrderStatus) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        status?: ProductionOrderStatus,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+                const where = {
+                    enterpriseId,
+                    ...(status && { status }),
+                    ...(search
+                        ? {
+                              product: {
+                                  OR: [
+                                      { name: { contains: search } },
+                                      { barcode: { contains: search } },
+                                  ],
+                              },
+                          }
+                        : {}),
+                };
+
+                const validSortFields = [
+                    "code",
+                    "status",
+                    "plannedQty",
+                    "producedQty",
+                    "wasteQty",
+                    "startDate",
+                    "endDate",
+                    "createdAt",
+                    "updatedAt",
+                ];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [orders, total] = await prisma.$transaction([
                     prisma.productionOrder.findMany({
-                        where: { enterpriseId, ...(status && { status }) },
+                        where,
                         include: { product: true, lot: true, inputs: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
                     prisma.productionOrder.count({
-                        where: { enterpriseId, ...(status && { status }) },
+                        where,
                     }),
                 ]);
 

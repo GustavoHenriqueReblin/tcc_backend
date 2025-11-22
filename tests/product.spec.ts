@@ -1,6 +1,7 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
+import { PRODUCT_ERROR } from "../src/middleware/productMiddleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
@@ -39,6 +40,28 @@ test("Lista produtos com paginação básica", async ({ request }) => {
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
     expect(data.products.length).toBeLessThanOrEqual(10);
+});
+
+test("Validação de id, paginação e ordenação de products", async ({ request }) => {
+    const resInvalidId = await request.get(`${baseUrl}/products/not-a-number`);
+    expect(resInvalidId.status()).toBe(400);
+    const bodyInvalidId = await resInvalidId.json();
+    expect(bodyInvalidId.message).toContain(PRODUCT_ERROR.ID);
+
+    const resInvalidPagination = await request.get(`${baseUrl}/products?page=abc&limit=xyz`);
+    expect(resInvalidPagination.status()).toBe(400);
+    const bodyInvalidPagination = await resInvalidPagination.json();
+    expect(bodyInvalidPagination.message).toContain(PRODUCT_ERROR.PAGINATION);
+
+    const resInvalidSortOrder = await request.get(`${baseUrl}/products?sortOrder=ascending`);
+    expect(resInvalidSortOrder.status()).toBe(400);
+    const bodyInvalidSortOrder = await resInvalidSortOrder.json();
+    expect(bodyInvalidSortOrder.message).toContain(PRODUCT_ERROR.SORT);
+
+    const resInvalidSortBy = await request.get(`${baseUrl}/products?sortBy=unknown`);
+    expect(resInvalidSortBy.status()).toBe(400);
+    const bodyInvalidSortBy = await resInvalidSortBy.json();
+    expect(bodyInvalidSortBy.message).toContain(PRODUCT_ERROR.SORT_BY);
 });
 
 test("Cria produto (com inventory), busca e atualiza", async ({ request }) => {
@@ -99,6 +122,43 @@ test("Cria produto (com inventory), busca e atualiza", async ({ request }) => {
     expect(Number(updated.productInventory[0].costValue)).toBeCloseTo(9.99, 2);
     expect(Number(updated.productInventory[0].saleValue)).toBeCloseTo(19.99, 2);
     expect(Number(updated.productInventory[0].quantity)).toBeCloseTo(88.8888, 4);
+});
+
+test("Busca e ordenação de products", async ({ request }) => {
+    const nameBase = `PROD_SRCH_${Date.now().toString().slice(-6)}`;
+    const unity = await createAuxUnity(request);
+    const def = await createAuxDefinition(request);
+
+    const createRes = await request.post(`${baseUrl}/products`, {
+        data: {
+            id: genId(),
+            productDefinitionId: def.id,
+            unityId: unity.id,
+            name: `${nameBase}_A`,
+            barcode: `123${Date.now().toString().slice(-6)}`,
+            inventory: { costValue: 1.1, saleValue: 2.2, quantity: 3.3 },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+
+    const resSearch = await request.get(
+        `${baseUrl}/products?search=${encodeURIComponent(nameBase.slice(0, 5))}&sortBy=name&sortOrder=asc`
+    );
+    expect(resSearch.status()).toBe(200);
+    const { data: searchData } = await resSearch.json();
+
+    expect(searchData.products.length).toBeGreaterThan(0);
+    expect(
+        searchData.products.every(
+            (p: { name: string; barcode?: string | null }) =>
+                p.name.toLowerCase().includes(nameBase.slice(0, 5).toLowerCase()) ||
+                p.barcode?.toLowerCase().includes(nameBase.slice(0, 5).toLowerCase())
+        )
+    ).toBeTruthy();
+
+    const names = searchData.products.map((p: { name: string }) => p.name.toLowerCase());
+    const sortedNames = [...names].sort();
+    expect(names).toEqual(sortedNames);
 });
 
 test("Buscar produto inexistente retorna data = null", async ({ request }) => {

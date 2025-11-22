@@ -20,20 +20,49 @@ export interface InventoryMovementInput {
 }
 
 export class InventoryMovementService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, productId: number) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        productId: number,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+                const where = {
+                    enterpriseId,
+                    productId,
+                    ...(search ? { reference: { contains: search } } : {}),
+                };
+
+                const validSortFields = [
+                    "direction",
+                    "source",
+                    "quantity",
+                    "balance",
+                    "unitCost",
+                    "createdAt",
+                    "updatedAt",
+                ];
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [movements, total] = await prisma.$transaction([
                     prisma.inventoryMovement.findMany({
-                        where: { enterpriseId, productId },
+                        where,
                         include: { product: true, warehouse: true, supplier: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.inventoryMovement.count({ where: { enterpriseId, productId } }),
+                    prisma.inventoryMovement.count({ where }),
                 ]);
 
                 return {

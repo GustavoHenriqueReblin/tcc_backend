@@ -8,15 +8,31 @@ import {
 } from "@controllers/product.controller";
 import {
     validateProductFields,
-    validateProductPaginationAndFilter,
+    validateProductQuery,
+    validateProductsQuery,
 } from "@middleware/productMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware, validateProductPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllProducts);
-router.get("/:id", getProductById);
+router.get(
+    "/",
+    validateProductsQuery({
+        allowSearch: true,
+        allowedSortFields: [
+            "name",
+            "barcode",
+            "costValue",
+            "saleValue",
+            "quantity",
+            "createdAt",
+            "updatedAt",
+        ],
+    }),
+    getAllProducts
+);
+router.get("/:id", validateProductQuery, getProductById);
 router.post("/", validateProductFields, createProduct);
 router.put("/:id", validateProductFields, updateProduct);
 

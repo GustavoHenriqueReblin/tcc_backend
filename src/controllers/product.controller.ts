@@ -6,10 +6,18 @@ import { ProductService } from "@services/product.service";
 const service = new ProductService();
 
 export const getAllProducts = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10" } = req.query;
+    const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
-    const result = await service.getAll(enterpriseId, Number(page), Number(limit));
+    const result = await service.getAll(
+        enterpriseId,
+        Number(page),
+        Number(limit),
+        req.query.includeInactive === "true",
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+    );
     return sendResponse(res, result, "Products fetched successfully");
 };
 
