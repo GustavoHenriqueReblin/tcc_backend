@@ -279,3 +279,50 @@ test("Atualizar lancamento financeiro com accountsPayableId inexistente deve fal
     });
     expect(res.status()).toBe(404);
 });
+
+test("Busca lancamentos financeiros com search e ordena por date", async ({ request }) => {
+    const prefix = `FT_SEARCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        {
+            id: genId(),
+            type: TransactionType.CREDIT,
+            value: 37.5,
+            date: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+            category: `${prefix}_CAT`,
+            description: `${prefix} descricao B`,
+        },
+        {
+            id: genId(),
+            type: TransactionType.DEBIT,
+            value: 15.25,
+            date: new Date().toISOString(),
+            category: `${prefix}_CAT`,
+            description: `${prefix} descricao A`,
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/financial-transactions`, {
+            data: payload,
+        });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/financial-transactions?search=${encodeURIComponent(prefix)}&sortBy=date&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.transactions.filter(
+        (transaction: { category?: string | null; description?: string | null }) =>
+            transaction.category?.includes(prefix) || transaction.description?.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const dates = matching.map((transaction: { date: string }) =>
+        new Date(transaction.date).getTime()
+    );
+    const sorted = [...dates].sort((a, b) => a - b);
+    expect(dates).toEqual(sorted);
+});

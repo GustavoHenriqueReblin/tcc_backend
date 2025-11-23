@@ -6,14 +6,17 @@ import { AssetMaintenanceService } from "@services/assetMaintenance.service";
 const service = new AssetMaintenanceService();
 
 export const getAllAssetMaintenances = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", assetId } = req.query;
+    const { page = "1", limit = "10", assetId, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        assetId ? Number(assetId) : undefined
+        assetId ? Number(assetId) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Asset maintenances fetched successfully");
 };

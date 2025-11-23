@@ -6,10 +6,17 @@ import { AssetCategoryService } from "@services/assetCategory.service";
 const service = new AssetCategoryService();
 
 export const getAllAssetCategories = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10" } = req.query;
+    const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
-    const result = await service.getAll(enterpriseId, Number(page), Number(limit));
+    const result = await service.getAll(
+        enterpriseId,
+        Number(page),
+        Number(limit),
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+    );
     return sendResponse(res, result, "Asset categories fetched successfully");
 };
 

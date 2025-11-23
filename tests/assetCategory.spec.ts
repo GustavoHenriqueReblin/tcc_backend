@@ -91,3 +91,31 @@ test("Criar categoria de ativo sem campos obrigatorios deve falhar (400)", async
     const body = await res.json();
     expect(body.message).toContain(ASSET_CATEGORY_ERROR.MISSING_FIELDS);
 });
+
+test("Busca categorias de ativos com search e ordena por nome", async ({ request }) => {
+    const prefix = `CAT_SEARCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        { id: genId(), name: `${prefix}B`, description: `${prefix} desc B` },
+        { id: genId(), name: `${prefix}A`, description: `${prefix} desc A` },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/asset-categories`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/asset-categories?search=${encodeURIComponent(prefix)}&sortBy=name&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.assetCategories.filter((category: { name: string }) =>
+        category.name.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const names = matching.map((category: { name: string }) => category.name);
+    const sorted = [...names].sort();
+    expect(names).toEqual(sorted);
+});

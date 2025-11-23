@@ -7,14 +7,17 @@ import { TransactionType } from "@prisma/client";
 const service = new FinancialTransactionService();
 
 export const getAllFinancialTransactions = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", type } = req.query;
+    const { page = "1", limit = "10", type, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        type ? (type as TransactionType) : undefined
+        type ? (type as TransactionType) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Financial transactions fetched successfully");
 };

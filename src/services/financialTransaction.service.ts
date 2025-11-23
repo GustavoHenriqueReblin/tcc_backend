@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { TransactionType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { financialTransactionAllowedSortFields } from "@routes/financialTransaction.routes";
 
 export interface FinancialTransactionInput {
     id?: number;
@@ -18,14 +19,43 @@ export interface FinancialTransactionInput {
 }
 
 export class FinancialTransactionService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, type?: TransactionType) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        type?: TransactionType,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "date";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(type ? { type } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { category: { contains: search } },
+                                  { description: { contains: search } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = financialTransactionAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "date";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [transactions, total] = await prisma.$transaction([
                     prisma.financialTransaction.findMany({
-                        where: { enterpriseId, ...(type && { type }) },
+                        where,
                         include: {
                             receivable: {
                                 include: { customer: { include: { person: true } } },
@@ -36,11 +66,9 @@ export class FinancialTransactionService extends BaseService {
                         },
                         skip,
                         take: limit,
-                        orderBy: { date: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.financialTransaction.count({
-                        where: { enterpriseId, ...(type && { type }) },
-                    }),
+                    prisma.financialTransaction.count({ where }),
                 ]);
 
                 return {

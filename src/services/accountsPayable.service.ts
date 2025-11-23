@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { accountsPayableAllowedSortFields } from "@routes/accountsPayable.routes";
 
 export interface AccountsPayableInput {
     id?: number;
@@ -19,14 +20,45 @@ export interface AccountsPayableInput {
 }
 
 export class AccountsPayableService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: PaymentStatus) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        status?: PaymentStatus,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(status ? { status } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { description: { contains: search } },
+                                  { supplier: { person: { name: { contains: search } } } },
+                                  { supplier: { person: { taxId: { contains: search } } } },
+                                  { purchaseOrder: { code: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = accountsPayableAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [payables, total] = await prisma.$transaction([
                     prisma.accountsPayable.findMany({
-                        where: { enterpriseId, ...(status && { status }) },
+                        where,
                         include: {
                             supplier: { include: { person: true } },
                             purchaseOrder: true,
@@ -34,11 +66,9 @@ export class AccountsPayableService extends BaseService {
                         },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.accountsPayable.count({
-                        where: { enterpriseId, ...(status && { status }) },
-                    }),
+                    prisma.accountsPayable.count({ where }),
                 ]);
 
                 return {

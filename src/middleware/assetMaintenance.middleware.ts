@@ -3,39 +3,74 @@ import { AssetMaintenanceInput } from "@services/assetMaintenance.service";
 import { Request, Response, NextFunction } from "express";
 
 export const ASSET_MAINTENANCE_ERROR = {
+    ID: "Invalid Id parameter",
     PAGINATION: "page and limit must be numbers",
     INVALID_ASSET_ID: "assetId must be a number",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
+    SEARCH: "search filter is not allowed for this resource",
+    SORT: "sortOrder must be 'asc' or 'desc'",
+    SORT_BY: "Invalid sortBy field",
 };
 
-export const validateAssetMaintenancePaginationAndFilter = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    const { page = "1", limit = "10", assetId } = req.query;
+export interface AssetMaintenanceListQueryOptions {
+    allowedSortFields?: string[];
+}
 
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
+export const validateAssetMaintenanceQuery = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-    if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
-        return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.PAGINATION });
-    }
-
-    req.query.page = pageNum.toString();
-    req.query.limit = limitNum.toString();
-
-    if (assetId !== undefined) {
-        const assetIdNum = Number(assetId);
-        if (Number.isNaN(assetIdNum)) {
-            return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.INVALID_ASSET_ID });
-        }
-        req.query.assetId = assetIdNum.toString();
+    if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.ID });
     }
 
     next();
 };
+
+export const validateAssetMaintenanceListQuery =
+    (options: AssetMaintenanceListQueryOptions = {}) =>
+    (req: Request, res: Response, next: NextFunction) => {
+        const { allowedSortFields = [] } = options;
+
+        let { page = "1", limit = "10", assetId, search, sortBy, sortOrder } = req.query;
+
+        const pageNum = Number(page);
+        const limitNum = Number(limit);
+
+        if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
+            return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.PAGINATION });
+        }
+
+        let assetIdNum: number | undefined;
+        if (assetId !== undefined) {
+            assetIdNum = Number(assetId);
+            if (Number.isNaN(assetIdNum)) {
+                return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.INVALID_ASSET_ID });
+            }
+        }
+
+        if (typeof search === "string") {
+            search = search.trim();
+            if (search.length === 0) search = undefined;
+        }
+
+        if (sortBy && !allowedSortFields.includes(sortBy.toString())) {
+            return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.SORT_BY });
+        }
+
+        if (sortOrder && sortOrder !== "asc" && sortOrder !== "desc") {
+            return res.status(400).json({ message: ASSET_MAINTENANCE_ERROR.SORT });
+        }
+
+        req.query.page = pageNum.toString();
+        req.query.limit = limitNum.toString();
+        if (assetIdNum !== undefined) req.query.assetId = assetIdNum.toString();
+        req.query.search = search?.toString();
+        req.query.sortBy = sortBy?.toString();
+        req.query.sortOrder = sortOrder?.toString() || "desc";
+
+        next();
+    };
 
 export const validateAssetMaintenanceFields = (req: Request, res: Response, next: NextFunction) => {
     const maintenance = req.body as AssetMaintenanceInput;

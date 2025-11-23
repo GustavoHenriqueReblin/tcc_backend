@@ -7,14 +7,17 @@ import { PaymentStatus } from "@prisma/client";
 const service = new AccountsPayableService();
 
 export const getAllAccountsPayable = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", status } = req.query;
+    const { page = "1", limit = "10", status, search, sortBy, sortOrder } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
         enterpriseId,
         Number(page),
         Number(limit),
-        status ? (status as PaymentStatus) : undefined
+        status ? (status as PaymentStatus) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
     );
     return sendResponse(res, result, "Accounts payable fetched successfully");
 };

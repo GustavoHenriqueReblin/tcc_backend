@@ -16,20 +16,34 @@ const createAuxAssetCategory = async (request: APIRequestContext) => {
     return data;
 };
 
-const createAuxAsset = async (request: APIRequestContext) => {
-    const category = await createAuxAssetCategory(request);
-    const name = `ASSET_${Date.now().toString().slice(-6)}`;
+const createAuxAsset = async (
+    request: APIRequestContext,
+    overrides: Partial<{
+        id: number;
+        categoryId: number;
+        name: string;
+        acquisitionDate: string;
+        acquisitionCost: number;
+        usefulLifeMonths: number;
+        salvageValue: number;
+        location: string | null;
+        status: AssetStatus;
+        notes: string | null;
+    }> = {}
+) => {
+    const categoryId = overrides.categoryId ?? (await createAuxAssetCategory(request)).id;
+    const name = overrides.name ?? `ASSET_${Date.now().toString().slice(-6)}`;
     const payload = {
-        id: genId(),
-        categoryId: category.id,
+        id: overrides.id ?? genId(),
+        categoryId,
         name,
-        acquisitionDate: new Date().toISOString(),
-        acquisitionCost: 10000,
-        usefulLifeMonths: 60,
-        salvageValue: 1000,
-        location: "Local teste",
-        status: AssetStatus.ACTIVE,
-        notes: "Ativo criado via teste",
+        acquisitionDate: overrides.acquisitionDate ?? new Date().toISOString(),
+        acquisitionCost: overrides.acquisitionCost ?? 10000,
+        usefulLifeMonths: overrides.usefulLifeMonths ?? 60,
+        salvageValue: overrides.salvageValue ?? 1000,
+        location: overrides.location ?? "Local teste",
+        status: overrides.status ?? AssetStatus.ACTIVE,
+        notes: overrides.notes ?? "Ativo criado via teste",
     };
 
     const res = await request.post(`${baseUrl}/assets`, { data: payload });
@@ -204,4 +218,40 @@ test("Atualizar asset com status invalido deve falhar (400)", async ({ request }
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toContain(ASSET_ERROR.WRONG_FIELD_VALUE);
+});
+
+test("Busca assets com search e ordena por acquisitionCost", async ({ request }) => {
+    const category = await createAuxAssetCategory(request);
+    const prefix = `ASSET_SEARCH_${Date.now().toString().slice(-4)}`;
+    const assetA = await createAuxAsset(request, {
+        categoryId: category.id,
+        name: `${prefix}B`,
+        acquisitionCost: 15000,
+        salvageValue: 2000,
+        location: `${prefix} Loc B`,
+    });
+    const assetB = await createAuxAsset(request, {
+        categoryId: category.id,
+        name: `${prefix}A`,
+        acquisitionCost: 8000,
+        salvageValue: 1200,
+        location: `${prefix} Loc A`,
+    });
+    expect(assetA).toBeTruthy();
+    expect(assetB).toBeTruthy();
+
+    const res = await request.get(
+        `${baseUrl}/assets?search=${encodeURIComponent(prefix)}&sortBy=acquisitionCost&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.assets.filter((asset: { name: string }) => asset.name.includes(prefix));
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const costs = matching.map((asset: { acquisitionCost: number }) =>
+        Number(asset.acquisitionCost)
+    );
+    const sorted = [...costs].sort((a, b) => a - b);
+    expect(costs).toEqual(sorted);
 });

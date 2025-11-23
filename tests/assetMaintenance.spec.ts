@@ -232,3 +232,50 @@ test("Atualizar manutencao de ativo com type invalido deve falhar (400)", async 
     const body = await res.json();
     expect(body.message).toContain(ASSET_MAINTENANCE_ERROR.WRONG_FIELD_VALUE);
 });
+
+test("Busca manutencoes com search e ordena por cost", async ({ request }) => {
+    const asset = await createAuxAsset(request);
+    const prefix = `AM_SEARCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        {
+            id: genId(),
+            assetId: asset.id,
+            type: AssetMaintenanceType.PREVENTIVE,
+            description: `${prefix} desc B`,
+            cost: 400,
+            date: new Date(Date.now() - 3600000).toISOString(),
+            technician: `${prefix} Tec B`,
+        },
+        {
+            id: genId(),
+            assetId: asset.id,
+            type: AssetMaintenanceType.CORRECTIVE,
+            description: `${prefix} desc A`,
+            cost: 150,
+            date: new Date().toISOString(),
+            technician: `${prefix} Tec A`,
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/asset-maintenance`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/asset-maintenance?search=${encodeURIComponent(prefix)}&sortBy=cost&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.maintenances.filter((maintenance: { description?: string | null }) =>
+        maintenance.description?.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const costs = matching.map((maintenance: { cost: string | null }) =>
+        maintenance.cost ? Number(maintenance.cost) : 0
+    );
+    const sorted = [...costs].sort((a, b) => a - b);
+    expect(costs).toEqual(sorted);
+});

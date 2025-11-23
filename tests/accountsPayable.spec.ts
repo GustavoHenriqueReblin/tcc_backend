@@ -252,3 +252,56 @@ test("Atualizar conta a pagar com purchaseOrderId inexistente deve falhar (404)"
     });
     expect(res.status()).toBe(404);
 });
+
+test("Busca contas a pagar com search e ordena por value", async ({ request }) => {
+    const supRes = await request.get(`${baseUrl}/suppliers`);
+    expect(supRes.status()).toBe(200);
+    const { data: slist } = await supRes.json();
+    const supplier = slist.suppliers[0];
+    expect(supplier).toBeTruthy();
+
+    const purchaseRes = await request.get(`${baseUrl}/purchase-orders`);
+    expect(purchaseRes.status()).toBe(200);
+    const { data: plist } = await purchaseRes.json();
+    const purchaseOrder = plist.orders[0];
+
+    const prefix = `AP_SEARCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        {
+            id: genId(),
+            supplierId: supplier.id,
+            purchaseOrderId: purchaseOrder?.id ?? null,
+            description: `${prefix}B`,
+            value: 210.75,
+            dueDate: new Date().toISOString(),
+        },
+        {
+            id: genId(),
+            supplierId: supplier.id,
+            purchaseOrderId: purchaseOrder?.id ?? null,
+            description: `${prefix}A`,
+            value: 95.35,
+            dueDate: new Date().toISOString(),
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/accounts-payable`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/accounts-payable?search=${encodeURIComponent(prefix)}&sortBy=value&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.payables.filter((payable: { description?: string | null }) =>
+        payable.description?.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const values = matching.map((payable: { value: string }) => Number(payable.value));
+    const sorted = [...values].sort((a, b) => a - b);
+    expect(values).toEqual(sorted);
+});

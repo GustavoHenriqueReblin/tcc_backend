@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { AssetStatus } from "@prisma/client";
+import { assetAllowedSortFields } from "@routes/asset.routes";
 
 export interface AssetInput {
     id?: number;
@@ -18,20 +19,48 @@ export interface AssetInput {
 }
 
 export class AssetService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(search
+                        ? {
+                              OR: [
+                                  { name: { contains: search } },
+                                  { location: { contains: search } },
+                                  { category: { name: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = assetAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [assets, total] = await prisma.$transaction([
                     prisma.asset.findMany({
-                        where: { enterpriseId },
+                        where,
                         include: { category: true },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.asset.count({ where: { enterpriseId } }),
+                    prisma.asset.count({ where }),
                 ]);
 
                 return {

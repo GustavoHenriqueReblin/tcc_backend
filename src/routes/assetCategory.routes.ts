@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateAssetCategoryFields,
-    validateAssetCategoryPaginationAndFilter,
+    validateAssetCategoryListQuery,
+    validateAssetCategoryQuery,
 } from "@middleware/assetCategory.middleware";
 import {
     getAllAssetCategories,
@@ -11,12 +12,20 @@ import {
     updateAssetCategory,
 } from "@controllers/assetCategory.controller";
 
+export const assetCategoryAllowedSortFields = ["name", "description", "createdAt", "updatedAt"];
+
 const router = Router();
 
-router.use(authMiddleware, validateAssetCategoryPaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllAssetCategories);
-router.get("/:id", getAssetCategoryById);
+router.get(
+    "/",
+    validateAssetCategoryListQuery({
+        allowedSortFields: assetCategoryAllowedSortFields,
+    }),
+    getAllAssetCategories
+);
+router.get("/:id", validateAssetCategoryQuery, getAssetCategoryById);
 router.post("/", validateAssetCategoryFields, createAssetCategory);
 router.put("/:id", validateAssetCategoryFields, updateAssetCategory);
 

@@ -3,6 +3,7 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { AssetMaintenanceType } from "@prisma/client";
+import { assetMaintenanceAllowedSortFields } from "@routes/assetMaintenance.routes";
 
 export interface AssetMaintenanceInput {
     id?: number;
@@ -16,15 +17,40 @@ export interface AssetMaintenanceInput {
 }
 
 export class AssetMaintenanceService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, assetId?: number) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        assetId?: number,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "date";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
 
                 const where = {
                     enterpriseId,
-                    ...(assetId ? { assetId } : {}),
+                    ...(typeof assetId === "number" ? { assetId } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { description: { contains: search } },
+                                  { technician: { contains: search } },
+                                  { asset: { name: { contains: search } } },
+                              ],
+                          }
+                        : {}),
                 };
+
+                const validSortFields = assetMaintenanceAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "date";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [maintenances, total] = await prisma.$transaction([
                     prisma.assetMaintenance.findMany({
@@ -32,7 +58,7 @@ export class AssetMaintenanceService extends BaseService {
                         include: { asset: { include: { category: true } } },
                         skip,
                         take: limit,
-                        orderBy: { date: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
                     prisma.assetMaintenance.count({ where }),
                 ]);

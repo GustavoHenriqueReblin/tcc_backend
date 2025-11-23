@@ -4,6 +4,7 @@ import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { accountsReceivableAllowedSortFields } from "@routes/accountsReceivable.routes";
 
 export interface AccountsReceivableInput {
     id?: number;
@@ -19,14 +20,45 @@ export interface AccountsReceivableInput {
 }
 
 export class AccountsReceivableService extends BaseService {
-    getAll = async (enterpriseId: number, page = 1, limit = 10, status?: PaymentStatus) =>
+    getAll = async (
+        enterpriseId: number,
+        page = 1,
+        limit = 10,
+        status?: PaymentStatus,
+        search?: string | null,
+        sortBy?: string,
+        sortOrder?: "asc" | "desc"
+    ) =>
         this.safeQuery(
             async () => {
+                search = search?.trim() || null;
+                sortBy = sortBy || "createdAt";
+                sortOrder = sortOrder || "desc";
+
                 const skip = (page - 1) * limit;
+
+                const where = {
+                    enterpriseId,
+                    ...(status ? { status } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { description: { contains: search } },
+                                  { customer: { person: { name: { contains: search } } } },
+                                  { customer: { person: { taxId: { contains: search } } } },
+                                  { saleOrder: { code: { contains: search } } },
+                              ],
+                          }
+                        : {}),
+                };
+
+                const validSortFields = accountsReceivableAllowedSortFields;
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const [receivables, total] = await prisma.$transaction([
                     prisma.accountsReceivable.findMany({
-                        where: { enterpriseId, ...(status && { status }) },
+                        where,
                         include: {
                             customer: { include: { person: true } },
                             saleOrder: true,
@@ -34,11 +66,9 @@ export class AccountsReceivableService extends BaseService {
                         },
                         skip,
                         take: limit,
-                        orderBy: { createdAt: "desc" },
+                        orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.accountsReceivable.count({
-                        where: { enterpriseId, ...(status && { status }) },
-                    }),
+                    prisma.accountsReceivable.count({ where }),
                 ]);
 
                 return {

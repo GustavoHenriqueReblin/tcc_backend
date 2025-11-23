@@ -252,3 +252,56 @@ test("Atualizar conta a receber com saleOrderId inexistente deve falhar (404)", 
     });
     expect(res.status()).toBe(404);
 });
+
+test("Busca contas a receber com search e ordena por value", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    expect(custRes.status()).toBe(200);
+    const { data: clist } = await custRes.json();
+    const customer = clist.customers[0];
+    expect(customer).toBeTruthy();
+
+    const saleRes = await request.get(`${baseUrl}/sale-orders`);
+    expect(saleRes.status()).toBe(200);
+    const { data: slist } = await saleRes.json();
+    const saleOrder = slist.orders[0];
+
+    const prefix = `AR_SEARCH_${Date.now().toString().slice(-4)}`;
+    const payloads = [
+        {
+            id: genId(),
+            customerId: customer.id,
+            saleOrderId: saleOrder?.id ?? null,
+            description: `${prefix}B`,
+            value: 75.25,
+            dueDate: new Date().toISOString(),
+        },
+        {
+            id: genId(),
+            customerId: customer.id,
+            saleOrderId: saleOrder?.id ?? null,
+            description: `${prefix}A`,
+            value: 40.1,
+            dueDate: new Date().toISOString(),
+        },
+    ];
+
+    for (const payload of payloads) {
+        const resCreate = await request.post(`${baseUrl}/accounts-receivable`, { data: payload });
+        expect(resCreate.status()).toBe(200);
+    }
+
+    const res = await request.get(
+        `${baseUrl}/accounts-receivable?search=${encodeURIComponent(prefix)}&sortBy=value&sortOrder=asc`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    const matching = data.receivables.filter((receivable: { description?: string | null }) =>
+        receivable.description?.includes(prefix)
+    );
+    expect(matching.length).toBeGreaterThanOrEqual(2);
+
+    const values = matching.map((receivable: { value: string }) => Number(receivable.value));
+    const sorted = [...values].sort((a, b) => a - b);
+    expect(values).toEqual(sorted);
+});

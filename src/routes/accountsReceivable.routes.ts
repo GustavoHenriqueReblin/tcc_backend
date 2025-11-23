@@ -1,22 +1,39 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/auth.middleware";
 import {
+    validateAccountsReceivableFields,
+    validateAccountsReceivableListQuery,
+    validateAccountsReceivableQuery,
+} from "@middleware/accountsReceivable.middleware";
+import {
     getAllAccountsReceivable,
     getAccountsReceivableById,
     createAccountsReceivable,
     updateAccountsReceivable,
 } from "@controllers/accountsReceivable.controller";
-import {
-    validateAccountsReceivableFields,
-    validateAccountsReceivablePaginationAndFilter,
-} from "@middleware/accountsReceivable.middleware";
+
+export const accountsReceivableAllowedSortFields = [
+    "description",
+    "value",
+    "dueDate",
+    "paymentDate",
+    "status",
+    "createdAt",
+    "updatedAt",
+];
 
 const router = Router();
 
-router.use(authMiddleware, validateAccountsReceivablePaginationAndFilter);
+router.use(authMiddleware);
 
-router.get("/", getAllAccountsReceivable);
-router.get("/:id", getAccountsReceivableById);
+router.get(
+    "/",
+    validateAccountsReceivableListQuery({
+        allowedSortFields: accountsReceivableAllowedSortFields,
+    }),
+    getAllAccountsReceivable
+);
+router.get("/:id", validateAccountsReceivableQuery, getAccountsReceivableById);
 router.post("/", validateAccountsReceivableFields, createAccountsReceivable);
 router.put("/:id", validateAccountsReceivableFields, updateAccountsReceivable);
 
