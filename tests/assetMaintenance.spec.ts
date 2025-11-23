@@ -62,10 +62,10 @@ test("Lista manutencoes de ativos com paginacao basica", async ({ request }) => 
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.maintenances)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.maintenances.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Lista manutencoes filtrando por assetId retorna subconjunto", async ({ request }) => {
@@ -73,15 +73,15 @@ test("Lista manutencoes filtrando por assetId retorna subconjunto", async ({ req
     expect(allRes.status()).toBe(200);
     const { data: all } = await allRes.json();
 
-    const first = all.maintenances[0];
+    const first = all.items[0];
     if (!first) test.skip(true, "Nenhuma manutencao encontrada para filtrar");
 
     const filteredRes = await request.get(`${baseUrl}/asset-maintenance?assetId=${first.assetId}`);
     expect(filteredRes.status()).toBe(200);
     const { data: filtered } = await filteredRes.json();
 
-    expect(filtered.maintenances.length).toBeLessThanOrEqual(all.maintenances.length);
-    filtered.maintenances.forEach((m: AssetMaintenance) => {
+    expect(filtered.items.length).toBeLessThanOrEqual(all.items.length);
+    filtered.items.forEach((m: AssetMaintenance) => {
         expect(m.assetId).toBe(first.assetId);
     });
 });
@@ -268,7 +268,7 @@ test("Busca manutencoes com search e ordena por cost", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.maintenances.filter((maintenance: { description?: string | null }) =>
+    const matching = data.items.filter((maintenance: { description?: string | null }) =>
         maintenance.description?.includes(prefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

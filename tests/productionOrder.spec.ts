@@ -53,7 +53,7 @@ test("Lista ordens de produção com paginação básica", async ({ request }) =
     const res = await request.get(`${baseUrl}/production-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
-    expect(Array.isArray(data.orders)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
 });
 
 test("Validação de query: status inválido", async ({ request }) => {
@@ -132,17 +132,17 @@ test("Busca e ordenação de production orders por produto", async ({ request })
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.orders.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
 
     expect(
-        searchData.orders.every(
+        searchData.items.every(
             (order: { product: { name: string; barcode?: string | null } }) =>
                 order.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
 
-    const createdDates = searchData.orders.map((o: { createdAt: string }) =>
+    const createdDates = searchData.items.map((o: { createdAt: string }) =>
         new Date(o.createdAt).getTime()
     );
     const sortedDates = [...createdDates].sort((a, b) => a - b);

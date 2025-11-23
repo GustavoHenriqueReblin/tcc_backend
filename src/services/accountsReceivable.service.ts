@@ -72,7 +72,7 @@ export class AccountsReceivableService extends BaseService {
                 ]);
 
                 return {
-                    receivables,
+                    items: receivables,
                     meta: {
                         total,
                         page,

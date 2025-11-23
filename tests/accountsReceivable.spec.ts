@@ -11,10 +11,10 @@ test("Lista contas a receber e valida paginacao basica", async ({ request }) => 
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.receivables)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.receivables.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Lista contas a receber com filtro por status retorna subconjunto", async ({ request }) => {
@@ -28,7 +28,7 @@ test("Lista contas a receber com filtro por status retorna subconjunto", async (
     expect(pendingRes.status()).toBe(200);
     const { data: pending } = await pendingRes.json();
 
-    expect(pending.receivables.length).toBeLessThanOrEqual(all.receivables.length);
+    expect(pending.items.length).toBeLessThanOrEqual(all.items.length);
 });
 
 test("Validacao de query: page/limit invalidos e status invalido", async ({ request }) => {
@@ -47,13 +47,13 @@ test("Cria, busca e atualiza conta a receber", async ({ request }) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     expect(custRes.status()).toBe(200);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
     expect(customer).toBeTruthy();
 
     const saleRes = await request.get(`${baseUrl}/sale-orders`);
     expect(saleRes.status()).toBe(200);
     const { data: slist } = await saleRes.json();
-    const saleOrder = slist.orders[0];
+    const saleOrder = slist.items[0];
 
     const payload = {
         id: genId(),
@@ -160,7 +160,7 @@ test("Criar conta a receber com customerId inexistente deve falhar (404)", async
 test("Criar conta a receber com saleOrderId inexistente deve falhar (404)", async ({ request }) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
 
     const res = await request.post(`${baseUrl}/accounts-receivable`, {
         data: {
@@ -188,7 +188,7 @@ test("Atualizar conta a receber com valor menor ou igual a zero deve falhar (400
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-receivable`);
     const { data: list } = await listRes.json();
-    const existing = list.receivables[0];
+    const existing = list.items[0];
     expect(existing).toBeTruthy();
 
     const res = await request.put(`${baseUrl}/accounts-receivable/${existing.id}`, {
@@ -212,7 +212,7 @@ test("Atualizar conta a receber com customerId inexistente deve falhar (404)", a
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-receivable`);
     const { data: list } = await listRes.json();
-    const existing = list.receivables[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/accounts-receivable/${existing.id}`, {
         data: {
@@ -235,7 +235,7 @@ test("Atualizar conta a receber com saleOrderId inexistente deve falhar (404)", 
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-receivable`);
     const { data: list } = await listRes.json();
-    const existing = list.receivables[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/accounts-receivable/${existing.id}`, {
         data: {
@@ -257,13 +257,13 @@ test("Busca contas a receber com search e ordena por value", async ({ request })
     const custRes = await request.get(`${baseUrl}/customers`);
     expect(custRes.status()).toBe(200);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
     expect(customer).toBeTruthy();
 
     const saleRes = await request.get(`${baseUrl}/sale-orders`);
     expect(saleRes.status()).toBe(200);
     const { data: slist } = await saleRes.json();
-    const saleOrder = slist.orders[0];
+    const saleOrder = slist.items[0];
 
     const prefix = `AR_SEARCH_${Date.now().toString().slice(-4)}`;
     const payloads = [
@@ -296,7 +296,7 @@ test("Busca contas a receber com search e ordena por value", async ({ request })
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.receivables.filter((receivable: { description?: string | null }) =>
+    const matching = data.items.filter((receivable: { description?: string | null }) =>
         receivable.description?.includes(prefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

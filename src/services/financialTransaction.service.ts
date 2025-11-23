@@ -72,7 +72,7 @@ export class FinancialTransactionService extends BaseService {
                 ]);
 
                 return {
-                    transactions,
+                    items: transactions,
                     meta: {
                         total,
                         page,

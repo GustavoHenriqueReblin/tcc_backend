@@ -72,7 +72,7 @@ export class AccountsPayableService extends BaseService {
                 ]);
 
                 return {
-                    payables,
+                    items: payables,
                     meta: {
                         total,
                         page,

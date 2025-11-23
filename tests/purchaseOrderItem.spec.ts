@@ -52,7 +52,7 @@ const createRawProduct = async (request: APIRequestContext, namePrefix = "PROD_P
 const createPurchaseOrder = async (request: APIRequestContext) => {
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
     const code = `POI${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/purchase-orders`, {
         data: { id: genId(), code, supplierId: supplier.id, notes: null },

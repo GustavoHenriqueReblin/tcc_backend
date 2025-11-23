@@ -52,7 +52,7 @@ const createAuxProduct = async (request: APIRequestContext, namePrefix = "PROD_S
 const createSaleOrder = async (request: APIRequestContext) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
     const code = `SOI${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/sale-orders`, {
         data: { id: genId(), code, customerId: customer.id, totalValue: 0 },

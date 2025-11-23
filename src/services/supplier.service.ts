@@ -95,7 +95,7 @@ export class SupplierService extends BaseService {
                 ]);
 
                 return {
-                    suppliers,
+                    items: suppliers,
                     meta: {
                         total,
                         page,

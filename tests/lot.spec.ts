@@ -57,10 +57,10 @@ test("Lista lotes com paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/lots`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
-    expect(Array.isArray(data.lots)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.lots.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Validação de query: page/limit inválidos", async ({ request }) => {
@@ -132,7 +132,7 @@ test("Busca lotes com search e ordenaAA�o por code", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.lots.filter((lot: { code: string }) => lot.code.includes(prefix));
+    const matching = data.items.filter((lot: { code: string }) => lot.code.includes(prefix));
     expect(matching.length).toBeGreaterThanOrEqual(2);
     expect(
         matching.every((lot: { notes?: string | null }) => lot.notes?.includes(prefix))

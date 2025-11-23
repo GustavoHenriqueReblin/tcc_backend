@@ -11,10 +11,10 @@ test("Lista lancamentos financeiros e valida paginacao basica", async ({ request
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.transactions)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.transactions.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Lista lancamentos financeiros filtrando por type retorna subconjunto", async ({
@@ -30,7 +30,7 @@ test("Lista lancamentos financeiros filtrando por type retorna subconjunto", asy
     expect(creditRes.status()).toBe(200);
     const { data: credit } = await creditRes.json();
 
-    expect(credit.transactions.length).toBeLessThanOrEqual(all.transactions.length);
+    expect(credit.items.length).toBeLessThanOrEqual(all.items.length);
 });
 
 test("Validacao de query: page/limit invalidos e type invalido", async ({ request }) => {
@@ -49,7 +49,7 @@ test("Cria, busca e atualiza lancamento financeiro com conta a receber", async (
     const recRes = await request.get(`${baseUrl}/accounts-receivable`);
     expect(recRes.status()).toBe(200);
     const { data: rlist } = await recRes.json();
-    const receivable = rlist.receivables[0];
+    const receivable = rlist.items[0];
 
     const payload = {
         id: genId(),
@@ -99,7 +99,7 @@ test("Cria lancamento financeiro com conta a pagar", async ({ request }) => {
     const payRes = await request.get(`${baseUrl}/accounts-payable`);
     expect(payRes.status()).toBe(200);
     const { data: plist } = await payRes.json();
-    const payable = plist.payables[0];
+    const payable = plist.items[0];
 
     const payload = {
         id: genId(),
@@ -212,7 +212,7 @@ test("Atualizar lancamento financeiro com valor menor ou igual a zero deve falha
 }) => {
     const listRes = await request.get(`${baseUrl}/financial-transactions`);
     const { data: list } = await listRes.json();
-    const existing = list.transactions[0];
+    const existing = list.items[0];
     expect(existing).toBeTruthy();
 
     const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
@@ -233,7 +233,7 @@ test("Atualizar lancamento financeiro com valor menor ou igual a zero deve falha
 test("Atualizar lancamento financeiro com type invalido deve falhar (400)", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/financial-transactions`);
     const { data: list } = await listRes.json();
-    const existing = list.transactions[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
         data: {
@@ -251,7 +251,7 @@ test("Atualizar lancamento financeiro com accountsReceivableId inexistente deve 
 }) => {
     const listRes = await request.get(`${baseUrl}/financial-transactions`);
     const { data: list } = await listRes.json();
-    const existing = list.transactions[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
         data: {
@@ -268,7 +268,7 @@ test("Atualizar lancamento financeiro com accountsPayableId inexistente deve fal
 }) => {
     const listRes = await request.get(`${baseUrl}/financial-transactions`);
     const { data: list } = await listRes.json();
-    const existing = list.transactions[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/financial-transactions/${existing.id}`, {
         data: {
@@ -314,7 +314,7 @@ test("Busca lancamentos financeiros com search e ordena por date", async ({ requ
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.transactions.filter(
+    const matching = data.items.filter(
         (transaction: { category?: string | null; description?: string | null }) =>
             transaction.category?.includes(prefix) || transaction.description?.includes(prefix)
     );

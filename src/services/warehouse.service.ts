@@ -55,7 +55,7 @@ export class WarehouseService extends BaseService {
                 ]);
 
                 return {
-                    warehouses,
+                    items: warehouses,
                     meta: {
                         total,
                         page,

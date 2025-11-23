@@ -57,10 +57,10 @@ test("Lista assets com paginacao basica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.assets)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.assets.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Validacao de query: page/limit invalidos em assets", async ({ request }) => {
@@ -246,7 +246,7 @@ test("Busca assets com search e ordena por acquisitionCost", async ({ request })
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.assets.filter((asset: { name: string }) => asset.name.includes(prefix));
+    const matching = data.items.filter((asset: { name: string }) => asset.name.includes(prefix));
     expect(matching.length).toBeGreaterThanOrEqual(2);
 
     const costs = matching.map((asset: { acquisitionCost: number }) =>

@@ -10,10 +10,10 @@ test("Lista warehouses com paginação básica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.warehouses)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.warehouses.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Validação de query: page/limit inválidos", async ({ request }) => {
@@ -109,18 +109,18 @@ test("Busca e ordenação de warehouses", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/warehouses`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.warehouses.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const searchTerm = list.warehouses[0].code.slice(0, 2);
+    const searchTerm = list.items[0].code.slice(0, 2);
 
     const resSearch = await request.get(
         `${baseUrl}/warehouses?search=${encodeURIComponent(searchTerm)}&sortBy=code&sortOrder=asc`
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.warehouses.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
     expect(
-        searchData.warehouses.every(
+        searchData.items.every(
             (wh: { code: string; name: string; description?: string | null }) =>
                 wh.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 wh.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,7 +128,7 @@ test("Busca e ordenação de warehouses", async ({ request }) => {
         )
     ).toBeTruthy();
 
-    const codes = searchData.warehouses.map((w: { code: string }) => w.code.toLowerCase());
+    const codes = searchData.items.map((w: { code: string }) => w.code.toLowerCase());
     const sortedCodes = [...codes].sort();
     expect(codes).toEqual(sortedCodes);
 });

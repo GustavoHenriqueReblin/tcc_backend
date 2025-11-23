@@ -58,7 +58,7 @@ export class RecipeService extends BaseService {
                 ]);
 
                 return {
-                    recipes,
+                    items: recipes,
                     meta: {
                         total,
                         page,

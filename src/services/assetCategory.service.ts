@@ -54,7 +54,7 @@ export class AssetCategoryService extends BaseService {
                 ]);
 
                 return {
-                    assetCategories: categories,
+                    items: categories,
                     meta: {
                         total,
                         page,

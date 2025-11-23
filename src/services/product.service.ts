@@ -107,7 +107,7 @@ export class ProductService extends BaseService {
                 const paginated = sortedProducts.slice(skip, skip + limit);
 
                 return {
-                    products: paginated,
+                    items: paginated,
                     meta: {
                         total,
                         page,

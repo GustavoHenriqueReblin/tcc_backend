@@ -59,7 +59,7 @@ export class InventoryMovementService extends BaseService {
                 ]);
 
                 return {
-                    movements,
+                    items: movements,
                     meta: {
                         total,
                         page,

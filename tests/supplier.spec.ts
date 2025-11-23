@@ -12,23 +12,23 @@ test("Lista fornecedores (somente ativos por padrão) e paginação básica", as
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.suppliers)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.suppliers.length).toBeLessThanOrEqual(10);
-    expect(data.suppliers.every((s: Supplier) => s.status === Status.ACTIVE)).toBeTruthy();
+    expect(data.items.length).toBeLessThanOrEqual(10);
+    expect(data.items.every((s: Supplier) => s.status === Status.ACTIVE)).toBeTruthy();
 
     const resLimit1 = await request.get(`${baseUrl}/suppliers?page=1&limit=1`);
     expect(resLimit1.status()).toBe(200);
     const { data: dataLimit1 } = await resLimit1.json();
     expect(dataLimit1.meta.page).toBe(1);
-    expect(dataLimit1.suppliers.length).toBe(1);
+    expect(dataLimit1.items.length).toBe(1);
 
     const resHighPageZeroLimit = await request.get(`${baseUrl}/suppliers?page=5000&limit=0`);
     expect(resHighPageZeroLimit.status()).toBe(200);
     const { data: dataHighPageZeroLimit } = await resHighPageZeroLimit.json();
     expect(dataHighPageZeroLimit.meta.page).toBe(5000);
-    expect(dataHighPageZeroLimit.suppliers.length).toBe(0);
+    expect(dataHighPageZeroLimit.items.length).toBe(0);
 });
 
 test("Lista fornecedores com includeInactive=true retorna >= que ativos", async ({ request }) => {
@@ -40,9 +40,9 @@ test("Lista fornecedores com includeInactive=true retorna >= que ativos", async 
     expect(resAll.status()).toBe(200);
     const { data: withInactive } = await resAll.json();
 
-    expect(withInactive.suppliers.length).toBeGreaterThanOrEqual(onlyActive.suppliers.length);
+    expect(withInactive.items.length).toBeGreaterThanOrEqual(onlyActive.items.length);
     expect(
-        withInactive.suppliers.every((s: Supplier) =>
+        withInactive.items.every((s: Supplier) =>
             [Status.ACTIVE, Status.INACTIVE].includes(s.status)
         )
     ).toBeTruthy();
@@ -81,9 +81,9 @@ test("Busca fornecedor por Id existente inclui pessoa", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/suppliers`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.suppliers.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const id = list.suppliers[0].id as number;
+    const id = list.items[0].id as number;
     const res = await request.get(`${baseUrl}/suppliers/${id}`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -144,7 +144,7 @@ test("Criacao de fornecedor com CPF/CNPJ ja vinculado deve falhar (409)", async 
     const listRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    const existing = list.suppliers[0];
+    const existing = list.items[0];
     expect(existing).toBeTruthy();
 
     const payload = {
@@ -213,11 +213,11 @@ test("Atualiza fornecedor existente (campos da pessoa e do fornecedor)", async (
 
     const listActive = await request.get(`${baseUrl}/suppliers`);
     const { data: onlyActive } = await listActive.json();
-    expect(onlyActive.suppliers.find((s: Supplier) => s.id === updated.id)).toBeFalsy();
+    expect(onlyActive.items.find((s: Supplier) => s.id === updated.id)).toBeFalsy();
 
     const listAll = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     const { data: withInactive } = await listAll.json();
-    expect(withInactive.suppliers.find((s: Supplier) => s.id === updated.id)).toBeTruthy();
+    expect(withInactive.items.find((s: Supplier) => s.id === updated.id)).toBeTruthy();
 });
 
 test("Atualiza fornecedor inexistente deve retornar 404", async ({ request }) => {
@@ -236,7 +236,7 @@ test("Busca com search e ordenação por nome", async ({ request }) => {
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
 
-    const firstSupplier = list.suppliers[0];
+    const firstSupplier = list.items[0];
     const searchTerm = firstSupplier.person.name.slice(0, 3);
 
     const resSearch = await request.get(
@@ -244,9 +244,9 @@ test("Busca com search e ordenação por nome", async ({ request }) => {
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.suppliers.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
     expect(
-        searchData.suppliers.every(
+        searchData.items.every(
             (s: SupplierInput) =>
                 s.person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.person.legalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,7 +254,7 @@ test("Busca com search e ordenação por nome", async ({ request }) => {
         )
     ).toBeTruthy();
 
-    const names = searchData.suppliers.map((s: SupplierInput) => s.person.name.toLowerCase());
+    const names = searchData.items.map((s: SupplierInput) => s.person.name.toLowerCase());
     const sortedNames = [...names].sort();
     expect(names).toEqual(sortedNames);
 });
@@ -296,7 +296,7 @@ test("Busca fornecedores por CPF/CNPJ e ordena por createdAt", async ({ request 
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.suppliers.filter((supplier: { person: { taxId?: string | null } }) =>
+    const matching = data.items.filter((supplier: { person: { taxId?: string | null } }) =>
         supplier.person.taxId?.startsWith(taxIdBase)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

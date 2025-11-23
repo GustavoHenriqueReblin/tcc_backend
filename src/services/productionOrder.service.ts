@@ -70,7 +70,7 @@ export class ProductionOrderService extends BaseService {
                 ]);
 
                 return {
-                    orders,
+                    items: orders,
                     meta: {
                         total,
                         page,

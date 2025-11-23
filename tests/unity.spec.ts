@@ -10,10 +10,10 @@ test("Lista unities com paginação básica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.unities)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.unities.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Cria, busca e atualiza unity", async ({ request }) => {
@@ -87,9 +87,9 @@ test("Busca e ordenação de unities", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/unities`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.unities.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const sample = list.unities[0];
+    const sample = list.items[0];
     const searchTerm = sample.simbol.slice(0, 1);
 
     const resSearch = await request.get(
@@ -97,16 +97,16 @@ test("Busca e ordenação de unities", async ({ request }) => {
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.unities.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
     expect(
-        searchData.unities.every(
+        searchData.items.every(
             (unity: { simbol: string; description?: string | null }) =>
                 unity.simbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 unity.description?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
 
-    const simbols = searchData.unities.map((u: { simbol: string }) => u.simbol.toLowerCase());
+    const simbols = searchData.items.map((u: { simbol: string }) => u.simbol.toLowerCase());
     const sortedSimbols = [...simbols].sort();
     expect(simbols).toEqual(sortedSimbols);
 });

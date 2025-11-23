@@ -53,7 +53,7 @@ export class UserService extends BaseService {
                 ]);
 
                 return {
-                    users,
+                    items: users,
                     meta: {
                         total,
                         page,

@@ -11,10 +11,10 @@ test("Lista contas a pagar e valida paginacao basica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.payables)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.payables.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Lista contas a pagar com filtro por status retorna subconjunto", async ({ request }) => {
@@ -28,7 +28,7 @@ test("Lista contas a pagar com filtro por status retorna subconjunto", async ({ 
     expect(pendingRes.status()).toBe(200);
     const { data: pending } = await pendingRes.json();
 
-    expect(pending.payables.length).toBeLessThanOrEqual(all.payables.length);
+    expect(pending.items.length).toBeLessThanOrEqual(all.items.length);
 });
 
 test("Validacao de query: page/limit invalidos e status invalido", async ({ request }) => {
@@ -47,13 +47,13 @@ test("Cria, busca e atualiza conta a pagar", async ({ request }) => {
     const supRes = await request.get(`${baseUrl}/suppliers`);
     expect(supRes.status()).toBe(200);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
     const purchRes = await request.get(`${baseUrl}/purchase-orders`);
     expect(purchRes.status()).toBe(200);
     const { data: plist } = await purchRes.json();
-    const purchaseOrder = plist.orders[0];
+    const purchaseOrder = plist.items[0];
 
     const payload = {
         id: genId(),
@@ -160,7 +160,7 @@ test("Criar conta a pagar com purchaseOrderId inexistente deve falhar (404)", as
 }) => {
     const supRes = await request.get(`${baseUrl}/suppliers`);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
 
     const res = await request.post(`${baseUrl}/accounts-payable`, {
         data: {
@@ -188,7 +188,7 @@ test("Atualizar conta a pagar com valor menor ou igual a zero deve falhar (400)"
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-payable`);
     const { data: list } = await listRes.json();
-    const existing = list.payables[0];
+    const existing = list.items[0];
     expect(existing).toBeTruthy();
 
     const res = await request.put(`${baseUrl}/accounts-payable/${existing.id}`, {
@@ -212,7 +212,7 @@ test("Atualizar conta a pagar com supplierId inexistente deve falhar (404)", asy
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-payable`);
     const { data: list } = await listRes.json();
-    const existing = list.payables[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/accounts-payable/${existing.id}`, {
         data: {
@@ -235,7 +235,7 @@ test("Atualizar conta a pagar com purchaseOrderId inexistente deve falhar (404)"
 }) => {
     const listRes = await request.get(`${baseUrl}/accounts-payable`);
     const { data: list } = await listRes.json();
-    const existing = list.payables[0];
+    const existing = list.items[0];
 
     const res = await request.put(`${baseUrl}/accounts-payable/${existing.id}`, {
         data: {
@@ -257,13 +257,13 @@ test("Busca contas a pagar com search e ordena por value", async ({ request }) =
     const supRes = await request.get(`${baseUrl}/suppliers`);
     expect(supRes.status()).toBe(200);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
     const purchaseRes = await request.get(`${baseUrl}/purchase-orders`);
     expect(purchaseRes.status()).toBe(200);
     const { data: plist } = await purchaseRes.json();
-    const purchaseOrder = plist.orders[0];
+    const purchaseOrder = plist.items[0];
 
     const prefix = `AP_SEARCH_${Date.now().toString().slice(-4)}`;
     const payloads = [
@@ -296,7 +296,7 @@ test("Busca contas a pagar com search e ordena por value", async ({ request }) =
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.payables.filter((payable: { description?: string | null }) =>
+    const matching = data.items.filter((payable: { description?: string | null }) =>
         payable.description?.includes(prefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

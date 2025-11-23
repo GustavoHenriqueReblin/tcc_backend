@@ -64,7 +64,7 @@ export class AssetService extends BaseService {
                 ]);
 
                 return {
-                    assets,
+                    items: assets,
                     meta: {
                         total,
                         page,

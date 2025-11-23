@@ -64,7 +64,7 @@ export class AssetMaintenanceService extends BaseService {
                 ]);
 
                 return {
-                    maintenances,
+                    items: maintenances,
                     meta: {
                         total,
                         page,

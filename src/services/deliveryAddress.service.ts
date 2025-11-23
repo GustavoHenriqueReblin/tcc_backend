@@ -75,7 +75,7 @@ export class DeliveryAddressService extends BaseService {
                 ]);
 
                 return {
-                    addresses,
+                    items: addresses,
                     meta: {
                         total,
                         page,

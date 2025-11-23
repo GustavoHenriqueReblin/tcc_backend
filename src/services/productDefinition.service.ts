@@ -55,7 +55,7 @@ export class ProductDefinitionService extends BaseService {
                 ]);
 
                 return {
-                    productDefinitions,
+                    items: productDefinitions,
                     meta: {
                         total,
                         page,

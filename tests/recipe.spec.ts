@@ -57,7 +57,7 @@ test("Lista receitas com paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/recipes`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
-    expect(Array.isArray(data.recipes)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
 });
@@ -123,7 +123,7 @@ test("Busca receitas com search e ordenaAA�o por description", async ({ reque
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.recipes.filter((recipe: { description?: string | null }) =>
+    const matching = data.items.filter((recipe: { description?: string | null }) =>
         recipe.description?.includes(prefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

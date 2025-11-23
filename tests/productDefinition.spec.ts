@@ -11,10 +11,10 @@ test("Lista definições de produto com paginação básica", async ({ request }
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.productDefinitions)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.productDefinitions.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Cria, busca e atualiza uma definição de produto", async ({ request }) => {
@@ -103,9 +103,9 @@ test("Busca e ordenação de definições de produto", async ({ request }) => {
     const listRes = await request.get(`${baseUrl}/product-definitions`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.productDefinitions.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const sample = list.productDefinitions[0];
+    const sample = list.items[0];
     const searchTerm = sample.name.slice(0, 3);
 
     const resSearch = await request.get(
@@ -115,18 +115,16 @@ test("Busca e ordenação de definições de produto", async ({ request }) => {
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.productDefinitions.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
     expect(
-        searchData.productDefinitions.every(
+        searchData.items.every(
             (pd: { name: string; description?: string | null }) =>
                 pd.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 pd.description?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
 
-    const names = searchData.productDefinitions.map((pd: { name: string }) =>
-        pd.name.toLowerCase()
-    );
+    const names = searchData.items.map((pd: { name: string }) => pd.name.toLowerCase());
     const sortedNames = [...names].sort();
     expect(names).toEqual(sortedNames);
 });

@@ -61,9 +61,9 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     let mvRes = await request.get(`${baseUrl}/inventoryMovement?productId=${productId}`);
     expect(mvRes.status()).toBe(200);
     let { data: mvData } = await mvRes.json();
-    expect(Array.isArray(mvData.movements)).toBeTruthy();
-    expect(mvData.movements.length).toBeGreaterThan(0);
-    let last = mvData.movements[0];
+    expect(Array.isArray(mvData.items)).toBeTruthy();
+    expect(mvData.items.length).toBeGreaterThan(0);
+    let last = mvData.items[0];
     expect(last.direction).toBe("IN");
     expect(Number(last.quantity)).toBeCloseTo(initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(initialQty, 6);
@@ -88,7 +88,7 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     mvRes = await request.get(`${baseUrl}/inventoryMovement?productId=${productId}`);
     expect(mvRes.status()).toBe(200);
     ({ data: mvData } = await mvRes.json());
-    last = mvData.movements[0];
+    last = mvData.items[0];
     expect(last.direction).toBe("IN");
     expect(Number(last.quantity)).toBeCloseTo(higherQty - initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(higherQty, 6);
@@ -113,7 +113,7 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     mvRes = await request.get(`${baseUrl}/inventoryMovement?productId=${productId}`);
     expect(mvRes.status()).toBe(200);
     ({ data: mvData } = await mvRes.json());
-    last = mvData.movements[0];
+    last = mvData.items[0];
     expect(last.direction).toBe("OUT");
     expect(Number(last.quantity)).toBeCloseTo(higherQty - lowerQty, 6);
     expect(Number(last.balance)).toBeCloseTo(lowerQty, 6);
@@ -167,9 +167,9 @@ test("Validação, busca e ordenação de inventoryMovement", async ({ request }
     );
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.movements.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const quantities = list.movements.map((mv: { quantity: string }) => Number(mv.quantity));
+    const quantities = list.items.map((mv: { quantity: string }) => Number(mv.quantity));
     const sortedQuantities = [...quantities].sort((a, b) => a - b);
     expect(quantities).toEqual(sortedQuantities);
 
@@ -178,5 +178,5 @@ test("Validação, busca e ordenação de inventoryMovement", async ({ request }
     );
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
-    expect(searchData.movements.length).toBeGreaterThanOrEqual(0);
+    expect(searchData.items.length).toBeGreaterThanOrEqual(0);
 });

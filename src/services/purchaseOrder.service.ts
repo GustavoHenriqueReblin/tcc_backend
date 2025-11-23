@@ -61,7 +61,7 @@ export class PurchaseOrderService extends BaseService {
                 ]);
 
                 return {
-                    orders,
+                    items: orders,
                     meta: {
                         total,
                         page,

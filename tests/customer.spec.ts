@@ -12,23 +12,23 @@ test("Lista clientes (somente ativos por padrão) e paginação básica", async 
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.customers)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.customers.length).toBeLessThanOrEqual(10);
-    expect(data.customers.every((c: Customer) => c.status === Status.ACTIVE)).toBeTruthy();
+    expect(data.items.length).toBeLessThanOrEqual(10);
+    expect(data.items.every((c: Customer) => c.status === Status.ACTIVE)).toBeTruthy();
 
     const resLimit1 = await request.get(`${baseUrl}/customers?page=1&limit=1`);
     expect(resLimit1.status()).toBe(200);
     const { data: dataLimit1 } = await resLimit1.json();
     expect(dataLimit1.meta.page).toBe(1);
-    expect(dataLimit1.customers.length).toBe(1);
+    expect(dataLimit1.items.length).toBe(1);
 
     const resHighPageZeroLimit = await request.get(`${baseUrl}/customers?page=5000&limit=0`);
     expect(resHighPageZeroLimit.status()).toBe(200);
     const { data: dataHighPageZeroLimit } = await resHighPageZeroLimit.json();
     expect(dataHighPageZeroLimit.meta.page).toBe(5000);
-    expect(dataHighPageZeroLimit.customers.length).toBe(0);
+    expect(dataHighPageZeroLimit.items.length).toBe(0);
 });
 
 test("Lista clientes com includeInactive=true retorna >= que ativos", async ({ request }) => {
@@ -40,9 +40,9 @@ test("Lista clientes com includeInactive=true retorna >= que ativos", async ({ r
     expect(resAll.status()).toBe(200);
     const { data: withInactive } = await resAll.json();
 
-    expect(withInactive.customers.length).toBeGreaterThanOrEqual(onlyActive.customers.length);
+    expect(withInactive.items.length).toBeGreaterThanOrEqual(onlyActive.items.length);
     expect(
-        withInactive.customers.every((c: Customer) =>
+        withInactive.items.every((c: Customer) =>
             [Status.ACTIVE, Status.INACTIVE].includes(c.status)
         )
     ).toBeTruthy();
@@ -69,9 +69,9 @@ test("Busca cliente por Id existente inclui pessoa e endereços de entrega", asy
     const listRes = await request.get(`${baseUrl}/customers`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    expect(list.customers.length).toBeGreaterThan(0);
+    expect(list.items.length).toBeGreaterThan(0);
 
-    const id = list.customers[0].id as number;
+    const id = list.items[0].id as number;
     const res = await request.get(`${baseUrl}/customers/${id}`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -127,7 +127,7 @@ test("Criacao de cliente com CPF/CNPJ ja vinculado deve falhar (409)", async ({ 
     const listRes = await request.get(`${baseUrl}/customers?includeInactive=true`);
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
-    const existing = list.customers[0];
+    const existing = list.items[0];
     expect(existing).toBeTruthy();
 
     const payload = {
@@ -198,11 +198,11 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
     // Verifica presenca ao listar com/sem inativos
     const listActive = await request.get(`${baseUrl}/customers`);
     const { data: onlyActive } = await listActive.json();
-    expect(onlyActive.customers.find((c: Customer) => c.id === updated.id)).toBeFalsy();
+    expect(onlyActive.items.find((c: Customer) => c.id === updated.id)).toBeFalsy();
 
     const listAll = await request.get(`${baseUrl}/customers?includeInactive=true`);
     const { data: withInactive } = await listAll.json();
-    expect(withInactive.customers.find((c: Customer) => c.id === updated.id)).toBeTruthy();
+    expect(withInactive.items.find((c: Customer) => c.id === updated.id)).toBeTruthy();
 });
 
 test("Atualiza cliente inexistente deve retornar 404", async ({ request }) => {
@@ -237,7 +237,7 @@ test("Busca por search retorna somente clientes correspondentes", async ({ reque
     expect(res.status()).toBe(200);
 
     const { data } = await res.json();
-    expect(data.customers.some((c: CustomerInput) => c.person.name === uniqueName)).toBeTruthy();
+    expect(data.items.some((c: CustomerInput) => c.person.name === uniqueName)).toBeTruthy();
 });
 
 test("Ordenação crescente e decrescente por nome funciona corretamente", async ({ request }) => {
@@ -272,14 +272,14 @@ test("Ordenação crescente e decrescente por nome funciona corretamente", async
     const ascRes = await request.get(`${baseUrl}/customers?sortBy=name&sortOrder=asc`);
     expect(ascRes.status()).toBe(200);
 
-    const ascList = (await ascRes.json()).data.customers;
+    const ascList = (await ascRes.json()).data.items;
     expect(ascList[0].person.name).toBe(aName);
 
     // DESC
     const descRes = await request.get(`${baseUrl}/customers?sortBy=name&sortOrder=desc`);
     expect(descRes.status()).toBe(200);
 
-    const descList = (await descRes.json()).data.customers;
+    const descList = (await descRes.json()).data.items;
     expect(descList[0].person.name).toBe(zName);
 });
 
@@ -304,7 +304,7 @@ test("validateCustomerQuery: ID válido deve retornar cliente ou null", async ({
     expect(listRes.status()).toBe(200);
 
     const { data: list } = await listRes.json();
-    const validId = list.customers[0]?.id ?? 1;
+    const validId = list.items[0]?.id ?? 1;
 
     const res = await request.get(`${baseUrl}/customers/${validId}`);
     expect([200]).toContain(res.status());

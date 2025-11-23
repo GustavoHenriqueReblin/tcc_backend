@@ -97,7 +97,7 @@ export class CustomerService extends BaseService {
                 ]);
 
                 return {
-                    customers,
+                    items: customers,
                     meta: {
                         total,
                         page,

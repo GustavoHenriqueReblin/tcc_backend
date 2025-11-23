@@ -10,7 +10,7 @@ test("Lista compras e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/purchase-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
-    expect(Array.isArray(data.orders)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
 });
 
 test("Filtro status inválido deve retornar 400", async ({ request }) => {
@@ -24,7 +24,7 @@ test("Cria, busca e atualiza compra", async ({ request }) => {
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     expect(supRes.status()).toBe(200);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
     const code = `PO${Date.now().toString().slice(-6)}`;
@@ -56,7 +56,7 @@ test("Cria, busca e atualiza compra", async ({ request }) => {
 test("Criar compra com code duplicado retorna 409", async ({ request }) => {
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
 
     const code = `POD${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/purchase-orders`, {
@@ -73,7 +73,7 @@ test("Busca compras com search por fornecedor e ordena por code", async ({ reque
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     expect(supRes.status()).toBe(200);
     const { data: slist } = await supRes.json();
-    const supplier = slist.suppliers[0];
+    const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
     const sourceName = supplier.person.name || supplier.person.legalName || supplier.person.taxId;
@@ -97,7 +97,7 @@ test("Busca compras com search por fornecedor e ordena por code", async ({ reque
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.orders.filter((order: { code: string }) =>
+    const matching = data.items.filter((order: { code: string }) =>
         order.code.startsWith(codePrefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

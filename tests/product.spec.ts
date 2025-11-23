@@ -36,10 +36,10 @@ test("Lista produtos com paginação básica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.products)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.products.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Validação de id, paginação e ordenação de products", async ({ request }) => {
@@ -147,16 +147,16 @@ test("Busca e ordenação de products", async ({ request }) => {
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
 
-    expect(searchData.products.length).toBeGreaterThan(0);
+    expect(searchData.items.length).toBeGreaterThan(0);
     expect(
-        searchData.products.every(
+        searchData.items.every(
             (p: { name: string; barcode?: string | null }) =>
                 p.name.toLowerCase().includes(nameBase.slice(0, 5).toLowerCase()) ||
                 p.barcode?.toLowerCase().includes(nameBase.slice(0, 5).toLowerCase())
         )
     ).toBeTruthy();
 
-    const names = searchData.products.map((p: { name: string }) => p.name.toLowerCase());
+    const names = searchData.items.map((p: { name: string }) => p.name.toLowerCase());
     const sortedNames = [...names].sort();
     expect(names).toEqual(sortedNames);
 });

@@ -53,7 +53,7 @@ export class UnityService extends BaseService {
                 ]);
 
                 return {
-                    unities,
+                    items: unities,
                     meta: {
                         total,
                         page,

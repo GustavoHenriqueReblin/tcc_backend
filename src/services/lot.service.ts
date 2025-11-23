@@ -55,7 +55,7 @@ export class LotService extends BaseService {
                 ]);
 
                 return {
-                    lots,
+                    items: lots,
                     meta: {
                         total,
                         page,

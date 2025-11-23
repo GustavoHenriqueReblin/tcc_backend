@@ -10,7 +10,7 @@ test("Lista pedidos de venda e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/sale-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
-    expect(Array.isArray(data.orders)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
 });
 
@@ -25,7 +25,7 @@ test("Cria, busca e atualiza pedido de venda", async ({ request }) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     expect(custRes.status()).toBe(200);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
     expect(customer).toBeTruthy();
 
     const code = `SO${Date.now().toString().slice(-6)}`;
@@ -57,7 +57,7 @@ test("Cria, busca e atualiza pedido de venda", async ({ request }) => {
 test("Criar pedido com code duplicado retorna 409", async ({ request }) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
 
     const code = `SOD${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/sale-orders`, {
@@ -74,7 +74,7 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     const custRes = await request.get(`${baseUrl}/customers`);
     expect(custRes.status()).toBe(200);
     const { data: clist } = await custRes.json();
-    const customer = clist.customers[0];
+    const customer = clist.items[0];
     expect(customer).toBeTruthy();
 
     const sourceName = customer.person.name || customer.person.legalName || customer.person.taxId;
@@ -98,7 +98,7 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.orders.filter((order: { code: string }) =>
+    const matching = data.items.filter((order: { code: string }) =>
         order.code.startsWith(codePrefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

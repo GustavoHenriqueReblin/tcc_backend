@@ -10,10 +10,10 @@ test("Lista categorias de ativos com paginacao basica", async ({ request }) => {
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    expect(Array.isArray(data.assetCategories)).toBeTruthy();
+    expect(Array.isArray(data.items)).toBeTruthy();
     expect(typeof data.meta.total).toBe("number");
     expect(data.meta.page).toBe(1);
-    expect(data.assetCategories.length).toBeLessThanOrEqual(10);
+    expect(data.items.length).toBeLessThanOrEqual(10);
 });
 
 test("Validacao de query: page/limit invalidos em asset-categories", async ({ request }) => {
@@ -110,7 +110,7 @@ test("Busca categorias de ativos com search e ordena por nome", async ({ request
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.assetCategories.filter((category: { name: string }) =>
+    const matching = data.items.filter((category: { name: string }) =>
         category.name.includes(prefix)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);
