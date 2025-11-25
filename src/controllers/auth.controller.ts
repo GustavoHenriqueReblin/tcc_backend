@@ -3,6 +3,7 @@ import { AuthService } from "@services/auth.service";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
 import { env } from "@config/env";
 import { Request } from "@middleware/auth.middleware";
+import { prisma } from "@config/prisma";
 
 const service = new AuthService();
 
@@ -14,14 +15,62 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
                 secure: true,
                 sameSite: "strict",
             });
+
             return res.status(401).json({
                 error: true,
                 message: "Not authenticated",
             });
         }
 
-        return sendResponse(res, req.auth, "Authenticated");
-    } catch {
+        const userId = req.auth.sub;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                enterpriseId: true,
+                personId: true,
+
+                person: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        taxId: true,
+                        city: {
+                            select: {
+                                name: true,
+                                state: { select: { uf: true } },
+                            },
+                        },
+                    },
+                },
+
+                enterprise: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        return res.json({
+            success: true,
+            message: "Authenticated",
+            data: {
+                token: req.auth,
+                user,
+            },
+        });
+    } catch (err) {
+        console.error("ME ERROR:", err);
+
         return res.status(500).json({
             error: true,
             message: "Internal server error",

@@ -38,7 +38,7 @@ export class UserService extends BaseService {
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
                 const orderBy = userPersonAllowedSortFields.includes(safeSortBy)
-                    ? { person: { [safeSortBy]: { sort: safeSortOrder } } }
+                    ? { person: { [safeSortBy]: safeSortOrder } }
                     : { [safeSortBy]: safeSortOrder };
 
                 const [users, total] = await this.prisma.$transaction([
@@ -47,7 +47,39 @@ export class UserService extends BaseService {
                         skip,
                         take: limit,
                         orderBy,
-                        include: { person: true, enterprise: true },
+                        select: {
+                            id: true,
+                            personId: true,
+                            enterpriseId: true,
+                            username: true,
+                            role: true,
+                            status: true,
+                            createdAt: true,
+                            updatedAt: true,
+
+                            person: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone: true,
+                                    taxId: true,
+                                    city: {
+                                        select: {
+                                            name: true,
+                                            state: { select: { uf: true } },
+                                        },
+                                    },
+                                },
+                            },
+
+                            enterprise: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
                     }),
                     this.prisma.user.count({ where }),
                 ]);
