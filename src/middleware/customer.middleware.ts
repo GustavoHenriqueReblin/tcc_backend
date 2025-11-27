@@ -99,10 +99,6 @@ export const validateCustomerFields = (req: Request, res: Response, next: NextFu
         return res.status(400).json({ message: CUSTOMER_ERROR.MISSING_FIELDS });
     }
 
-    if (!person.taxId) {
-        return res.status(400).json({ message: CUSTOMER_ERROR.MISSING_FIELDS });
-    }
-
     if (person.maritalStatus && !Object.values(MaritalStatus).includes(person.maritalStatus)) {
         return res.status(400).json({ message: CUSTOMER_ERROR.WRONG_FIELD_VALUE });
     }

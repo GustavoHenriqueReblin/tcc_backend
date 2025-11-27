@@ -24,6 +24,9 @@ import financialTransactionRoutes from "@routes/financialTransaction.routes";
 import assetCategoryRoutes from "@routes/assetCategory.routes";
 import assetRoutes from "@routes/asset.routes";
 import assetMaintenanceRoutes from "@routes/assetMaintenance.routes";
+import countryRoutes from "@routes/country.routes";
+import stateRoutes from "@routes/state.routes";
+import cityRoutes from "@routes/city.routes";
 
 const router = Router();
 
@@ -52,5 +55,8 @@ router.use("/financial-transactions", financialTransactionRoutes);
 router.use("/asset-categories", assetCategoryRoutes);
 router.use("/assets", assetRoutes);
 router.use("/asset-maintenance", assetMaintenanceRoutes);
+router.use("/countries", countryRoutes);
+router.use("/states", stateRoutes);
+router.use("/cities", cityRoutes);
 
 export default router;
