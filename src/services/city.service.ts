@@ -8,7 +8,7 @@ export class CityService extends BaseService {
         stateId: number,
         countryId?: number,
         page = 1,
-        limit = 100,
+        limit = 1000,
         search?: string | null,
         sortBy?: string,
         sortOrder?: "asc" | "desc",

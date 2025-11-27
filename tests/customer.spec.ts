@@ -98,11 +98,11 @@ test("Cria cliente com pessoa nova", async ({ request }) => {
             legalName: "Cliente Novo LTDA",
             taxId: uniqueTaxId,
             email: "cliente.novo@example.com",
-            phone: "+55 (49) 91111-1111",
+            phone: "(49) 91111-1111",
         },
         type: PersonType.INDIVIDUAL,
         contactName: "Contato Novo",
-        contactPhone: "+55 (49) 92222-2222",
+        contactPhone: "(49) 92222-2222",
         contactEmail: "contato.novo@example.com",
         status: Status.ACTIVE,
     };
@@ -161,7 +161,7 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
         },
         type: PersonType.BUSINESS,
         contactName: "Contato Atualizar",
-        contactPhone: "+55 (49) 95555-5555",
+        contactPhone: "(49) 95555-5555",
         contactEmail: "contato.atualizar@example.com",
         status: Status.ACTIVE,
     };
@@ -178,7 +178,7 @@ test("Atualiza cliente existente (campos da pessoa e do cliente)", async ({ requ
         },
         type: PersonType.INDIVIDUAL,
         contactName: "Contato Atualizado",
-        contactPhone: "+55 (49) 96666-6666",
+        contactPhone: "(49) 96666-6666",
         contactEmail: "contato.atualizado@example.com",
         status: Status.INACTIVE,
     };
