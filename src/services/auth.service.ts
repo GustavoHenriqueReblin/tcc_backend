@@ -28,7 +28,15 @@ export class AuthService extends BaseService {
                 include: { user: true, enterprise: true },
             });
 
-            let token = existingToken?.token;
+            let token = undefined;
+            if (existingToken?.expiresAt ?? new Date() < new Date()) {
+                await this.prisma.token.deleteMany({
+                    where: { id: existingToken?.id },
+                });
+            } else {
+                token = existingToken?.token;
+            }
+
             if (!token) {
                 const payload: TokenPayload = {
                     sub: user.id,
