@@ -22,7 +22,28 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             });
         }
 
+        const token = req.cookies?.["__Host-erp-access"];
         const userId = req.auth.sub;
+
+        if (token) {
+            const expiresInMs = parseTimeToMs(env.JWT_EXPIRES_IN);
+            const expiresAt = new Date(Date.now() + expiresInMs);
+
+            const { count } = await prisma.token.updateMany({
+                where: { token, valid: true },
+                data: { expiresAt },
+            });
+
+            if (count > 0) {
+                res.cookie("__Host-erp-access", token, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict",
+                    maxAge: expiresInMs,
+                });
+            }
+        }
+
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
