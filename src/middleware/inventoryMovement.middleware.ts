@@ -1,4 +1,4 @@
-import { InventoryMovementInput } from "@services/inventoryMovement.service";
+import { InventoryAdjustmentInput, InventoryMovementInput } from "@services/inventoryMovement.service";
 import { Request, Response, NextFunction } from "express";
 
 export const INVENTORY_MOVEMENT_ERROR = {
@@ -9,6 +9,8 @@ export const INVENTORY_MOVEMENT_ERROR = {
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
+    INVALID_ADJUSTMENT_FIELDS: "productId, quantity and warehouseId must be valid numbers",
+    INVALID_ADJUSTMENT_QUANTITY: "quantity must be greater than zero",
 };
 
 export interface InventoryMovementQueryValidationOptions {
@@ -100,6 +102,49 @@ export const validateInventoryMovementFields = (
     ) {
         return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
     }
+
+    next();
+};
+
+export const validateInventoryAdjustmentFields = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { productId, quantity, warehouseId, notes } = req.body ?? {};
+
+    if (productId === undefined || quantity === undefined || warehouseId === undefined) {
+        return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
+    }
+
+    const productNum = Number(productId);
+    const quantityNum = Number(quantity);
+    const warehouseNum = Number(warehouseId);
+
+    if (Number.isNaN(productNum) || Number.isNaN(quantityNum) || Number.isNaN(warehouseNum)) {
+        return res
+            .status(400)
+            .json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_FIELDS });
+    }
+
+    if (quantityNum <= 0) {
+        return res
+            .status(400)
+            .json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_QUANTITY });
+    }
+
+    let parsedNotes: string | undefined;
+    if (notes !== undefined && notes !== null) {
+        parsedNotes = String(notes).trim();
+        if (parsedNotes.length === 0) parsedNotes = undefined;
+    }
+
+    req.body = {
+        productId: productNum,
+        quantity: quantityNum,
+        warehouseId: warehouseNum,
+        ...(parsedNotes ? { notes: parsedNotes } : {}),
+    } as InventoryAdjustmentInput;
 
     next();
 };

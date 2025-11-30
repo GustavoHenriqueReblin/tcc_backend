@@ -39,7 +39,7 @@ router.use("/unities", unityRoutes);
 router.use("/product-definitions", productDefinitionRoutes);
 router.use("/suppliers", supplierRoutes);
 router.use("/warehouses", warehouseRoutes);
-router.use("/inventoryMovement", inventoryMovementRoutes);
+router.use("/inventory-movement", inventoryMovementRoutes);
 router.use("/lots", lotRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/recipe-items", recipeItemRoutes);

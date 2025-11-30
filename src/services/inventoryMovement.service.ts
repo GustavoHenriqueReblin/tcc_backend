@@ -6,6 +6,13 @@ import { MovementType, MovementSource } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { inventoryMovementAllowedSortFields } from "@routes/inventoryMovement.routes";
 
+export interface InventoryAdjustmentInput {
+    productId: number;
+    quantity: number;
+    warehouseId: number;
+    notes?: string;
+}
+
 export interface InventoryMovementInput {
     id?: number;
     productId: number;

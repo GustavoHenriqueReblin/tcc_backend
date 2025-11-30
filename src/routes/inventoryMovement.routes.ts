@@ -3,8 +3,12 @@ import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateInventoryMovementPaginationAndFilter,
     validateInventoryMovementsQuery,
+    validateInventoryAdjustmentFields,
 } from "@middleware/inventoryMovement.middleware";
-import { getInventoryMovements } from "@controllers/inventoryMovement.controller";
+import {
+    getInventoryMovements,
+    createInventoryAdjustment,
+} from "@controllers/inventoryMovement.controller";
 
 export const inventoryMovementAllowedSortFields = [
     "direction",
@@ -18,15 +22,18 @@ export const inventoryMovementAllowedSortFields = [
 
 const router = Router();
 
-router.use(authMiddleware, validateInventoryMovementPaginationAndFilter);
+router.use(authMiddleware);
 
 router.get(
     "/",
+    validateInventoryMovementPaginationAndFilter,
     validateInventoryMovementsQuery({
         allowSearch: true,
         allowedSortFields: inventoryMovementAllowedSortFields,
     }),
     getInventoryMovements
 );
+
+router.post("/adjustments", validateInventoryAdjustmentFields, createInventoryAdjustment);
 
 export default router;
