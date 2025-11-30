@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/auth.middleware";
 import {
-    validateInventoryMovementPaginationAndFilter,
-    validateInventoryMovementsQuery,
+    validateInventoryMovementListQuery,
     validateInventoryAdjustmentFields,
 } from "@middleware/inventoryMovement.middleware";
 import {
@@ -26,8 +25,7 @@ router.use(authMiddleware);
 
 router.get(
     "/",
-    validateInventoryMovementPaginationAndFilter,
-    validateInventoryMovementsQuery({
+    validateInventoryMovementListQuery({
         allowSearch: true,
         allowedSortFields: inventoryMovementAllowedSortFields,
     }),

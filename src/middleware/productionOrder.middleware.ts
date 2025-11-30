@@ -13,7 +13,7 @@ export const PRODUCTION_ORDER_ERROR = {
     SORT_BY: "Invalid sortBy field",
 };
 
-export interface ProductionOrderQueryValidationOptions {
+export interface ProductionOrderListQueryOptions {
     allowSearch?: boolean;
     allowedSortFields?: string[];
 }
@@ -28,24 +28,11 @@ export const validateProductionOrderQuery = (req: Request, res: Response, next: 
     next();
 };
 
-export const validateProductionOrderPaginationAndFilter = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    const { status } = req.query;
+export const validateProductionOrderListQuery =
+    (options: ProductionOrderListQueryOptions = {}) =>
+    (req: Request, res: Response, next: NextFunction) => {
+        const { allowSearch = true, allowedSortFields = [] } = options;
 
-    if (status && !Object.values(ProductionOrderStatus).includes(status as ProductionOrderStatus)) {
-        return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_STATUS });
-    }
-
-    next();
-};
-
-export function validateProductionOrdersQuery(options: ProductionOrderQueryValidationOptions = {}) {
-    const { allowSearch = true, allowedSortFields = [] } = options;
-
-    return (req: Request, res: Response, next: NextFunction) => {
         let { page = "1", limit = "10", search, sortBy, sortOrder, status } = req.query;
 
         const pageNum = Number(page);
@@ -62,6 +49,10 @@ export function validateProductionOrdersQuery(options: ProductionOrderQueryValid
         if (typeof search === "string") {
             search = search.trim();
             if (search.length === 0) search = undefined;
+        }
+
+        if (status && !Object.values(ProductionOrderStatus).includes(status as ProductionOrderStatus)) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_STATUS });
         }
 
         if (sortBy && !allowedSortFields.includes(sortBy.toString())) {
@@ -81,7 +72,6 @@ export function validateProductionOrdersQuery(options: ProductionOrderQueryValid
 
         return next();
     };
-}
 
 export const validateProductionOrderFields = (req: Request, res: Response, next: NextFunction) => {
     const order = req.body as ProductionOrderInputData;

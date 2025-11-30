@@ -13,40 +13,22 @@ export const INVENTORY_MOVEMENT_ERROR = {
     INVALID_ADJUSTMENT_QUANTITY: "quantity must be greater than zero",
 };
 
-export interface InventoryMovementQueryValidationOptions {
+export interface InventoryMovementListQueryOptions {
     allowSearch?: boolean;
     allowedSortFields?: string[];
+    requireProductId?: boolean;
 }
 
-export const validateInventoryMovementPaginationAndFilter = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    const { productId } = req.query;
+export const validateInventoryMovementListQuery =
+    (options: InventoryMovementListQueryOptions = {}) =>
+    (req: Request, res: Response, next: NextFunction) => {
+        const {
+            allowSearch = true,
+            allowedSortFields = [],
+            requireProductId = true,
+        } = options;
 
-    if (productId === undefined || productId === null || productId === "") {
-        return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_PRODUCT });
-    }
-
-    const productNum = Number(productId);
-
-    if (Number.isNaN(productNum)) {
-        return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_PRODUCT });
-    }
-
-    req.query.productId = productNum.toString();
-
-    next();
-};
-
-export function validateInventoryMovementsQuery(
-    options: InventoryMovementQueryValidationOptions = {}
-) {
-    const { allowSearch = true, allowedSortFields = [] } = options;
-
-    return (req: Request, res: Response, next: NextFunction) => {
-        let { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
+        let { page = "1", limit = "10", search, sortBy, sortOrder, productId } = req.query;
 
         const pageNum = Number(page);
         const limitNum = Number(limit);
@@ -64,6 +46,24 @@ export function validateInventoryMovementsQuery(
             if (search.length === 0) search = undefined;
         }
 
+        let normalizedProductId = productId;
+        if (
+            requireProductId &&
+            (productId === undefined || productId === null || productId === "")
+        ) {
+            return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_PRODUCT });
+        }
+
+        if (productId !== undefined && productId !== null && productId !== "") {
+            const productNum = Number(productId);
+            if (Number.isNaN(productNum)) {
+                return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_PRODUCT });
+            }
+            normalizedProductId = productNum.toString();
+        } else {
+            normalizedProductId = undefined;
+        }
+
         if (sortBy && !allowedSortFields.includes(sortBy.toString())) {
             return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.SORT_BY });
         }
@@ -77,10 +77,12 @@ export function validateInventoryMovementsQuery(
         req.query.search = search?.toString();
         req.query.sortBy = sortBy?.toString();
         req.query.sortOrder = sortOrder?.toString() || "desc";
+        if (normalizedProductId !== undefined) {
+            req.query.productId = normalizedProductId.toString();
+        }
 
         return next();
     };
-}
 
 export const validateInventoryMovementFields = (
     req: Request,

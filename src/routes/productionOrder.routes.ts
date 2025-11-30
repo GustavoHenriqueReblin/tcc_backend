@@ -9,8 +9,7 @@ import {
 import {
     validateProductionOrderFields,
     validateProductionOrderQuery,
-    validateProductionOrderPaginationAndFilter,
-    validateProductionOrdersQuery,
+    validateProductionOrderListQuery,
 } from "@middleware/productionOrder.middleware";
 
 export const productionOrderAllowedSortFields = [
@@ -27,11 +26,11 @@ export const productionOrderAllowedSortFields = [
 
 const router = Router();
 
-router.use(authMiddleware, validateProductionOrderPaginationAndFilter);
+router.use(authMiddleware);
 
 router.get(
     "/",
-    validateProductionOrdersQuery({
+    validateProductionOrderListQuery({
         allowSearch: true,
         allowedSortFields: productionOrderAllowedSortFields,
     }),
