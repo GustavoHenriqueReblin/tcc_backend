@@ -113,7 +113,7 @@ test("Criar lote com code duplicado retorna 409", async ({ request }) => {
     expect(res2.status()).toBe(409);
 });
 
-test("Busca lotes com search e ordenaAA�o por code", async ({ request }) => {
+test("Busca lotes com search e ordenação por code", async ({ request }) => {
     const product = await createAuxProduct(request);
     const prefix = `LOTSEARCH_${Date.now().toString().slice(-4)}`;
     const lotPayloads = [

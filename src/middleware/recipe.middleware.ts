@@ -1,4 +1,5 @@
 import { RecipeInput } from "@services/recipe.service";
+import { isValidNestedItemsPayload } from "@middleware/nestedItems.middleware";
 import { Request, Response, NextFunction } from "express";
 
 export const RECIPE_ERROR = {
@@ -6,6 +7,7 @@ export const RECIPE_ERROR = {
     PAGINATION: "page and limit must be numbers",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
+    ITEMS_STRUCTURE: "Invalid items payload",
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
@@ -65,6 +67,15 @@ export const validateRecipeFields = (req: Request, res: Response, next: NextFunc
 
     if (!recipe || !recipe.productId) {
         return res.status(400).json({ message: RECIPE_ERROR.MISSING_FIELDS });
+    }
+
+    if (
+        recipe.items &&
+        !isValidNestedItemsPayload(recipe.items, {
+            createRequiredFields: ["productId", "quantity"],
+        })
+    ) {
+        return res.status(400).json({ message: RECIPE_ERROR.ITEMS_STRUCTURE });
     }
 
     next();

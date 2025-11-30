@@ -3,13 +3,31 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { recipeAllowedSortFields } from "@routes/recipe.routes";
+import { Decimal } from "@prisma/client/runtime/library";
+import type { Prisma } from "@prisma/client";
+import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 
 export interface RecipeInput {
     id?: number;
     productId: number;
     description?: string | null;
     notes?: string | null;
+    items?: RecipeItemsPayload;
 }
+
+export interface RecipeItemCreateData {
+    id?: number;
+    productId: number;
+    quantity: number;
+}
+
+export interface RecipeItemUpdateData {
+    id: number;
+    productId?: number;
+    quantity?: number;
+}
+
+export type RecipeItemsPayload = NestedItemsPayload<RecipeItemCreateData, RecipeItemUpdateData>;
 
 export class RecipeService extends BaseService {
     getAll = async (
@@ -103,6 +121,8 @@ export class RecipeService extends BaseService {
                         },
                     });
 
+                    await this.syncRecipeItems(tx, enterpriseId, recipe.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -146,6 +166,8 @@ export class RecipeService extends BaseService {
                         },
                     });
 
+                    await this.syncRecipeItems(tx, enterpriseId, recipe.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -163,4 +185,76 @@ export class RecipeService extends BaseService {
             "RECIPE:update",
             enterpriseId
         );
+
+    private async syncRecipeItems(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        recipeId: number,
+        payload?: RecipeItemsPayload
+    ) {
+        if (!payload) return;
+
+        const { create, update, delete: remove } = normalizeNestedItemsPayload(payload);
+        if (!create.length && !update.length && !remove.length) return;
+
+        const productIds = Array.from(
+            new Set([
+                ...create.map((item) => item.productId),
+                ...update
+                    .map((item) => item.productId)
+                    .filter((id): id is number => typeof id === "number"),
+            ])
+        );
+
+        if (productIds.length) {
+            const products = await tx.product.findMany({
+                where: { enterpriseId, id: { in: productIds } },
+                select: { id: true },
+            });
+            if (products.length !== productIds.length) {
+                throw new AppError("Produto não encontrado", 404, "RECIPE:items:FK");
+            }
+        }
+
+        const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
+        if (targetIds.length) {
+            const found = await tx.recipeItem.findMany({
+                where: { enterpriseId, recipeId, id: { in: targetIds } },
+                select: { id: true },
+            });
+            if (found.length !== targetIds.length) {
+                throw new AppError("Item da receita não encontrado", 404, "RECIPE:items:NOT_FOUND");
+            }
+        }
+
+        if (remove.length) {
+            await tx.recipeItem.deleteMany({
+                where: { enterpriseId, recipeId, id: { in: remove } },
+            });
+        }
+
+        for (const item of update) {
+            await tx.recipeItem.update({
+                where: { id: item.id },
+                data: {
+                    productId: typeof item.productId === "number" ? item.productId : undefined,
+                    quantity: item.quantity !== undefined ? new Decimal(item.quantity) : undefined,
+                },
+            });
+        }
+
+        for (const item of create) {
+            await tx.recipeItem.create({
+                data: {
+                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                        ? { id: item.id }
+                        : {}),
+                    enterpriseId,
+                    recipeId,
+                    productId: item.productId,
+                    quantity: new Decimal(item.quantity),
+                },
+            });
+        }
+    }
 }

@@ -1,4 +1,5 @@
 import { PurchaseOrderInput } from "@services/purchaseOrder.service";
+import { isValidNestedItemsPayload } from "@middleware/nestedItems.middleware";
 import { Request, Response, NextFunction } from "express";
 import { OrderStatus } from "@prisma/client";
 
@@ -7,6 +8,7 @@ export const PURCHASE_ORDER_ERROR = {
     PAGINATION: "page and limit must be numbers",
     INVALID_STATUS: "status must be a valid OrderStatus",
     MISSING_FIELDS: "Required fields not provided",
+    ITEMS_STRUCTURE: "Invalid items payload",
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
@@ -71,6 +73,16 @@ export const validatePurchaseOrderFields = (req: Request, res: Response, next: N
 
     if (!order || !order.supplierId || !order.code) {
         return res.status(400).json({ message: PURCHASE_ORDER_ERROR.MISSING_FIELDS });
+    }
+
+    if (
+        order.items &&
+        !isValidNestedItemsPayload(order.items, {
+            createRequiredFields: ["productId", "quantity", "unitCost"],
+            numericUpdateFields: ["productId", "quantity", "unitCost"],
+        })
+    ) {
+        return res.status(400).json({ message: PURCHASE_ORDER_ERROR.ITEMS_STRUCTURE });
     }
 
     next();

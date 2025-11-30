@@ -1,10 +1,53 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { SALE_ORDER_ERROR } from "../src/middleware/saleOrder.middleware";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, ProductDefinitionType } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+
+const createAuxUnity = async (request: APIRequestContext) => {
+    const simbol = `USO${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/unities`, {
+        data: { id: genId(), simbol, description: "SO Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
+const createAuxDefinition = async (request: APIRequestContext) => {
+    const name = `PD_SO_${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/product-definitions`, {
+        data: {
+            id: genId(),
+            name,
+            description: "SO Aux",
+            type: ProductDefinitionType.FINISHED_PRODUCT,
+        },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
+const createSaleProduct = async (request: APIRequestContext, prefix = "PROD_SO") => {
+    const unity = await createAuxUnity(request);
+    const definition = await createAuxDefinition(request);
+    const name = `${prefix}_${Math.abs(genId())}`;
+    const payload = {
+        id: genId(),
+        productDefinitionId: definition.id,
+        unityId: unity.id,
+        name,
+        barcode: null,
+        inventory: { costValue: 5.5, saleValue: 12.75, quantity: 10 },
+    };
+    const res = await request.post(`${baseUrl}/products`, { data: payload });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
 
 test("Lista pedidos de venda e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/sale-orders`);
@@ -52,6 +95,104 @@ test("Cria, busca e atualiza pedido de venda", async ({ request }) => {
     expect(updRes.status()).toBe(200);
     const { data: updated } = await updRes.json();
     expect(updated.status).toBe(OrderStatus.APPROVED);
+});
+
+test("Permite cadastrar e atualizar itens pelo endpoint principal", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    const { data: clist } = await custRes.json();
+    const customer = clist.items[0];
+    expect(customer).toBeTruthy();
+
+    const productA = await createSaleProduct(request, "SO_ITEM_A");
+    const productB = await createSaleProduct(request, "SO_ITEM_B");
+    const productC = await createSaleProduct(request, "SO_ITEM_C");
+
+    const code = `SOITEM${Date.now().toString().slice(-6)}`;
+    const createRes = await request.post(`${baseUrl}/sale-orders`, {
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            totalValue: 250,
+            items: {
+                create: [
+                    {
+                        productId: productA.id,
+                        quantity: 1.25,
+                        unitPrice: 10.5,
+                        productUnitPrice: 10.5,
+                        unitCost: 4.25,
+                    },
+                    {
+                        productId: productB.id,
+                        quantity: 2,
+                        unitPrice: 15.75,
+                        productUnitPrice: 15.75,
+                        unitCost: 6.5,
+                    },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const fetchCreated = await request.get(`${baseUrl}/sale-orders/${created.id}`);
+    const { data: createdFull } = await fetchCreated.json();
+    const itemA = createdFull.items.find(
+        (item: { productId: number }) => item.productId === productA.id
+    );
+    const itemB = createdFull.items.find(
+        (item: { productId: number }) => item.productId === productB.id
+    );
+    expect(itemA).toBeTruthy();
+    expect(itemB).toBeTruthy();
+
+    const updateRes = await request.put(`${baseUrl}/sale-orders/${created.id}`, {
+        data: {
+            customerId: created.customerId,
+            code: created.code,
+            totalValue: 320,
+            items: {
+                update: [
+                    {
+                        id: itemA.id,
+                        quantity: 3,
+                        unitPrice: 12.25,
+                        productUnitPrice: 12.25,
+                        unitCost: 5,
+                    },
+                ],
+                delete: [itemB.id],
+                create: [
+                    {
+                        productId: productC.id,
+                        quantity: 1,
+                        unitPrice: 22,
+                        productUnitPrice: 22,
+                        unitCost: 9,
+                    },
+                ],
+            },
+        },
+    });
+    expect(updateRes.status()).toBe(200);
+
+    const verify = await request.get(`${baseUrl}/sale-orders/${created.id}`);
+    const { data: updated } = await verify.json();
+    const updatedItemA = updated.items.find(
+        (item: { productId: number }) => item.productId === productA.id
+    );
+    const deletedItem = updated.items.find(
+        (item: { productId: number }) => item.productId === productB.id
+    );
+    const addedItem = updated.items.find(
+        (item: { productId: number }) => item.productId === productC.id
+    );
+
+    expect(Number(updatedItemA.quantity)).toBeCloseTo(3, 4);
+    expect(deletedItem).toBeUndefined();
+    expect(addedItem).toBeTruthy();
 });
 
 test("Criar pedido com code duplicado retorna 409", async ({ request }) => {

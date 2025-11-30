@@ -3,7 +3,10 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { OrderStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 import { purchaseOrderAllowedSortFields } from "@routes/purchaseOrder.routes";
+import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 
 export interface PurchaseOrderInput {
     id?: number;
@@ -11,7 +14,27 @@ export interface PurchaseOrderInput {
     code: string;
     status?: OrderStatus;
     notes?: string | null;
+    items?: PurchaseOrderItemsPayload;
 }
+
+export interface PurchaseOrderItemCreateData {
+    id?: number;
+    productId: number;
+    quantity: number;
+    unitCost: number;
+}
+
+export interface PurchaseOrderItemUpdateData {
+    id: number;
+    productId?: number;
+    quantity?: number;
+    unitCost?: number;
+}
+
+export type PurchaseOrderItemsPayload = NestedItemsPayload<
+    PurchaseOrderItemCreateData,
+    PurchaseOrderItemUpdateData
+>;
 
 export class PurchaseOrderService extends BaseService {
     getAll = async (
@@ -112,6 +135,8 @@ export class PurchaseOrderService extends BaseService {
                         },
                     });
 
+                    await this.syncPurchaseItems(tx, enterpriseId, order.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -168,6 +193,8 @@ export class PurchaseOrderService extends BaseService {
                         },
                     });
 
+                    await this.syncPurchaseItems(tx, enterpriseId, order.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -185,4 +212,82 @@ export class PurchaseOrderService extends BaseService {
             "PURCHASE_ORDER:update",
             enterpriseId
         );
+
+    private async syncPurchaseItems(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        purchaseOrderId: number,
+        payload?: PurchaseOrderItemsPayload
+    ) {
+        if (!payload) return;
+
+        const { create, update, delete: remove } = normalizeNestedItemsPayload(payload);
+        if (!create.length && !update.length && !remove.length) return;
+
+        const productIds = Array.from(
+            new Set([
+                ...create.map((item) => item.productId),
+                ...update
+                    .map((item) => item.productId)
+                    .filter((id): id is number => typeof id === "number"),
+            ])
+        );
+
+        if (productIds.length) {
+            const products = await tx.product.findMany({
+                where: { enterpriseId, id: { in: productIds } },
+                select: { id: true },
+            });
+            if (products.length !== productIds.length) {
+                throw new AppError("Produto não encontrado", 404, "PURCHASE_ORDER:items:FK");
+            }
+        }
+
+        const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
+        if (targetIds.length) {
+            const found = await tx.purchaseOrderItem.findMany({
+                where: { enterpriseId, purchaseOrderId, id: { in: targetIds } },
+                select: { id: true },
+            });
+            if (found.length !== targetIds.length) {
+                throw new AppError(
+                    "Item da compra não encontrado",
+                    404,
+                    "PURCHASE_ORDER:items:NOT_FOUND"
+                );
+            }
+        }
+
+        if (remove.length) {
+            await tx.purchaseOrderItem.deleteMany({
+                where: { enterpriseId, purchaseOrderId, id: { in: remove } },
+            });
+        }
+
+        for (const item of update) {
+            await tx.purchaseOrderItem.update({
+                where: { id: item.id },
+                data: {
+                    productId: typeof item.productId === "number" ? item.productId : undefined,
+                    quantity: item.quantity !== undefined ? new Decimal(item.quantity) : undefined,
+                    unitCost: item.unitCost !== undefined ? new Decimal(item.unitCost) : undefined,
+                },
+            });
+        }
+
+        for (const item of create) {
+            await tx.purchaseOrderItem.create({
+                data: {
+                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                        ? { id: item.id }
+                        : {}),
+                    enterpriseId,
+                    purchaseOrderId,
+                    productId: item.productId,
+                    quantity: new Decimal(item.quantity),
+                    unitCost: new Decimal(item.unitCost),
+                },
+            });
+        }
+    }
 }

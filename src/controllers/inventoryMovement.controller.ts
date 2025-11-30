@@ -1,7 +1,10 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { InventoryAdjustmentInput, InventoryMovementService } from "@services/inventoryMovement.service";
+import {
+    InventoryAdjustmentInput,
+    InventoryMovementService,
+} from "@services/inventoryMovement.service";
 import { MovementSource, MovementType } from "@prisma/client";
 
 const service = new InventoryMovementService();

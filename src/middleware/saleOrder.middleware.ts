@@ -1,4 +1,5 @@
 import { SaleOrderInput } from "@services/saleOrder.service";
+import { isValidNestedItemsPayload } from "@middleware/nestedItems.middleware";
 import { Request, Response, NextFunction } from "express";
 import { OrderStatus } from "@prisma/client";
 
@@ -8,6 +9,7 @@ export const SALE_ORDER_ERROR = {
     INVALID_STATUS: "status must be a valid OrderStatus",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
+    ITEMS_STRUCTURE: "Invalid items payload",
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
@@ -76,6 +78,28 @@ export const validateSaleOrderFields = (req: Request, res: Response, next: NextF
 
     if (order.status && !Object.values(OrderStatus).includes(order.status)) {
         return res.status(400).json({ message: SALE_ORDER_ERROR.WRONG_FIELD_VALUE });
+    }
+
+    if (
+        order.items &&
+        !isValidNestedItemsPayload(order.items, {
+            createRequiredFields: [
+                "productId",
+                "quantity",
+                "unitPrice",
+                "productUnitPrice",
+                "unitCost",
+            ],
+            numericUpdateFields: [
+                "productId",
+                "quantity",
+                "unitPrice",
+                "productUnitPrice",
+                "unitCost",
+            ],
+        })
+    ) {
+        return res.status(400).json({ message: SALE_ORDER_ERROR.ITEMS_STRUCTURE });
     }
 
     next();

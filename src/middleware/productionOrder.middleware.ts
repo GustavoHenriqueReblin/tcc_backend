@@ -51,7 +51,10 @@ export const validateProductionOrderListQuery =
             if (search.length === 0) search = undefined;
         }
 
-        if (status && !Object.values(ProductionOrderStatus).includes(status as ProductionOrderStatus)) {
+        if (
+            status &&
+            !Object.values(ProductionOrderStatus).includes(status as ProductionOrderStatus)
+        ) {
             return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_STATUS });
         }
 

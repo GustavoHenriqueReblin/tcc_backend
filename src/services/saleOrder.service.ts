@@ -3,8 +3,10 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { OrderStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { saleOrderAllowedSortFields } from "@routes/saleOrder.routes";
+import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 
 export interface SaleOrderInput {
     id?: number;
@@ -13,7 +15,31 @@ export interface SaleOrderInput {
     status?: OrderStatus;
     totalValue: number;
     notes?: string | null;
+    items?: SaleOrderItemsPayload;
 }
+
+export interface SaleOrderItemCreateData {
+    id?: number;
+    productId: number;
+    quantity: number;
+    unitPrice: number;
+    productUnitPrice: number;
+    unitCost: number;
+}
+
+export interface SaleOrderItemUpdateData {
+    id: number;
+    productId?: number;
+    quantity?: number;
+    unitPrice?: number;
+    productUnitPrice?: number;
+    unitCost?: number;
+}
+
+export type SaleOrderItemsPayload = NestedItemsPayload<
+    SaleOrderItemCreateData,
+    SaleOrderItemUpdateData
+>;
 
 export class SaleOrderService extends BaseService {
     getAll = async (
@@ -115,6 +141,8 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
+                    await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -173,6 +201,8 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
+                    await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -190,4 +220,92 @@ export class SaleOrderService extends BaseService {
             "SALE_ORDER:update",
             enterpriseId
         );
+
+    private async syncSaleOrderItems(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        saleOrderId: number,
+        payload?: SaleOrderItemsPayload
+    ) {
+        if (!payload) return;
+
+        const { create, update, delete: remove } = normalizeNestedItemsPayload(payload);
+        if (!create.length && !update.length && !remove.length) return;
+
+        const productIds = Array.from(
+            new Set([
+                ...create.map((item) => item.productId),
+                ...update
+                    .map((item) => item.productId)
+                    .filter((id): id is number => typeof id === "number"),
+            ])
+        );
+
+        if (productIds.length) {
+            const products = await tx.product.findMany({
+                where: { enterpriseId, id: { in: productIds } },
+                select: { id: true },
+            });
+
+            if (products.length !== productIds.length) {
+                throw new AppError("Produto não encontrado", 404, "SALE_ORDER:items:FK");
+            }
+        }
+
+        const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
+        if (targetIds.length) {
+            const found = await tx.saleOrderItem.findMany({
+                where: { enterpriseId, saleOrderId, id: { in: targetIds } },
+                select: { id: true },
+            });
+
+            if (found.length !== targetIds.length) {
+                throw new AppError(
+                    "Item do pedido não encontrado",
+                    404,
+                    "SALE_ORDER:items:NOT_FOUND"
+                );
+            }
+        }
+
+        if (remove.length) {
+            await tx.saleOrderItem.deleteMany({
+                where: { enterpriseId, saleOrderId, id: { in: remove } },
+            });
+        }
+
+        for (const item of update) {
+            await tx.saleOrderItem.update({
+                where: { id: item.id },
+                data: {
+                    productId: typeof item.productId === "number" ? item.productId : undefined,
+                    quantity: item.quantity !== undefined ? new Decimal(item.quantity) : undefined,
+                    unitPrice:
+                        item.unitPrice !== undefined ? new Decimal(item.unitPrice) : undefined,
+                    productUnitPrice:
+                        item.productUnitPrice !== undefined
+                            ? new Decimal(item.productUnitPrice)
+                            : undefined,
+                    unitCost: item.unitCost !== undefined ? new Decimal(item.unitCost) : undefined,
+                },
+            });
+        }
+
+        for (const item of create) {
+            await tx.saleOrderItem.create({
+                data: {
+                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                        ? { id: item.id }
+                        : {}),
+                    enterpriseId,
+                    saleOrderId,
+                    productId: item.productId,
+                    quantity: new Decimal(item.quantity),
+                    unitPrice: new Decimal(item.unitPrice),
+                    productUnitPrice: new Decimal(item.productUnitPrice),
+                    unitCost: new Decimal(item.unitCost),
+                },
+            });
+        }
+    }
 }

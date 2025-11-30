@@ -91,6 +91,71 @@ test("Cria receita, busca e atualiza", async ({ request }) => {
     expect(updated.description).toBe("Receita atualizada");
 });
 
+test("Cadastra e gerencia itens junto com a receita", async ({ request }) => {
+    const recipeProduct = await createAuxProduct(request);
+    const componentA = await createAuxProduct(request);
+    const componentB = await createAuxProduct(request);
+    const componentC = await createAuxProduct(request);
+
+    const createRes = await request.post(`${baseUrl}/recipes`, {
+        data: {
+            id: genId(),
+            productId: recipeProduct.id,
+            description: "Receita completa",
+            items: {
+                create: [
+                    { productId: componentA.id, quantity: 1.5 },
+                    { productId: componentB.id, quantity: 2.25 },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const getCreated = await request.get(`${baseUrl}/recipes/${created.id}`);
+    expect(getCreated.status()).toBe(200);
+    const { data: createdFull } = await getCreated.json();
+
+    const itemA = createdFull.items.find(
+        (item: { productId: number }) => item.productId === componentA.id
+    );
+    const itemB = createdFull.items.find(
+        (item: { productId: number }) => item.productId === componentB.id
+    );
+    expect(itemA).toBeTruthy();
+    expect(itemB).toBeTruthy();
+
+    const updateRes = await request.put(`${baseUrl}/recipes/${created.id}`, {
+        data: {
+            productId: created.productId,
+            items: {
+                update: [{ id: itemA.id, quantity: 3 }],
+                delete: [itemB.id],
+                create: [{ productId: componentC.id, quantity: 4.5 }],
+            },
+        },
+    });
+    expect(updateRes.status()).toBe(200);
+
+    const getUpdated = await request.get(`${baseUrl}/recipes/${created.id}`);
+    const { data: updated } = await getUpdated.json();
+
+    const updatedA = updated.items.find(
+        (item: { productId: number }) => item.productId === componentA.id
+    );
+    const removedB = updated.items.find(
+        (item: { productId: number }) => item.productId === componentB.id
+    );
+    const addedC = updated.items.find(
+        (item: { productId: number }) => item.productId === componentC.id
+    );
+
+    expect(Number(updatedA.quantity)).toBeCloseTo(3, 4);
+    expect(removedB).toBeUndefined();
+    expect(addedC).toBeTruthy();
+});
+
 test("Criar receita sem productId deve falhar (400)", async ({ request }) => {
     const res = await request.post(`${baseUrl}/recipes`, { data: { id: genId() } });
     expect(res.status()).toBe(400);
@@ -98,7 +163,7 @@ test("Criar receita sem productId deve falhar (400)", async ({ request }) => {
     expect(body.message).toContain(RECIPE_ERROR.MISSING_FIELDS);
 });
 
-test("Busca receitas com search e ordenaAA�o por description", async ({ request }) => {
+test("Busca receitas com search e ordenação por description", async ({ request }) => {
     const product = await createAuxProduct(request);
     const prefix = `REC_SEARCH_${Date.now().toString().slice(-4)}`;
 

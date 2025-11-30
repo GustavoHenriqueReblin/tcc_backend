@@ -1,4 +1,7 @@
-import { InventoryAdjustmentInput, InventoryMovementInput } from "@services/inventoryMovement.service";
+import {
+    InventoryAdjustmentInput,
+    InventoryMovementInput,
+} from "@services/inventoryMovement.service";
 import { Request, Response, NextFunction } from "express";
 
 export const INVENTORY_MOVEMENT_ERROR = {
@@ -22,11 +25,7 @@ export interface InventoryMovementListQueryOptions {
 export const validateInventoryMovementListQuery =
     (options: InventoryMovementListQueryOptions = {}) =>
     (req: Request, res: Response, next: NextFunction) => {
-        const {
-            allowSearch = true,
-            allowedSortFields = [],
-            requireProductId = true,
-        } = options;
+        const { allowSearch = true, allowedSortFields = [], requireProductId = true } = options;
 
         let { page = "1", limit = "10", search, sortBy, sortOrder, productId } = req.query;
 
