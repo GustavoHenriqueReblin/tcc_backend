@@ -5,7 +5,6 @@ import {
     InventoryAdjustmentInput,
     InventoryMovementService,
 } from "@services/inventoryMovement.service";
-import { MovementSource, MovementType } from "@prisma/client";
 
 const service = new InventoryMovementService();
 
@@ -28,17 +27,16 @@ export const getInventoryMovements = async (req: Request, res: Response) => {
 export const createInventoryAdjustment = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
+
     const { productId, quantity, warehouseId, notes } = req.body as InventoryAdjustmentInput;
 
-    const result = await service.create(
+    const result = await service.createAdjustment(
         enterpriseId,
         {
             productId,
             quantity,
             warehouseId,
             notes,
-            direction: MovementType.IN,
-            source: MovementSource.ADJUSTMENT,
         },
         userId
     );

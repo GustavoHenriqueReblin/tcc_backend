@@ -89,6 +89,81 @@ export class InventoryMovementService extends BaseService {
             enterpriseId
         );
 
+    createAdjustment = async (
+        enterpriseId: number,
+        data: InventoryAdjustmentInput,
+        userId: number
+    ) =>
+        this.safeQuery(
+            async () => {
+                const [product, warehouse] = await Promise.all([
+                    prisma.product.findFirst({
+                        where: { id: data.productId, enterpriseId },
+                        include: {
+                            productInventory: {
+                                select: { quantity: true, costValue: true },
+                            },
+                        },
+                    }),
+                    prisma.warehouse.findFirst({
+                        where: { id: data.warehouseId, enterpriseId },
+                        select: { id: true },
+                    }),
+                ]);
+
+                if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
+                if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
+
+                const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
+                const targetQty = new Decimal(data.quantity);
+                const difference = targetQty.minus(currentQty);
+
+                if (difference.isZero()) {
+                    throw new AppError(
+                        "Quantidade informada deve ser diferente do estoque atual",
+                        400,
+                        "INVENTORY_MOVEMENT:ADJUSTMENT_NO_CHANGE"
+                    );
+                }
+
+                const direction = difference.isPositive() ? MovementType.IN : MovementType.OUT;
+                const movedQty = difference.abs();
+                const unitCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
+
+                const created = await prisma.$transaction(async (tx) => {
+                    const inventoryMovement = await tx.inventoryMovement.create({
+                        data: {
+                            enterpriseId,
+                            productId: data.productId,
+                            warehouseId: data.warehouseId,
+                            lotId: null,
+                            direction,
+                            source: MovementSource.ADJUSTMENT,
+                            quantity: movedQty,
+                            balance: targetQty,
+                            unitCost,
+                            reference: null,
+                            notes: data.notes ?? null,
+                            supplierId: null,
+                        },
+                    });
+
+                    await tx.productInventory.update({
+                        where: {
+                            enterpriseId_productId: { enterpriseId, productId: data.productId },
+                        },
+                        data: { quantity: targetQty },
+                    });
+
+                    return inventoryMovement;
+                });
+
+                return created;
+            },
+            "INVENTORY_MOVEMENT:createAdjustment",
+            enterpriseId
+        );
+
     create = async (enterpriseId: number, data: InventoryMovementInput, userId: number) =>
         this.safeQuery(
             async () => {
@@ -146,7 +221,7 @@ export class InventoryMovementService extends BaseService {
                             unitCost:
                                 data.unitCost !== undefined && data.unitCost !== null
                                     ? new Decimal(data.unitCost)
-                                    : null,
+                                    : product.productInventory[0].costValue,
                             reference: data.reference ?? null,
                             notes: data.notes ?? null,
                             supplierId: data.supplierId ?? null,

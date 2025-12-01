@@ -13,7 +13,6 @@ export const INVENTORY_MOVEMENT_ERROR = {
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
     INVALID_ADJUSTMENT_FIELDS: "productId, quantity and warehouseId must be valid numbers",
-    INVALID_ADJUSTMENT_QUANTITY: "quantity must be greater than zero",
 };
 
 export interface InventoryMovementListQueryOptions {
@@ -126,12 +125,6 @@ export const validateInventoryAdjustmentFields = (
         return res
             .status(400)
             .json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_FIELDS });
-    }
-
-    if (quantityNum <= 0) {
-        return res
-            .status(400)
-            .json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_QUANTITY });
     }
 
     let parsedNotes: string | undefined;

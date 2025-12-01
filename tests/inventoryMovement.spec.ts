@@ -41,10 +41,11 @@ const createAuxWarehouse = async (request: APIRequestContext) => {
     return data;
 };
 
-test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => {
+test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ request }) => {
     // Arrange - cria dependências e produto inicial
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request);
+    const warehouse = await createAuxWarehouse(request);
 
     const nameBase = `PROD_MOV_${Date.now().toString().slice(-6)}`;
     const initialQty = 10.5;
@@ -78,22 +79,17 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     expect(Number(last.quantity)).toBeCloseTo(initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(initialQty, 6);
 
-    // Update product com quantidade maior -> movimento IN com delta positivo e balance atualizado
+    // Ajuste para quantidade maior -> movimento IN com delta positivo e balance atualizado
     const higherQty = 25.75;
-    const upd1 = await request.put(`${baseUrl}/products/${productId}`, {
+    const adjustInRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
         data: {
-            productDefinitionId: def.id,
-            unityId: unity.id,
-            name: `${nameBase}_UP1`,
-            barcode: "7890001112223",
-            inventory: {
-                costValue: 6.66,
-                saleValue: 12.34,
-                quantity: higherQty,
-            },
+            productId,
+            quantity: higherQty,
+            warehouseId: warehouse.id,
+            notes: "Ajuste IN teste",
         },
     });
-    expect(upd1.status()).toBe(200);
+    expect(adjustInRes.status()).toBe(200);
 
     mvRes = await request.get(`${baseUrl}/inventory-movement?productId=${productId}`);
     expect(mvRes.status()).toBe(200);
@@ -103,22 +99,17 @@ test("Movimentos IN/OUT atualizam balance corretamente", async ({ request }) => 
     expect(Number(last.quantity)).toBeCloseTo(higherQty - initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(higherQty, 6);
 
-    // Update product com quantidade menor -> movimento OUT com delta positivo e balance atualizado
+    // Ajuste para quantidade menor -> movimento OUT com delta positivo e balance atualizado
     const lowerQty = 7.25;
-    const upd2 = await request.put(`${baseUrl}/products/${productId}`, {
+    const adjustOutRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
         data: {
-            productDefinitionId: def.id,
-            unityId: unity.id,
-            name: `${nameBase}_UP2`,
-            barcode: "7890001112223",
-            inventory: {
-                costValue: 6.66, // não deve alterar custo em OUT
-                saleValue: 12.34,
-                quantity: lowerQty,
-            },
+            productId,
+            quantity: lowerQty,
+            warehouseId: warehouse.id,
+            notes: "Ajuste OUT teste",
         },
     });
-    expect(upd2.status()).toBe(200);
+    expect(adjustOutRes.status()).toBe(200);
 
     mvRes = await request.get(`${baseUrl}/inventory-movement?productId=${productId}`);
     expect(mvRes.status()).toBe(200);
@@ -191,7 +182,9 @@ test("Validação, busca e ordenação de inventory-movement", async ({ request 
     expect(searchData.items.length).toBeGreaterThanOrEqual(0);
 });
 
-test("Cria ajuste de estoque IN e atualiza balance", async ({ request }) => {
+test("Cria ajuste de estoque IN e atualiza balance com nova quantidade alvo", async ({
+    request,
+}) => {
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request);
     const warehouse = await createAuxWarehouse(request);
@@ -210,9 +203,10 @@ test("Cria ajuste de estoque IN e atualiza balance", async ({ request }) => {
     expect(createProductRes.status()).toBe(200);
     const { data: createdProduct } = await createProductRes.json();
 
+    const newBalanceAfterAdjustment = 30;
     const adjustmentPayload = {
         productId: createdProduct.id,
-        quantity: 30,
+        quantity: newBalanceAfterAdjustment,
         warehouseId: warehouse.id,
         notes: "Ajuste positivo",
     };
@@ -224,8 +218,8 @@ test("Cria ajuste de estoque IN e atualiza balance", async ({ request }) => {
     const { data: adjustment } = await adjustRes.json();
     expect(adjustment.direction).toBe("IN");
     expect(adjustment.source).toBe("ADJUSTMENT");
-    expect(Number(adjustment.quantity)).toBeCloseTo(adjustmentPayload.quantity, 6);
-    expect(Number(adjustment.balance)).toBeCloseTo(adjustmentPayload.quantity + initialQty, 6);
+    expect(Number(adjustment.quantity)).toBeCloseTo(newBalanceAfterAdjustment - initialQty, 6);
+    expect(Number(adjustment.balance)).toBeCloseTo(newBalanceAfterAdjustment, 6);
     expect(adjustment.notes).toBe(adjustmentPayload.notes);
 
     const listRes = await request.get(
@@ -234,8 +228,68 @@ test("Cria ajuste de estoque IN e atualiza balance", async ({ request }) => {
     expect(listRes.status()).toBe(200);
     const { data: list } = await listRes.json();
     const latest = list.items[0];
-    expect(Number(latest.balance)).toBeCloseTo(adjustmentPayload.quantity + initialQty, 6);
+    expect(Number(latest.balance)).toBeCloseTo(newBalanceAfterAdjustment, 6);
     expect(latest.notes).toBe(adjustmentPayload.notes);
+});
+
+test("Cria ajuste de estoque OUT e aceita quantidade final negativa", async ({ request }) => {
+    const unity = await createAuxUnity(request);
+    const def = await createAuxDefinition(request);
+    const warehouse = await createAuxWarehouse(request);
+
+    const initialQty = 18.75;
+    const createProductRes = await request.post(`${baseUrl}/products`, {
+        data: {
+            id: genId(),
+            productDefinitionId: def.id,
+            unityId: unity.id,
+            name: `PROD_ADJ_OUT_${Date.now().toString().slice(-6)}`,
+            barcode: null,
+            inventory: { costValue: 3.3, saleValue: 6.6, quantity: initialQty },
+        },
+    });
+    expect(createProductRes.status()).toBe(200);
+    const { data: createdProduct } = await createProductRes.json();
+
+    const lowerTarget = 7.5;
+    const lowerRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
+        data: {
+            productId: createdProduct.id,
+            quantity: lowerTarget,
+            warehouseId: warehouse.id,
+            notes: "Ajuste para reduzir estoque",
+        },
+    });
+    expect(lowerRes.status()).toBe(200);
+    const { data: lowerAdjustment } = await lowerRes.json();
+    expect(lowerAdjustment.direction).toBe("OUT");
+    expect(Number(lowerAdjustment.quantity)).toBeCloseTo(initialQty - lowerTarget, 6);
+    expect(Number(lowerAdjustment.balance)).toBeCloseTo(lowerTarget, 6);
+
+    const negativeTarget = -4.25;
+    const negativeRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
+        data: {
+            productId: createdProduct.id,
+            quantity: negativeTarget,
+            warehouseId: warehouse.id,
+            notes: "Ajuste para saldo negativo",
+        },
+    });
+    expect(negativeRes.status()).toBe(200);
+    const { data: negativeAdjustment } = await negativeRes.json();
+    expect(negativeAdjustment.direction).toBe("OUT");
+    expect(Number(negativeAdjustment.quantity)).toBeCloseTo(
+        Math.abs(negativeTarget - lowerTarget),
+        6
+    );
+    expect(Number(negativeAdjustment.balance)).toBeCloseTo(negativeTarget, 6);
+
+    const listRes = await request.get(
+        `${baseUrl}/inventory-movement?productId=${createdProduct.id}&sortBy=createdAt&sortOrder=desc`
+    );
+    expect(listRes.status()).toBe(200);
+    const { data: list } = await listRes.json();
+    expect(Number(list.items[0].balance)).toBeCloseTo(negativeTarget, 6);
 });
 
 test("Valida payload de ajuste de estoque", async ({ request }) => {
@@ -252,11 +306,4 @@ test("Valida payload de ajuste de estoque", async ({ request }) => {
     expect(invalidFieldsRes.status()).toBe(400);
     const invalidFieldsBody = await invalidFieldsRes.json();
     expect(invalidFieldsBody.message).toContain(INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_FIELDS);
-
-    const invalidQtyRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
-        data: { productId: 1, quantity: 0, warehouseId: 1 },
-    });
-    expect(invalidQtyRes.status()).toBe(400);
-    const invalidQtyBody = await invalidQtyRes.json();
-    expect(invalidQtyBody.message).toContain(INVENTORY_MOVEMENT_ERROR.INVALID_ADJUSTMENT_QUANTITY);
 });
