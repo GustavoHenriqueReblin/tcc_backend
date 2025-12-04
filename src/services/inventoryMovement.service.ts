@@ -2,7 +2,7 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
-import { MovementType, MovementSource } from "@prisma/client";
+import { MovementType, MovementSource, Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { inventoryMovementAllowedSortFields } from "@routes/inventoryMovement.routes";
 
@@ -164,87 +164,105 @@ export class InventoryMovementService extends BaseService {
             enterpriseId
         );
 
-    create = async (enterpriseId: number, data: InventoryMovementInput, userId: number) =>
+    create = async (
+        enterpriseId: number,
+        data: InventoryMovementInput,
+        tx?: Prisma.TransactionClient
+    ) =>
         this.safeQuery(
             async () => {
-                if (data.quantity <= 0)
-                    throw new AppError(
-                        "Quantidade deve ser maior que 0",
-                        400,
-                        "INVENTORY_MOVEMENT:quantity"
-                    );
-                const [product, warehouse, supplier] = await Promise.all([
-                    prisma.product.findFirst({
-                        where: { id: data.productId, enterpriseId },
-                        include: {
-                            productInventory: {
-                                select: { quantity: true, costValue: true },
-                            },
-                        },
-                    }),
-                    prisma.warehouse.findFirst({
-                        where: { id: data.warehouseId, enterpriseId },
-                        select: { id: true },
-                    }),
-                    prisma.supplier.findFirst({
-                        where: { id: data.supplierId ?? 0, enterpriseId },
-                        select: { id: true },
-                    }),
-                ]);
+                if (tx) {
+                    // já está dentro de transação → usa ela
+                    return this._createInternal(tx, enterpriseId, data);
+                }
 
-                if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
-                if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
-                if (data.supplierId && !supplier)
-                    throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
-
-                const created = await prisma.$transaction(async (tx) => {
-                    const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
-                    const movedQty = new Decimal(data.quantity);
-                    const newBalance =
-                        data.direction === MovementType.IN
-                            ? currentQty.plus(movedQty)
-                            : currentQty.minus(movedQty);
-
-                    const inventoryMovement = await tx.inventoryMovement.create({
-                        data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
-                                ? { id: data.id }
-                                : {}),
-                            enterpriseId,
-                            productId: data.productId,
-                            warehouseId: data.warehouseId,
-                            lotId: data.lotId ?? null,
-                            direction: data.direction,
-                            source: data.source,
-                            quantity: movedQty,
-                            balance: newBalance,
-                            unitCost:
-                                data.unitCost !== undefined && data.unitCost !== null
-                                    ? new Decimal(data.unitCost)
-                                    : product.productInventory[0].costValue,
-                            reference: data.reference ?? null,
-                            notes: data.notes ?? null,
-                            supplierId: data.supplierId ?? null,
-                        },
-                    });
-
-                    await tx.productInventory.update({
-                        where: {
-                            enterpriseId_productId: { enterpriseId, productId: data.productId },
-                        },
-                        data: {
-                            quantity: newBalance,
-                            ...(data.direction === MovementType.IN &&
-                                data.unitCost && { costValue: new Decimal(data.unitCost) }),
-                        },
-                    });
-
-                    return inventoryMovement;
+                // não está em transação → cria uma transação
+                return prisma.$transaction(async (trx) => {
+                    return this._createInternal(trx, enterpriseId, data);
                 });
-
-                return created;
             },
             "INVENTORY_MOVEMENT:create",
             enterpriseId
         );
+
+    private async _createInternal(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        data: InventoryMovementInput
+    ) {
+        if (data.quantity <= 0) {
+            throw new AppError(
+                "Quantidade deve ser maior que 0",
+                400,
+                "INVENTORY_MOVEMENT:quantity"
+            );
+        }
+
+        const [product, warehouse, supplier] = await Promise.all([
+            tx.product.findFirst({
+                where: { id: data.productId, enterpriseId },
+                include: {
+                    productInventory: {
+                        select: { quantity: true, costValue: true },
+                    },
+                },
+            }),
+            tx.warehouse.findFirst({
+                where: { id: data.warehouseId, enterpriseId },
+                select: { id: true },
+            }),
+            tx.supplier.findFirst({
+                where: { id: data.supplierId ?? 0, enterpriseId },
+                select: { id: true },
+            }),
+        ]);
+
+        if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
+        if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
+        if (data.supplierId && !supplier)
+            throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
+
+        const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
+        const movedQty = new Decimal(data.quantity);
+        const newBalance =
+            data.direction === MovementType.IN
+                ? currentQty.plus(movedQty)
+                : currentQty.minus(movedQty);
+
+        const movement = await tx.inventoryMovement.create({
+            data: {
+                ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                    ? { id: data.id }
+                    : {}),
+                enterpriseId,
+                productId: data.productId,
+                warehouseId: data.warehouseId,
+                lotId: data.lotId ?? null,
+                direction: data.direction,
+                source: data.source,
+                quantity: movedQty,
+                balance: newBalance,
+                unitCost:
+                    data.unitCost !== undefined && data.unitCost !== null
+                        ? new Decimal(data.unitCost)
+                        : product.productInventory[0].costValue,
+                reference: data.reference ?? null,
+                notes: data.notes ?? null,
+                supplierId: data.supplierId ?? null,
+            },
+        });
+
+        await tx.productInventory.update({
+            where: {
+                enterpriseId_productId: { enterpriseId, productId: data.productId },
+            },
+            data: {
+                quantity: newBalance,
+                ...(data.direction === MovementType.IN &&
+                    data.unitCost && { costValue: new Decimal(data.unitCost) }),
+            },
+        });
+
+        return movement;
+    }
 }

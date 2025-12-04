@@ -2,11 +2,12 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
-import { OrderStatus } from "@prisma/client";
+import { MovementSource, MovementType, OrderStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { purchaseOrderAllowedSortFields } from "@routes/purchaseOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
+import { InventoryMovementService } from "@services/inventoryMovement.service";
 
 export interface PurchaseOrderInput {
     id?: number;
@@ -35,6 +36,8 @@ export type PurchaseOrderItemsPayload = NestedItemsPayload<
     PurchaseOrderItemCreateData,
     PurchaseOrderItemUpdateData
 >;
+
+const inventoryService = new InventoryMovementService();
 
 export class PurchaseOrderService extends BaseService {
     getAll = async (
@@ -135,7 +138,7 @@ export class PurchaseOrderService extends BaseService {
                         },
                     });
 
-                    await this.syncPurchaseItems(tx, enterpriseId, order.id, data.items);
+                    await this.syncPurchaseItems(tx, enterpriseId, order, data.items);
 
                     await tx.audit.create({
                         data: {
@@ -193,7 +196,7 @@ export class PurchaseOrderService extends BaseService {
                         },
                     });
 
-                    await this.syncPurchaseItems(tx, enterpriseId, order.id, data.items);
+                    await this.syncPurchaseItems(tx, enterpriseId, order, data.items);
 
                     await tx.audit.create({
                         data: {
@@ -216,7 +219,7 @@ export class PurchaseOrderService extends BaseService {
     private async syncPurchaseItems(
         tx: Prisma.TransactionClient,
         enterpriseId: number,
-        purchaseOrderId: number,
+        purchaseOrder: PurchaseOrderInput,
         payload?: PurchaseOrderItemsPayload
     ) {
         if (!payload) return;
@@ -233,20 +236,18 @@ export class PurchaseOrderService extends BaseService {
             ])
         );
 
-        if (productIds.length) {
-            const products = await tx.product.findMany({
-                where: { enterpriseId, id: { in: productIds } },
-                select: { id: true },
-            });
-            if (products.length !== productIds.length) {
-                throw new AppError("Produto não encontrado", 404, "PURCHASE_ORDER:items:FK");
-            }
+        const products = await tx.product.findMany({
+            where: { enterpriseId, id: { in: productIds } },
+            select: { id: true, productInventory: { select: { quantity: true } } },
+        });
+        if (products.length !== productIds.length) {
+            throw new AppError("Produto não encontrado", 404, "PURCHASE_ORDER:items:FK");
         }
 
         const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
         if (targetIds.length) {
             const found = await tx.purchaseOrderItem.findMany({
-                where: { enterpriseId, purchaseOrderId, id: { in: targetIds } },
+                where: { enterpriseId, purchaseOrderId: purchaseOrder.id, id: { in: targetIds } },
                 select: { id: true },
             });
             if (found.length !== targetIds.length) {
@@ -260,9 +261,14 @@ export class PurchaseOrderService extends BaseService {
 
         if (remove.length) {
             await tx.purchaseOrderItem.deleteMany({
-                where: { enterpriseId, purchaseOrderId, id: { in: remove } },
+                where: { enterpriseId, purchaseOrderId: purchaseOrder.id, id: { in: remove } },
             });
         }
+
+        const warehouse = await tx.warehouse.findFirst({
+            where: { enterpriseId },
+        });
+        if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
 
         for (const item of update) {
             await tx.purchaseOrderItem.update({
@@ -276,18 +282,36 @@ export class PurchaseOrderService extends BaseService {
         }
 
         for (const item of create) {
+            const product = products.find((p) => p.id === item.productId);
+
             await tx.purchaseOrderItem.create({
                 data: {
                     ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
                         ? { id: item.id }
                         : {}),
                     enterpriseId,
-                    purchaseOrderId,
+                    purchaseOrderId: purchaseOrder.id ?? 0,
                     productId: item.productId,
                     quantity: new Decimal(item.quantity),
                     unitCost: new Decimal(item.unitCost),
                 },
             });
+
+            await inventoryService.create(
+                enterpriseId,
+                {
+                    productId: item.productId,
+                    warehouseId: warehouse.id,
+                    direction: MovementType.IN,
+                    source: MovementSource.PURCHASE,
+                    quantity: item.quantity,
+                    unitCost: item.unitCost,
+                    reference: purchaseOrder.code,
+                    notes: purchaseOrder.notes ?? null,
+                    supplierId: purchaseOrder.supplierId ?? null,
+                },
+                tx
+            );
         }
     }
 }

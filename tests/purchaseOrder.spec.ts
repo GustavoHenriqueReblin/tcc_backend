@@ -49,6 +49,18 @@ const createRawProduct = async (request: APIRequestContext, prefix = "RAW_PO") =
     return data;
 };
 
+const getProductInventorySnapshot = async (request: APIRequestContext, productId: number) => {
+    const res = await request.get(`${baseUrl}/products/${productId}`);
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    const inventory = data.productInventory?.[0];
+    expect(inventory).toBeTruthy();
+    return {
+        quantity: Number(inventory.quantity),
+        costValue: Number(inventory.costValue),
+    };
+};
+
 test("Lista compras e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/purchase-orders`);
     expect(res.status()).toBe(200);
@@ -222,4 +234,127 @@ test("Busca compras com search por fornecedor e ordena por code", async ({ reque
             order.supplier.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
+});
+
+test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ request }) => {
+    const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
+    expect(supRes.status()).toBe(200);
+    const { data: slist } = await supRes.json();
+    const supplier = slist.items[0];
+    expect(supplier).toBeTruthy();
+
+    const raw = await createRawProduct(request, "PO_STOCK_ENTRY");
+    const beforeInventory = await getProductInventorySnapshot(request, raw.id);
+
+    const purchaseQty = 27.5;
+    const unitCost = 7.35;
+    const notes = "Compra com movimento de estoque";
+    const code = `PO_STK_${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/purchase-orders`, {
+        data: {
+            id: genId(),
+            code,
+            supplierId: supplier.id,
+            notes,
+            items: {
+                create: [{ productId: raw.id, quantity: purchaseQty, unitCost }],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+    expect(created.code).toBe(code);
+
+    const movementRes = await request.get(`${baseUrl}/inventory-movement?productId=${raw.id}`);
+    expect(movementRes.status()).toBe(200);
+    const { data: movementData } = await movementRes.json();
+    const purchaseMovement = movementData.items.find(
+        (mv: { reference?: string }) => mv.reference === code
+    );
+    expect(purchaseMovement).toBeTruthy();
+    const latestMovement = purchaseMovement!;
+    expect(latestMovement.direction).toBe("IN");
+    expect(latestMovement.source).toBe("PURCHASE");
+    expect(Number(latestMovement.quantity)).toBeCloseTo(purchaseQty, 6);
+    expect(Number(latestMovement.balance)).toBeCloseTo(beforeInventory.quantity + purchaseQty, 6);
+    expect(Number(latestMovement.unitCost)).toBeCloseTo(unitCost, 6);
+    expect(latestMovement.supplierId).toBe(supplier.id);
+    expect(latestMovement.reference).toBe(code);
+    expect(latestMovement.notes).toBe(notes);
+
+    const afterInventory = await getProductInventorySnapshot(request, raw.id);
+    expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity + purchaseQty, 6);
+    expect(afterInventory.costValue).toBeCloseTo(unitCost, 6);
+});
+
+test("Adicionar item em compra existente cria novo movimento de estoque IN", async ({
+    request,
+}) => {
+    const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
+    expect(supRes.status()).toBe(200);
+    const { data: slist } = await supRes.json();
+    const supplier = slist.items[0];
+    expect(supplier).toBeTruthy();
+
+    const rawBase = await createRawProduct(request, "PO_STOCK_BASE");
+    const rawExtra = await createRawProduct(request, "PO_STOCK_EXTRA");
+
+    const baseCode = `PO_STK_UPD_${Date.now().toString().slice(-6)}`;
+    const baseNotes = "Compra base";
+    const baseQty = 8.25;
+    const baseUnitCost = 4.8;
+
+    const createRes = await request.post(`${baseUrl}/purchase-orders`, {
+        data: {
+            id: genId(),
+            code: baseCode,
+            supplierId: supplier.id,
+            notes: baseNotes,
+            items: {
+                create: [{ productId: rawBase.id, quantity: baseQty, unitCost: baseUnitCost }],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+    expect(created.id).toBeTruthy();
+
+    const extraBeforeInventory = await getProductInventorySnapshot(request, rawExtra.id);
+    const extraQty = 14.25;
+    const extraUnitCost = 6.55;
+    const updateNotes = "Compra com itens extras";
+
+    const updateRes = await request.put(`${baseUrl}/purchase-orders/${created.id}`, {
+        data: {
+            supplierId: supplier.id,
+            code: baseCode,
+            notes: updateNotes,
+            items: {
+                create: [{ productId: rawExtra.id, quantity: extraQty, unitCost: extraUnitCost }],
+            },
+        },
+    });
+    expect(updateRes.status()).toBe(200);
+
+    const movementRes = await request.get(`${baseUrl}/inventory-movement?productId=${rawExtra.id}`);
+    expect(movementRes.status()).toBe(200);
+    const { data: movementData } = await movementRes.json();
+    const additionMovement = movementData.items.find(
+        (mv: { reference?: string }) => mv.reference === baseCode
+    );
+    expect(additionMovement).toBeTruthy();
+    const latestAddition = additionMovement!;
+    expect(latestAddition.direction).toBe("IN");
+    expect(latestAddition.source).toBe("PURCHASE");
+    expect(Number(latestAddition.quantity)).toBeCloseTo(extraQty, 6);
+    expect(Number(latestAddition.balance)).toBeCloseTo(extraBeforeInventory.quantity + extraQty, 6);
+    expect(Number(latestAddition.unitCost)).toBeCloseTo(extraUnitCost, 6);
+    expect(latestAddition.supplierId).toBe(supplier.id);
+    expect(latestAddition.reference).toBe(baseCode);
+    expect(latestAddition.notes).toBe(updateNotes);
+
+    const extraAfterInventory = await getProductInventorySnapshot(request, rawExtra.id);
+    expect(extraAfterInventory.quantity).toBeCloseTo(extraBeforeInventory.quantity + extraQty, 6);
+    expect(extraAfterInventory.costValue).toBeCloseTo(extraUnitCost, 6);
 });

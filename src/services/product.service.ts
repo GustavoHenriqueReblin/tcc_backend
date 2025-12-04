@@ -286,30 +286,6 @@ export class ProductService extends BaseService {
                         },
                     });
 
-                    const warehouse = await tx.warehouse.findFirst({
-                        where: { enterpriseId },
-                    });
-                    const currentQty = exists.productInventory?.[0]?.quantity ?? new Decimal(0);
-                    const newQty = new Decimal(data.inventory.quantity);
-                    const direction = newQty.greaterThan(currentQty)
-                        ? MovementType.IN
-                        : MovementType.OUT;
-                    await tx.inventoryMovement.create({
-                        data: {
-                            direction,
-                            quantity: newQty.minus(currentQty).abs(),
-                            balance: newQty,
-                            source: "ADJUSTMENT",
-                            unitCost:
-                                newQty.greaterThan(currentQty) && data.inventory.costValue
-                                    ? new Decimal(data.inventory.costValue)
-                                    : undefined,
-                            enterpriseId,
-                            productId: id,
-                            warehouseId: warehouse!.id,
-                        },
-                    });
-
                     await tx.audit.create({
                         data: {
                             userId,
