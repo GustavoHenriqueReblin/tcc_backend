@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { LotService } from "@services/lot.service";
-
-const service = new LotService();
+import { lotService as service } from "@services/services";
 
 export const getAllLots = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;

@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { Request } from "@middleware/auth.middleware";
 import { sendResponse } from "@utils/functions";
-import { StateService } from "@services/state.service";
-
-const service = new StateService();
+import { stateService as service } from "@services/services";
 
 export const getStates = async (req: Request, res: Response) => {
     const { countryId, page = "1", limit = "100", search, sortBy, sortOrder } = req.query;

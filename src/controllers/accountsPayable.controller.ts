@@ -1,10 +1,8 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { AccountsPayableService } from "@services/accountsPayable.service";
+import { accountsPayableService as service } from "@services/services";
 import { PaymentStatus } from "@prisma/client";
-
-const service = new AccountsPayableService();
 
 export const getAllAccountsPayable = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", status, search, sortBy, sortOrder } = req.query;

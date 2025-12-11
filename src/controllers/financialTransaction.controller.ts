@@ -1,10 +1,8 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { FinancialTransactionService } from "@services/financialTransaction.service";
+import { financialTransactionService as service } from "@services/services";
 import { TransactionType } from "@prisma/client";
-
-const service = new FinancialTransactionService();
 
 export const getAllFinancialTransactions = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", type, search, sortBy, sortOrder } = req.query;

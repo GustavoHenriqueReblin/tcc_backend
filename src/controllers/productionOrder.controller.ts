@@ -1,10 +1,8 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { ProductionOrderService } from "@services/productionOrder.service";
+import { productionOrderService as service } from "@services/services";
 import { ProductionOrderStatus } from "@prisma/client";
-
-const service = new ProductionOrderService();
 
 export const getAllProductionOrders = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", status, search, sortBy, sortOrder } = req.query;

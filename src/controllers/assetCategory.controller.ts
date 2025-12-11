@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { AssetCategoryService } from "@services/assetCategory.service";
-
-const service = new AssetCategoryService();
+import { assetCategoryService as service } from "@services/services";
 
 export const getAllAssetCategories = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;

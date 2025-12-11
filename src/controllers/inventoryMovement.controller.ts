@@ -1,12 +1,8 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import {
-    InventoryAdjustmentInput,
-    InventoryMovementService,
-} from "@services/inventoryMovement.service";
-
-const service = new InventoryMovementService();
+import { InventoryAdjustmentInput } from "@services/inventoryMovement.service";
+import { inventoryMovementService as service } from "@services/services";
 
 export const getInventoryMovements = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", productId, search, sortBy, sortOrder } = req.query;

@@ -1,9 +1,7 @@
 import type { Response } from "express";
-import { CustomerService } from "@services/customer.service";
+import { customerService as service } from "@services/services";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-
-const service = new CustomerService();
 
 export const getAllCustomers = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", includeInactive, search, sortBy, sortOrder } = req.query;

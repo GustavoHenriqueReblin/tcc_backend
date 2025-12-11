@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { ProductService } from "@services/product.service";
-
-const service = new ProductService();
+import { productService as service } from "@services/services";
 
 export const getAllProducts = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
@@ -44,4 +42,10 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     const result = await service.update(Number(id), enterpriseId, req.body, userId);
     return sendResponse(res, result, "Product updated successfully");
+};
+
+export const findMaterials = async (req: Request, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const result = await service.findMaterials(enterpriseId);
+    return sendResponse(res, result, "Materials fetched successfully");
 };

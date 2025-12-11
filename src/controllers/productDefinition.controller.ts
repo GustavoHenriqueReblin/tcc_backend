@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { ProductDefinitionService } from "@services/productDefinition.service";
-
-const service = new ProductDefinitionService();
+import { productDefinitionService as service } from "@services/services";
 
 export const getAllProductDefinitions = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;

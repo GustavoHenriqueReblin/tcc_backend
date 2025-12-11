@@ -5,6 +5,7 @@ import {
     getProductById,
     createProduct,
     updateProduct,
+    findMaterials,
 } from "@controllers/product.controller";
 import {
     validateProductFields,
@@ -25,6 +26,8 @@ export const productAllowedSortFields = [
 const router = Router();
 
 router.use(authMiddleware);
+
+router.get("/materials", findMaterials);
 
 router.get(
     "/",

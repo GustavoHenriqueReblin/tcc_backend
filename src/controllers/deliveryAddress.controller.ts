@@ -1,9 +1,7 @@
 import { Request } from "@middleware/auth.middleware";
 import { Response } from "express";
 import { sendResponse } from "@utils/functions";
-import { DeliveryAddressService } from "@services/deliveryAddress.service";
-
-const service = new DeliveryAddressService();
+import { deliveryAddressService as service } from "@services/services";
 
 export const getAddresses = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;

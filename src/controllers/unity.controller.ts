@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { UnityService } from "@services/unity.service";
-
-const service = new UnityService();
+import { unityService as service } from "@services/services";
 
 export const getAllUnities = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;

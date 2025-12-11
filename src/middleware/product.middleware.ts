@@ -1,5 +1,6 @@
 import { ProductInput } from "@services/product.service";
 import { Request, Response, NextFunction } from "express";
+import { validateNestedPayload } from "@utils/nestedItems";
 
 export const PRODUCT_ERROR = {
     ID: "Invalid Id parameter",
@@ -94,6 +95,29 @@ export const validateProductFields = (req: Request, res: Response, next: NextFun
         inventory.saleValue === undefined
     ) {
         return res.status(400).json({ message: PRODUCT_ERROR.MISSING_FIELDS });
+    }
+
+    if (product.recipes !== undefined) {
+        const validation = validateNestedPayload("recipes", product.recipes);
+
+        if (!validation.ok) {
+            return res.status(400).json({ message: validation.message });
+        }
+
+        const recipes = product.recipes;
+
+        [...(recipes.create ?? []), ...(recipes.update ?? [])].forEach((recipe, idx) => {
+            if (recipe.items !== undefined) {
+                const nestedItemsValidation = validateNestedPayload(
+                    `recipes.${recipe.id ?? `create_${idx}`}.items`,
+                    recipe.items
+                );
+
+                if (!nestedItemsValidation.ok) {
+                    return res.status(400).json({ message: nestedItemsValidation.message });
+                }
+            }
+        });
     }
 
     next();

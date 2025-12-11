@@ -1,11 +1,9 @@
 import type { Response } from "express";
-import { AuthService } from "@services/auth.service";
+import { authService as service } from "@services/services";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
 import { env } from "@config/env";
 import { Request } from "@middleware/auth.middleware";
 import { prisma } from "@config/prisma";
-
-const service = new AuthService();
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
     try {

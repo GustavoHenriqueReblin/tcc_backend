@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { ProductionOrderInputService } from "@services/productionOrderInput.service";
-
-const service = new ProductionOrderInputService();
+import { productionOrderInputService as service } from "@services/services";
 
 export const getAllProductionOrderInputs = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", productionOrderId, search, sortBy, sortOrder } = req.query;

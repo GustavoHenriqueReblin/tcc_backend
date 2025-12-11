@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { SaleOrderItemService } from "@services/saleOrderItem.service";
-
-const service = new SaleOrderItemService();
+import { saleOrderItemService as service } from "@services/services";
 
 export const getAllSaleOrderItems = async (req: Request, res: Response) => {
     const { page = "1", limit = "10", saleOrderId, search, sortBy, sortOrder } = req.query;

@@ -2,9 +2,13 @@ import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
-import { MovementType } from "@prisma/client";
+import { MovementType, ProductDefinitionType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { productAllowedSortFields } from "@routes/product.routes";
+import { RecipeService, type RecipesPayload } from "@services/recipe.service";
+import { includes } from "zod";
+
+const recipeService = new RecipeService();
 
 export interface ProductInventoryInput {
     costValue: number;
@@ -19,6 +23,7 @@ export interface ProductInput {
     name: string;
     barcode?: string | null;
     inventory: ProductInventoryInput;
+    recipes?: RecipesPayload;
 }
 
 export class ProductService extends BaseService {
@@ -124,8 +129,27 @@ export class ProductService extends BaseService {
             async () => {
                 const product = await prisma.product.findUnique({
                     where: { id, enterpriseId },
-                    include: { productDefinition: true, unity: true, productInventory: true },
+                    include: {
+                        productDefinition: true,
+                        unity: true,
+                        productInventory: true,
+
+                        recipe: {
+                            include: {
+                                items: {
+                                    include: {
+                                        product: {
+                                            include: {
+                                                unity: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
                 });
+
                 if (!product) throw new AppError("Produto não encontrado", 404, "PRODUCT:getById");
                 return product;
             },
@@ -181,6 +205,7 @@ export class ProductService extends BaseService {
                     const warehouse = await tx.warehouse.findFirst({
                         where: { enterpriseId },
                     });
+
                     await tx.inventoryMovement.create({
                         data: {
                             direction: MovementType.IN,
@@ -194,6 +219,10 @@ export class ProductService extends BaseService {
                         },
                     });
 
+                    if (data.recipes) {
+                        await recipeService.syncRecipes(tx, enterpriseId, prod.id, data.recipes);
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -205,7 +234,16 @@ export class ProductService extends BaseService {
 
                     const full = await tx.product.findUnique({
                         where: { id: prod.id, enterpriseId },
-                        include: { productDefinition: true, unity: true, productInventory: true },
+                        include: {
+                            productDefinition: true,
+                            unity: true,
+                            productInventory: true,
+                            recipe: {
+                                include: {
+                                    items: true,
+                                },
+                            },
+                        },
                     });
                     return full!;
                 });
@@ -286,6 +324,10 @@ export class ProductService extends BaseService {
                         },
                     });
 
+                    if (data.recipes) {
+                        await recipeService.syncRecipes(tx, enterpriseId, id, data.recipes);
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -297,7 +339,16 @@ export class ProductService extends BaseService {
 
                     const full = await tx.product.findUnique({
                         where: { id, enterpriseId },
-                        include: { productDefinition: true, unity: true, productInventory: true },
+                        include: {
+                            productDefinition: true,
+                            unity: true,
+                            productInventory: true,
+                            recipe: {
+                                include: {
+                                    items: true,
+                                },
+                            },
+                        },
                     });
                     return full!;
                 });
@@ -307,4 +358,35 @@ export class ProductService extends BaseService {
             "PRODUCT:update",
             enterpriseId
         );
+
+    findMaterials = async (enterpriseId: number) => {
+        const data = await prisma.product.findMany({
+            where: {
+                enterpriseId,
+                productDefinition: {
+                    type: {
+                        in: [
+                            ProductDefinitionType.RAW_MATERIAL,
+                            ProductDefinitionType.COMPONENT,
+                            ProductDefinitionType.CONSUMABLE_MATERIAL,
+                            ProductDefinitionType.PACKAGING_MATERIAL,
+                        ],
+                    },
+                },
+            },
+            orderBy: { name: "asc" },
+            include: {
+                unity: true,
+            },
+        });
+
+        return {
+            items: data,
+            meta: {
+                total: data.length,
+                page: 1,
+                totalPages: 1,
+            },
+        };
+    };
 }

@@ -29,6 +29,22 @@ export interface RecipeItemUpdateData {
 
 export type RecipeItemsPayload = NestedItemsPayload<RecipeItemCreateData, RecipeItemUpdateData>;
 
+export interface RecipeCreateData {
+    id?: number;
+    description?: string | null;
+    notes?: string | null;
+    items?: RecipeItemsPayload;
+}
+
+export interface RecipeUpdateData {
+    id: number;
+    description?: string | null;
+    notes?: string | null;
+    items?: RecipeItemsPayload;
+}
+
+export type RecipesPayload = NestedItemsPayload<RecipeCreateData, RecipeUpdateData>;
+
 export class RecipeService extends BaseService {
     getAll = async (
         enterpriseId: number,
@@ -67,7 +83,14 @@ export class RecipeService extends BaseService {
                 const [recipes, total] = await prisma.$transaction([
                     prisma.recipe.findMany({
                         where,
-                        include: { product: true, items: true },
+                        include: {
+                            product: true,
+                            items: {
+                                include: {
+                                    product: true,
+                                },
+                            },
+                        },
                         skip,
                         take: limit,
                         orderBy: { [safeSortBy]: safeSortOrder },
@@ -185,6 +208,93 @@ export class RecipeService extends BaseService {
             "RECIPE:update",
             enterpriseId
         );
+
+    syncRecipes = async (
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        productId: number,
+        payload?: RecipesPayload
+    ) => {
+        if (!payload) return;
+
+        const { create, update, delete: remove } = normalizeNestedItemsPayload(payload);
+        if (!create.length && !update.length && !remove.length) return;
+
+        const product = await tx.product.findFirst({
+            where: { id: productId, enterpriseId },
+            select: { id: true },
+        });
+        if (!product) {
+            throw new AppError("Produto não encontrado", 404, "RECIPE:nested:product:FK");
+        }
+
+        const targetIds = Array.from(new Set([...update.map((r) => r.id), ...remove]));
+        if (targetIds.length) {
+            const found = await tx.recipe.findMany({
+                where: { enterpriseId, productId, id: { in: targetIds } },
+                select: { id: true },
+            });
+
+            if (found.length !== targetIds.length) {
+                throw new AppError(
+                    "Receita não encontrada",
+                    404,
+                    "RECIPE:nested:recipes:NOT_FOUND"
+                );
+            }
+        }
+
+        if (remove.length) {
+            await tx.recipeItem.deleteMany({
+                where: {
+                    enterpriseId,
+                    recipeId: { in: remove },
+                },
+            });
+
+            await tx.recipe.deleteMany({
+                where: {
+                    enterpriseId,
+                    productId,
+                    id: { in: remove },
+                },
+            });
+        }
+        for (const recipeData of update) {
+            await tx.recipe.update({
+                where: { id: recipeData.id },
+                data: {
+                    ...(recipeData.description !== undefined
+                        ? { description: recipeData.description }
+                        : {}),
+                    ...(recipeData.notes !== undefined ? { notes: recipeData.notes } : {}),
+                    updatedAt: new Date(),
+                },
+            });
+
+            if (recipeData.items) {
+                await this.syncRecipeItems(tx, enterpriseId, recipeData.id, recipeData.items);
+            }
+        }
+
+        for (const recipeData of create) {
+            const recipe = await tx.recipe.create({
+                data: {
+                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof recipeData.id === "number"
+                        ? { id: recipeData.id }
+                        : {}),
+                    enterpriseId,
+                    productId,
+                    description: recipeData.description ?? null,
+                    notes: recipeData.notes ?? null,
+                },
+            });
+
+            if (recipeData.items) {
+                await this.syncRecipeItems(tx, enterpriseId, recipe.id, recipeData.items);
+            }
+        }
+    };
 
     private async syncRecipeItems(
         tx: Prisma.TransactionClient,
