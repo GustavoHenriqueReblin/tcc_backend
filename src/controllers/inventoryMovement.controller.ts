@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
-import { InventoryAdjustmentInput } from "@services/inventoryMovement.service";
+import { HarvestInput, InventoryAdjustmentInput } from "@services/inventoryMovement.service";
 import { inventoryMovementService as service } from "@services/services";
 
 export const getInventoryMovements = async (req: Request, res: Response) => {
@@ -27,6 +27,26 @@ export const createInventoryAdjustment = async (req: Request, res: Response) => 
     const { productId, quantity, warehouseId, notes } = req.body as InventoryAdjustmentInput;
 
     const result = await service.createAdjustment(
+        enterpriseId,
+        {
+            productId,
+            quantity,
+            warehouseId,
+            notes,
+        },
+        userId
+    );
+
+    return sendResponse(res, result, "Inventory adjustment created successfully");
+};
+
+export const createHarvestEntry = async (req: Request, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const userId = req.auth!.sub;
+
+    const { productId, quantity, warehouseId, notes } = req.body as HarvestInput;
+
+    const result = await service.createHarvestEntry(
         enterpriseId,
         {
             productId,

@@ -1,4 +1,5 @@
 import {
+    HarvestInput,
     InventoryAdjustmentInput,
     InventoryMovementInput,
 } from "@services/inventoryMovement.service";
@@ -13,6 +14,7 @@ export const INVENTORY_MOVEMENT_ERROR = {
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
     INVALID_ADJUSTMENT_FIELDS: "productId, quantity and warehouseId must be valid numbers",
+    INVALID_HARVEST_FIELDS: "productId, quantity and warehouseId must be valid numbers",
 };
 
 export interface InventoryMovementListQueryOptions {
@@ -139,6 +141,37 @@ export const validateInventoryAdjustmentFields = (
         warehouseId: warehouseNum,
         ...(parsedNotes ? { notes: parsedNotes } : {}),
     } as InventoryAdjustmentInput;
+
+    next();
+};
+
+export const validateHarvestFields = (req: Request, res: Response, next: NextFunction) => {
+    const { productId, quantity, warehouseId, notes } = req.body ?? {};
+
+    if (productId === undefined || quantity === undefined || warehouseId === undefined) {
+        return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
+    }
+
+    const productNum = Number(productId);
+    const quantityNum = Number(quantity);
+    const warehouseNum = Number(warehouseId);
+
+    if (Number.isNaN(productNum) || Number.isNaN(quantityNum) || Number.isNaN(warehouseNum)) {
+        return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_HARVEST_FIELDS });
+    }
+
+    let parsedNotes: string | undefined;
+    if (notes !== undefined && notes !== null) {
+        parsedNotes = String(notes).trim();
+        if (parsedNotes.length === 0) parsedNotes = undefined;
+    }
+
+    req.body = {
+        productId: productNum,
+        quantity: quantityNum,
+        warehouseId: warehouseNum,
+        ...(parsedNotes ? { notes: parsedNotes } : {}),
+    } as HarvestInput;
 
     next();
 };

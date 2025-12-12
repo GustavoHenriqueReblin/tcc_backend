@@ -3,10 +3,12 @@ import { authMiddleware } from "@middleware/auth.middleware";
 import {
     validateInventoryMovementListQuery,
     validateInventoryAdjustmentFields,
+    validateHarvestFields,
 } from "@middleware/inventoryMovement.middleware";
 import {
     getInventoryMovements,
     createInventoryAdjustment,
+    createHarvestEntry,
 } from "@controllers/inventoryMovement.controller";
 
 export const inventoryMovementAllowedSortFields = [
@@ -33,5 +35,6 @@ router.get(
 );
 
 router.post("/adjustments", validateInventoryAdjustmentFields, createInventoryAdjustment);
+router.post("/harvest", validateHarvestFields, createHarvestEntry);
 
 export default router;

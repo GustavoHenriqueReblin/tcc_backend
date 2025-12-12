@@ -13,6 +13,13 @@ export interface InventoryAdjustmentInput {
     notes?: string;
 }
 
+export interface HarvestInput {
+    productId: number;
+    quantity: number;
+    warehouseId: number;
+    notes?: string;
+}
+
 export interface InventoryMovementInput {
     id?: number;
     productId: number;
@@ -161,6 +168,81 @@ export class InventoryMovementService extends BaseService {
                 return created;
             },
             "INVENTORY_MOVEMENT:createAdjustment",
+            enterpriseId
+        );
+
+    createHarvestEntry = async (enterpriseId: number, data: HarvestInput, userId: number) =>
+        this.safeQuery(
+            async () => {
+                if (data.quantity <= 0) {
+                    throw new AppError(
+                        "Quantidade colhida deve ser maior que zero",
+                        400,
+                        "HARVEST:INVALID_QUANTITY"
+                    );
+                }
+
+                const [product, warehouse] = await Promise.all([
+                    prisma.product.findFirst({
+                        where: { id: data.productId, enterpriseId },
+                        include: {
+                            productInventory: {
+                                select: { quantity: true, costValue: true },
+                            },
+                        },
+                    }),
+                    prisma.warehouse.findFirst({
+                        where: { id: data.warehouseId, enterpriseId },
+                        select: { id: true },
+                    }),
+                ]);
+
+                if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
+                if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
+
+                const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
+
+                const harvestedQty = new Decimal(data.quantity);
+                const newBalance = currentQty.plus(harvestedQty);
+
+                const unitCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
+
+                const created = await prisma.$transaction(async (tx) => {
+                    const inventoryMovement = await tx.inventoryMovement.create({
+                        data: {
+                            enterpriseId,
+                            productId: data.productId,
+                            warehouseId: data.warehouseId,
+                            lotId: null,
+                            direction: MovementType.IN,
+                            source: MovementSource.HARVEST,
+                            quantity: harvestedQty,
+                            balance: newBalance,
+                            unitCost,
+                            reference: null,
+                            notes: data.notes ?? null,
+                            supplierId: null,
+                        },
+                    });
+
+                    await tx.productInventory.update({
+                        where: {
+                            enterpriseId_productId: {
+                                enterpriseId,
+                                productId: data.productId,
+                            },
+                        },
+                        data: {
+                            quantity: newBalance,
+                        },
+                    });
+
+                    return inventoryMovement;
+                });
+
+                return created;
+            },
+            "INVENTORY_MOVEMENT:createHarvestEntry",
             enterpriseId
         );
 
