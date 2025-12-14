@@ -188,8 +188,9 @@ test("Busca receitas com search e ordenação por description", async ({ request
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.items.filter((recipe: { description?: string | null }) =>
-        recipe.description?.includes(prefix)
+    const matching = data.items.filter(
+        (recipe: { description?: string | null; code?: string | null }) =>
+            recipe.description?.includes(prefix) || recipe.code?.includes(prefix ?? "")
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);
 

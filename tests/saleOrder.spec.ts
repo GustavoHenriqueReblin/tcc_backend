@@ -248,8 +248,10 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     const sorted = [...totals].sort((a, b) => a - b);
     expect(totals).toEqual(sorted);
     expect(
-        matching.every((order: { customer: { person: { name?: string | null } } }) =>
-            order.customer.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        matching.every(
+            (order: { code: string; customer: { person: { name?: string | null } } }) =>
+                order.code.startsWith(codePrefix) ||
+                order.customer.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
 });

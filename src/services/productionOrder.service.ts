@@ -40,16 +40,26 @@ export class ProductionOrderService extends BaseService {
                 const where = {
                     enterpriseId,
                     ...(status && { status }),
+
                     ...(search
                         ? {
-                              recipe: {
-                                  product: {
-                                      OR: [
-                                          { name: { contains: search } },
-                                          { barcode: { contains: search } },
-                                      ],
+                              OR: [
+                                  {
+                                      code: {
+                                          contains: search,
+                                      },
                                   },
-                              },
+                                  {
+                                      recipe: {
+                                          product: {
+                                              OR: [
+                                                  { name: { contains: search } },
+                                                  { barcode: { contains: search } },
+                                              ],
+                                          },
+                                      },
+                                  },
+                              ],
                           }
                         : {}),
                 };

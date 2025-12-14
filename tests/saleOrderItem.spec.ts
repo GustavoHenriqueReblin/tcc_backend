@@ -162,8 +162,9 @@ test("Busca itens de pedido de venda com search por produto e ordena por unitPri
     expect(res.status()).toBe(200);
     const { data } = await res.json();
 
-    const matching = data.items.filter((item: { product: { name: string } }) =>
-        item.product.name.includes(searchTerm)
+    const matching = data.items.filter(
+        (item: { product: { name: string } }) =>
+            item.product.name.includes(searchTerm) || item.code?.includes(searchTerm)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);
 

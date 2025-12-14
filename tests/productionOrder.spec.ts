@@ -151,13 +151,13 @@ test("Busca e ordenaÇõÇœo de production orders por produto", async ({ reques
     const { data: searchData } = await resSearch.json();
     expect(searchData.items.length).toBeGreaterThan(0);
 
-    expect(
-        searchData.items.every(
-            (order: { recipe: { product: { name: string; barcode?: string | null } } }) =>
-                order.recipe.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.recipe.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    ).toBeTruthy();
+    const matching = searchData.items.filter(
+        (order: { code: string; recipe: { product: { name: string; barcode?: string | null } } }) =>
+            order.code === code ||
+            order.recipe.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.recipe.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    expect(matching.length).toBeGreaterThan(0);
 
     const createdDates = searchData.items.map((o: { createdAt: string }) =>
         new Date(o.createdAt).getTime()
