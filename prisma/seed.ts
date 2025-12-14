@@ -841,6 +841,7 @@ export const generateData = async () => {
             where: { code: prodOrderCode },
             update: {
                 enterpriseId,
+                recipeId: recipe.id,
                 productId: productFinished.id,
                 lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
                 plannedQty: 100.0,
@@ -850,6 +851,7 @@ export const generateData = async () => {
                 id: genId(),
                 enterpriseId,
                 code: prodOrderCode,
+                recipeId: recipe.id,
                 productId: productFinished.id,
                 lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
                 plannedQty: 100.0,

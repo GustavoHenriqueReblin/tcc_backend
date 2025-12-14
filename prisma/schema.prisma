@@ -568,9 +568,10 @@ model Recipe {
   createdAt    DateTime @default(now()) @db.Timestamp(3)
   updatedAt    DateTime @updatedAt @db.Timestamp(3)
 
-  enterprise Enterprise   @relation(fields: [enterpriseId], references: [id])
-  product    Product      @relation(fields: [productId], references: [id])
-  items      RecipeItem[]
+  enterprise      Enterprise        @relation(fields: [enterpriseId], references: [id])
+  product         Product           @relation(fields: [productId], references: [id])
+  items           RecipeItem[]
+  ProductionOrder ProductionOrder[]
 
   /// Receitas/fórmulas de produção de um produto.
   @@map("recipe")
@@ -597,7 +598,7 @@ model ProductionOrder {
   id           Int                   @id @default(autoincrement())
   enterpriseId Int
   code         String                @unique @db.VarChar(40)
-  productId    Int // produto final
+  recipeId     Int // receita que é vinculada ao produto final
   lotId        Int? // lote gerado
   status       ProductionOrderStatus @default(PLANNED)
   plannedQty   Decimal               @db.Decimal(14, 6)
@@ -610,9 +611,11 @@ model ProductionOrder {
   updatedAt    DateTime              @updatedAt @db.Timestamp(3)
 
   enterprise Enterprise             @relation(fields: [enterpriseId], references: [id])
-  product    Product                @relation(fields: [productId], references: [id])
+  recipe     Recipe                 @relation(fields: [recipeId], references: [id])
   lot        Lot?                   @relation(fields: [lotId], references: [id])
   inputs     ProductionOrderInput[]
+  Product    Product?               @relation(fields: [productId], references: [id])
+  productId  Int?
 
   /// Ordens de produção planejadas e executadas.
   @@map("productionOrder")

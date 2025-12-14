@@ -49,10 +49,23 @@ const createProduct = async (
     return data;
 };
 
-const createOrder = async (request: APIRequestContext, productId: number) => {
+const createRecipe = async (
+    request: APIRequestContext,
+    productId: number,
+    description = "Receita auxiliar para ordem"
+) => {
+    const res = await request.post(`${baseUrl}/recipes`, {
+        data: { id: genId(), productId, description, notes: null },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
+const createOrder = async (request: APIRequestContext, recipeId: number) => {
     const code = `PRODI_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, productId, plannedQty: 20 },
+        data: { id: genId(), code, recipeId, plannedQty: 20 },
     });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -75,8 +88,9 @@ test("Filtro productionOrderId inválido retorna 400", async ({ request }) => {
 
 test("Cria, busca e atualiza insumo da ordem", async ({ request }) => {
     const prod = await createProduct(request, ProductDefinitionType.FINISHED_PRODUCT, "PFIN");
+    const recipe = await createRecipe(request, prod.id, "Receita para ordem de insumo");
     const raw = await createProduct(request, ProductDefinitionType.RAW_MATERIAL, "PRAW");
-    const order = await createOrder(request, prod.id);
+    const order = await createOrder(request, recipe.id);
 
     const createRes = await request.post(`${baseUrl}/production-order-inputs`, {
         data: {
@@ -118,7 +132,8 @@ test("Criar insumo sem campos obrigatórios deve falhar (400)", async ({ request
 
 test("Busca insumos da ordem com search no produto e ordena por unitCost", async ({ request }) => {
     const prod = await createProduct(request, ProductDefinitionType.FINISHED_PRODUCT, "PFIN_SRCH");
-    const order = await createOrder(request, prod.id);
+    const recipe = await createRecipe(request, prod.id, "Receita para ordem de busca");
+    const order = await createOrder(request, recipe.id);
 
     const searchTerm = `POI_SEARCH_${Date.now().toString().slice(-4)}`;
     const raw1 = await createProduct(

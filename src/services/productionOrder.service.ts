@@ -9,7 +9,7 @@ import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes
 export interface ProductionOrderInputData {
     id?: number;
     code: string;
-    productId: number;
+    recipeId: number;
     lotId?: number | null;
     status?: ProductionOrderStatus;
     plannedQty: number;
@@ -42,11 +42,13 @@ export class ProductionOrderService extends BaseService {
                     ...(status && { status }),
                     ...(search
                         ? {
-                              product: {
-                                  OR: [
-                                      { name: { contains: search } },
-                                      { barcode: { contains: search } },
-                                  ],
+                              recipe: {
+                                  product: {
+                                      OR: [
+                                          { name: { contains: search } },
+                                          { barcode: { contains: search } },
+                                      ],
+                                  },
                               },
                           }
                         : {}),
@@ -59,7 +61,11 @@ export class ProductionOrderService extends BaseService {
                 const [orders, total] = await prisma.$transaction([
                     prisma.productionOrder.findMany({
                         where,
-                        include: { product: true, lot: true, inputs: true },
+                        include: {
+                            recipe: { include: { product: { include: { unity: true } } } },
+                            lot: true,
+                            inputs: true,
+                        },
                         skip,
                         take: limit,
                         orderBy: { [safeSortBy]: safeSortOrder },
@@ -87,7 +93,7 @@ export class ProductionOrderService extends BaseService {
             async () =>
                 prisma.productionOrder.findUnique({
                     where: { id, enterpriseId },
-                    include: { product: true, lot: true, inputs: true },
+                    include: { recipe: { include: { product: true } }, lot: true, inputs: true },
                 }),
             "PRODUCTION_ORDER:getById",
             enterpriseId
@@ -96,11 +102,11 @@ export class ProductionOrderService extends BaseService {
     create = async (enterpriseId: number, data: ProductionOrderInputData, userId: number) =>
         this.safeQuery(
             async () => {
-                const [codeTaken, product, lot] = await Promise.all([
+                const [codeTaken, recipe, lot] = await Promise.all([
                     prisma.productionOrder.findFirst({ where: { code: data.code } }),
-                    prisma.product.findFirst({
-                        where: { id: data.productId, enterpriseId },
-                        select: { id: true },
+                    prisma.recipe.findFirst({
+                        where: { id: data.recipeId, enterpriseId },
+                        select: { id: true, productId: true },
                     }),
                     data.lotId
                         ? prisma.lot.findFirst({
@@ -112,7 +118,7 @@ export class ProductionOrderService extends BaseService {
 
                 if (codeTaken)
                     throw new AppError("Ordem já existe", 409, "PRODUCTION_ORDER:create");
-                if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
+                if (!recipe) throw new AppError("Receita não encontrada", 404, "FK:NOT_FOUND");
                 if (data.lotId && !lot)
                     throw new AppError("Lote não encontrado", 404, "FK:NOT_FOUND");
 
@@ -124,7 +130,8 @@ export class ProductionOrderService extends BaseService {
                                 : {}),
                             enterpriseId,
                             code: data.code,
-                            productId: data.productId,
+                            recipeId: data.recipeId,
+                            productId: recipe.productId,
                             lotId: data.lotId ?? null,
                             status: data.status ?? ProductionOrderStatus.PLANNED,
                             plannedQty: new Decimal(data.plannedQty),
@@ -186,12 +193,14 @@ export class ProductionOrderService extends BaseService {
                         throw new AppError("Ordem já existe", 409, "PRODUCTION_ORDER:update:code");
                 }
 
-                if (data.productId) {
-                    const product = await prisma.product.findFirst({
-                        where: { id: data.productId, enterpriseId },
-                        select: { id: true },
+                let recipeProductId: number | null | undefined;
+                if (data.recipeId) {
+                    const recipe = await prisma.recipe.findFirst({
+                        where: { id: data.recipeId, enterpriseId },
+                        select: { id: true, productId: true },
                     });
-                    if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
+                    if (!recipe) throw new AppError("Receita não encontrada", 404, "FK:NOT_FOUND");
+                    recipeProductId = recipe.productId;
                 }
 
                 if (data.lotId) {
@@ -207,7 +216,8 @@ export class ProductionOrderService extends BaseService {
                         where: { id },
                         data: {
                             code: data.code ?? existing.code,
-                            productId: data.productId ?? existing.productId,
+                            recipeId: data.recipeId ?? existing.recipeId,
+                            productId: recipeProductId ?? existing.productId,
                             lotId: data.lotId ?? existing.lotId,
                             status: data.status ?? existing.status,
                             plannedQty:

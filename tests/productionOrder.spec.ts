@@ -49,21 +49,36 @@ const createAuxProduct = async (request: APIRequestContext) => {
     return data;
 };
 
-test("Lista ordens de produção com paginação básica", async ({ request }) => {
+const createAuxRecipe = async (request: APIRequestContext) => {
+    const product = await createAuxProduct(request);
+    const res = await request.post(`${baseUrl}/recipes`, {
+        data: {
+            id: genId(),
+            productId: product.id,
+            description: "Receita auxiliar para production order",
+            notes: null,
+        },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return { recipe: data, product };
+};
+
+test("Lista ordens de produÇõÇœo com paginaÇõÇœo bÇ­sica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/production-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
     expect(Array.isArray(data.items)).toBeTruthy();
 });
 
-test("Validação de query: status inválido", async ({ request }) => {
+test("ValidaÇõÇœo de query: status invÇ­lido", async ({ request }) => {
     const res = await request.get(`${baseUrl}/production-orders?status=INVALID`);
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_STATUS);
 });
 
-test("Validação de id, paginação e ordenação de production order", async ({ request }) => {
+test("ValidaÇõÇœo de id, paginaÇõÇœo e ordenaÇõÇœo de production order", async ({ request }) => {
     const resInvalidId = await request.get(`${baseUrl}/production-orders/not-a-number`);
     expect(resInvalidId.status()).toBe(400);
     const bodyInvalidId = await resInvalidId.json();
@@ -89,27 +104,29 @@ test("Validação de id, paginação e ordenação de production order", async (
     expect(bodyInvalidSortBy.message).toContain(PRODUCTION_ORDER_ERROR.SORT_BY);
 });
 
-test("Cria, busca e atualiza ordem de produção", async ({ request }) => {
-    const product = await createAuxProduct(request);
+test("Cria, busca e atualiza ordem de produÇõÇœo", async ({ request }) => {
+    const { recipe } = await createAuxRecipe(request);
     const code = `PRD${Date.now().toString().slice(-6)}`;
     const createRes = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, productId: product.id, plannedQty: 50.5, notes: null },
+        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 50.5, notes: null },
     });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
     expect(created.code).toBe(code);
+    expect(created.recipeId).toBe(recipe.id);
 
     const getRes = await request.get(`${baseUrl}/production-orders/${created.id}`);
     expect(getRes.status()).toBe(200);
     const { data: fetched } = await getRes.json();
     expect(fetched.id).toBe(created.id);
+    expect(fetched.recipeId).toBe(recipe.id);
 
     const updRes = await request.put(`${baseUrl}/production-orders/${created.id}`, {
         data: {
             status: ProductionOrderStatus.RUNNING,
             plannedQty: 60,
             code: fetched.code,
-            productId: fetched.productId,
+            recipeId: fetched.recipeId,
         },
     });
     expect(updRes.status()).toBe(200);
@@ -117,12 +134,12 @@ test("Cria, busca e atualiza ordem de produção", async ({ request }) => {
     expect(updated.status).toBe(ProductionOrderStatus.RUNNING);
 });
 
-test("Busca e ordenação de production orders por produto", async ({ request }) => {
-    const product = await createAuxProduct(request);
+test("Busca e ordenaÇõÇœo de production orders por produto", async ({ request }) => {
+    const { recipe, product } = await createAuxRecipe(request);
     const code = `PRSRCH${Date.now().toString().slice(-6)}`;
 
     const createRes = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, productId: product.id, plannedQty: 15.5 },
+        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 15.5 },
     });
     expect(createRes.status()).toBe(200);
 
@@ -136,9 +153,9 @@ test("Busca e ordenação de production orders por produto", async ({ request })
 
     expect(
         searchData.items.every(
-            (order: { product: { name: string; barcode?: string | null } }) =>
-                order.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+            (order: { recipe: { product: { name: string; barcode?: string | null } } }) =>
+                order.recipe.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.recipe.product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
 
@@ -150,14 +167,14 @@ test("Busca e ordenação de production orders por produto", async ({ request })
 });
 
 test("Criar ordem com code duplicado retorna 409", async ({ request }) => {
-    const product = await createAuxProduct(request);
+    const { recipe } = await createAuxRecipe(request);
     const code = `PDUP${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, productId: product.id, plannedQty: 10 },
+        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 10 },
     });
     expect(res1.status()).toBe(200);
     const res2 = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, productId: product.id, plannedQty: 11 },
+        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 11 },
     });
     expect(res2.status()).toBe(409);
 });
