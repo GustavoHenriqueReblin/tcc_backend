@@ -118,7 +118,10 @@ export class RecipeService extends BaseService {
             async () =>
                 prisma.recipe.findUnique({
                     where: { id, enterpriseId },
-                    include: { product: { include: { unity: true } }, items: true },
+                    include: {
+                        product: { include: { unity: true } },
+                        items: { include: { product: { include: { unity: true } } } },
+                    },
                 }),
             "RECIPE:getById",
             enterpriseId
