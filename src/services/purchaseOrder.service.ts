@@ -12,6 +12,7 @@ import { InventoryMovementService } from "@services/inventoryMovement.service";
 export interface PurchaseOrderInput {
     id?: number;
     supplierId: number;
+    warehouseId: number;
     code: string;
     status?: OrderStatus;
     notes?: string | null;
@@ -138,7 +139,12 @@ export class PurchaseOrderService extends BaseService {
                         },
                     });
 
-                    await this.syncPurchaseItems(tx, enterpriseId, order, data.items);
+                    await this.syncPurchaseItems(
+                        tx,
+                        enterpriseId,
+                        { ...data, id: order.id },
+                        data.items
+                    );
 
                     await tx.audit.create({
                         data: {
@@ -185,18 +191,27 @@ export class PurchaseOrderService extends BaseService {
                 }
 
                 const updated = await prisma.$transaction(async (tx) => {
+                    const resolvedOrderData = {
+                        id,
+                        supplierId: data.supplierId ?? existing.supplierId,
+                        warehouseId: data.warehouseId,
+                        code: data.code ?? existing.code,
+                        status: data.status ?? existing.status,
+                        notes: data.notes ?? existing.notes,
+                    };
+
                     const order = await tx.purchaseOrder.update({
                         where: { id },
                         data: {
-                            supplierId: data.supplierId ?? existing.supplierId,
-                            code: data.code ?? existing.code,
-                            status: data.status ?? existing.status,
-                            notes: data.notes ?? existing.notes,
+                            supplierId: resolvedOrderData.supplierId,
+                            code: resolvedOrderData.code,
+                            status: resolvedOrderData.status,
+                            notes: resolvedOrderData.notes,
                             updatedAt: new Date(),
                         },
                     });
 
-                    await this.syncPurchaseItems(tx, enterpriseId, order, data.items);
+                    await this.syncPurchaseItems(tx, enterpriseId, resolvedOrderData, data.items);
 
                     await tx.audit.create({
                         data: {
@@ -265,11 +280,6 @@ export class PurchaseOrderService extends BaseService {
             });
         }
 
-        const warehouse = await tx.warehouse.findFirst({
-            where: { enterpriseId },
-        });
-        if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
-
         for (const item of update) {
             await tx.purchaseOrderItem.update({
                 where: { id: item.id },
@@ -282,8 +292,6 @@ export class PurchaseOrderService extends BaseService {
         }
 
         for (const item of create) {
-            const product = products.find((p) => p.id === item.productId);
-
             await tx.purchaseOrderItem.create({
                 data: {
                     ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
@@ -301,7 +309,7 @@ export class PurchaseOrderService extends BaseService {
                 enterpriseId,
                 {
                     productId: item.productId,
-                    warehouseId: warehouse.id,
+                    warehouseId: purchaseOrder.warehouseId,
                     direction: MovementType.IN,
                     source: MovementSource.PURCHASE,
                     quantity: item.quantity,

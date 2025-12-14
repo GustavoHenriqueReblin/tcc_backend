@@ -49,6 +49,16 @@ const createRawProduct = async (request: APIRequestContext, prefix = "RAW_PO") =
     return data;
 };
 
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_PO_${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "PO Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
 const getProductInventorySnapshot = async (request: APIRequestContext, productId: number) => {
     const res = await request.get(`${baseUrl}/products/${productId}`);
     expect(res.status()).toBe(200);
@@ -82,9 +92,16 @@ test("Cria, busca e atualiza compra", async ({ request }) => {
     const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
+    const warehouse = await createAuxWarehouse(request);
     const code = `PO${Date.now().toString().slice(-6)}`;
     const createRes = await request.post(`${baseUrl}/purchase-orders`, {
-        data: { id: genId(), code, supplierId: supplier.id, notes: null },
+        data: {
+            id: genId(),
+            code,
+            supplierId: supplier.id,
+            warehouseId: warehouse.id,
+            notes: null,
+        },
     });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
@@ -101,6 +118,7 @@ test("Cria, busca e atualiza compra", async ({ request }) => {
             notes: "Recebida",
             supplierId: fetched.supplierId,
             code: fetched.code,
+            warehouseId: warehouse.id,
         },
     });
     expect(updRes.status()).toBe(200);
@@ -114,6 +132,7 @@ test("Cadastra e atualiza itens da compra pela rota principal", async ({ request
     const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
+    const warehouse = await createAuxWarehouse(request);
     const rawA = await createRawProduct(request, "PO_ITEM_A");
     const rawB = await createRawProduct(request, "PO_ITEM_B");
     const rawC = await createRawProduct(request, "PO_ITEM_C");
@@ -124,6 +143,7 @@ test("Cadastra e atualiza itens da compra pela rota principal", async ({ request
             id: genId(),
             code,
             supplierId: supplier.id,
+            warehouseId: warehouse.id,
             notes: "Compra com itens",
             items: {
                 create: [
@@ -151,6 +171,7 @@ test("Cadastra e atualiza itens da compra pela rota principal", async ({ request
         data: {
             supplierId: created.supplierId,
             code: created.code,
+            warehouseId: warehouse.id,
             items: {
                 update: [{ id: itemA.id, quantity: 12.5, unitCost: 6 }],
                 delete: [itemB.id],
@@ -182,13 +203,14 @@ test("Criar compra com code duplicado retorna 409", async ({ request }) => {
     const { data: slist } = await supRes.json();
     const supplier = slist.items[0];
 
+    const warehouse = await createAuxWarehouse(request);
     const code = `POD${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/purchase-orders`, {
-        data: { id: genId(), code, supplierId: supplier.id },
+        data: { id: genId(), code, supplierId: supplier.id, warehouseId: warehouse.id },
     });
     expect(res1.status()).toBe(200);
     const res2 = await request.post(`${baseUrl}/purchase-orders`, {
-        data: { id: genId(), code, supplierId: supplier.id },
+        data: { id: genId(), code, supplierId: supplier.id, warehouseId: warehouse.id },
     });
     expect(res2.status()).toBe(409);
 });
@@ -205,9 +227,22 @@ test("Busca compras com search por fornecedor e ordena por code", async ({ reque
     const searchTerm = sourceName.slice(0, Math.min(4, sourceName.length));
 
     const codePrefix = `POSRCH_${Date.now().toString().slice(-4)}`;
+    const warehouse = await createAuxWarehouse(request);
     const payloads = [
-        { id: genId(), code: `${codePrefix}B`, supplierId: supplier.id, notes: `${codePrefix}B` },
-        { id: genId(), code: `${codePrefix}A`, supplierId: supplier.id, notes: `${codePrefix}A` },
+        {
+            id: genId(),
+            code: `${codePrefix}B`,
+            supplierId: supplier.id,
+            warehouseId: warehouse.id,
+            notes: `${codePrefix}B`,
+        },
+        {
+            id: genId(),
+            code: `${codePrefix}A`,
+            supplierId: supplier.id,
+            warehouseId: warehouse.id,
+            notes: `${codePrefix}A`,
+        },
     ];
 
     for (const payload of payloads) {
@@ -243,6 +278,7 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
     const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
+    const warehouse = await createAuxWarehouse(request);
     const raw = await createRawProduct(request, "PO_STOCK_ENTRY");
     const beforeInventory = await getProductInventorySnapshot(request, raw.id);
 
@@ -257,6 +293,7 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
             code,
             supplierId: supplier.id,
             notes,
+            warehouseId: warehouse.id,
             items: {
                 create: [{ productId: raw.id, quantity: purchaseQty, unitCost }],
             },
@@ -297,6 +334,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
     const supplier = slist.items[0];
     expect(supplier).toBeTruthy();
 
+    const warehouse = await createAuxWarehouse(request);
     const rawBase = await createRawProduct(request, "PO_STOCK_BASE");
     const rawExtra = await createRawProduct(request, "PO_STOCK_EXTRA");
 
@@ -311,6 +349,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
             code: baseCode,
             supplierId: supplier.id,
             notes: baseNotes,
+            warehouseId: warehouse.id,
             items: {
                 create: [{ productId: rawBase.id, quantity: baseQty, unitCost: baseUnitCost }],
             },
@@ -330,6 +369,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
             supplierId: supplier.id,
             code: baseCode,
             notes: updateNotes,
+            warehouseId: warehouse.id,
             items: {
                 create: [{ productId: rawExtra.id, quantity: extraQty, unitCost: extraUnitCost }],
             },

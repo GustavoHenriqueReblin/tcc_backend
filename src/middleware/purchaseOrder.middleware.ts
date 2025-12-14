@@ -71,7 +71,7 @@ export const validatePurchaseOrderListQuery =
 export const validatePurchaseOrderFields = (req: Request, res: Response, next: NextFunction) => {
     const order = req.body as PurchaseOrderInput;
 
-    if (!order || !order.supplierId || !order.code) {
+    if (!order || !order.supplierId || !order.warehouseId || !order.code) {
         return res.status(400).json({ message: PURCHASE_ORDER_ERROR.MISSING_FIELDS });
     }
 

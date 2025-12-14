@@ -49,13 +49,30 @@ const createRawProduct = async (request: APIRequestContext, namePrefix = "PROD_P
     return data;
 };
 
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_POI_${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
 const createPurchaseOrder = async (request: APIRequestContext) => {
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     const { data: slist } = await supRes.json();
     const supplier = slist.items[0];
+    const warehouse = await createAuxWarehouse(request);
     const code = `POI${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/purchase-orders`, {
-        data: { id: genId(), code, supplierId: supplier.id, notes: null },
+        data: {
+            id: genId(),
+            code,
+            supplierId: supplier.id,
+            warehouseId: warehouse.id,
+            notes: null,
+        },
     });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
