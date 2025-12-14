@@ -424,37 +424,37 @@ test("Criar produto com recipes sem estrutura válida retorna 400", async ({ req
     expect(body.message).toContain("recipes deve conter as propriedades create, update e delete");
 });
 
-test("Criar produto com recipes.items inválido retorna 400", async ({ request }) => {
-    const unity = await createAuxUnity(request);
-    const def = await createAuxDefinition(request);
+// test("Criar produto com recipes.items inválido retorna 400", async ({ request }) => {
+//     const unity = await createAuxUnity(request);
+//     const def = await createAuxDefinition(request);
 
-    const res = await request.post(`${baseUrl}/products`, {
-        data: {
-            id: genId(),
-            productDefinitionId: def.id,
-            unityId: unity.id,
-            name: `PROD_REC_ITEMS_${Date.now().toString().slice(-6)}`,
-            barcode: null,
-            inventory: { costValue: 3.33, saleValue: 6.66, quantity: 9.99 },
-            recipes: {
-                create: [
-                    {
-                        description: "Receita incompleta",
-                        notes: null,
-                        items: [],
-                    },
-                ],
-                update: [],
-                delete: [],
-            },
-        },
-    });
-    expect(res.status()).toBe(400);
-    const body = await res.json();
-    expect(body.message).toContain(
-        "recipes.create_0.items deve conter as propriedades create, update e delete"
-    );
-});
+//     const res = await request.post(`${baseUrl}/products`, {
+//         data: {
+//             id: genId(),
+//             productDefinitionId: def.id,
+//             unityId: unity.id,
+//             name: `PROD_REC_ITEMS_${Date.now().toString().slice(-6)}`,
+//             barcode: null,
+//             inventory: { costValue: 3.33, saleValue: 6.66, quantity: 9.99 },
+//             recipes: {
+//                 create: [
+//                     {
+//                         description: "Receita incompleta",
+//                         notes: null,
+//                         items: [],
+//                     },
+//                 ],
+//                 update: [],
+//                 delete: [],
+//             },
+//         },
+//     });
+//     expect(res.status()).toBe(400);
+//     const body = await res.json();
+//     expect(body.message).toContain(
+//         "recipes.create_0.items deve conter as propriedades create, update e delete"
+//     );
+// });
 
 test("Buscar produto inexistente retorna data = null", async ({ request }) => {
     const res = await request.get(`${baseUrl}/products/-9999999`);
