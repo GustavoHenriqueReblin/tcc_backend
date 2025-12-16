@@ -3,22 +3,49 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
-import { ProductionOrderStatus } from "@prisma/client";
+import { Prisma, ProductionOrderStatus } from "@prisma/client";
 import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
+import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 
-export interface ProductionOrderInputData {
+export interface ProductionOrderPayload {
     id?: number;
+
     code: string;
     recipeId: number;
     lotId?: number | null;
+
     status?: ProductionOrderStatus;
+
     plannedQty: number;
     producedQty?: number | null;
     wasteQty?: number | null;
+
     startDate?: Date | string | null;
     endDate?: Date | string | null;
+
     notes?: string | null;
+
+    inputs?: ProductionOrderInputsPayload;
 }
+
+export interface ProductionOrderInputFormData {
+    id?: number;
+    productId: number;
+    quantity: number;
+    unitCost?: number | null;
+}
+
+export interface ProductionOrderInputUpdateData {
+    id: number;
+    productId?: number;
+    quantity?: number;
+    unitCost?: number | null;
+}
+
+export type ProductionOrderInputsPayload = NestedItemsPayload<
+    ProductionOrderInputFormData,
+    ProductionOrderInputUpdateData
+>;
 
 export class ProductionOrderService extends BaseService {
     getAll = async (
@@ -109,7 +136,7 @@ export class ProductionOrderService extends BaseService {
             enterpriseId
         );
 
-    create = async (enterpriseId: number, data: ProductionOrderInputData, userId: number) =>
+    create = async (enterpriseId: number, data: ProductionOrderPayload, userId: number) =>
         this.safeQuery(
             async () => {
                 const [codeTaken, recipe, lot] = await Promise.all([
@@ -159,6 +186,15 @@ export class ProductionOrderService extends BaseService {
                         },
                     });
 
+                    if (data.inputs) {
+                        await this.syncProductionOrderInputs(
+                            tx,
+                            enterpriseId,
+                            order.id,
+                            data.inputs
+                        );
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -180,7 +216,7 @@ export class ProductionOrderService extends BaseService {
     update = async (
         id: number,
         enterpriseId: number,
-        data: ProductionOrderInputData,
+        data: ProductionOrderPayload,
         userId: number
     ) =>
         this.safeQuery(
@@ -251,6 +287,15 @@ export class ProductionOrderService extends BaseService {
                         },
                     });
 
+                    if (data.inputs) {
+                        await this.syncProductionOrderInputs(
+                            tx,
+                            enterpriseId,
+                            order.id,
+                            data.inputs
+                        );
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -268,4 +313,129 @@ export class ProductionOrderService extends BaseService {
             "PRODUCTION_ORDER:update",
             enterpriseId
         );
+
+    private async syncProductionOrderInputs(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        productionOrderId: number,
+        payload?: ProductionOrderInputsPayload
+    ) {
+        if (!payload) return;
+
+        const { create, update, delete: remove } = normalizeNestedItemsPayload(payload);
+
+        if (!create.length && !update.length && !remove.length) return;
+
+        /**
+         * 1. Validar produtos (FK)
+         */
+        const productIds = Array.from(
+            new Set([
+                ...create.map((item) => item.productId),
+                ...update
+                    .map((item) => item.productId)
+                    .filter((id): id is number => typeof id === "number"),
+            ])
+        );
+
+        if (productIds.length) {
+            const products = await tx.product.findMany({
+                where: {
+                    enterpriseId,
+                    id: { in: productIds },
+                },
+                select: { id: true },
+            });
+
+            if (products.length !== productIds.length) {
+                throw new AppError(
+                    "Matéria-prima não encontrada",
+                    404,
+                    "PRODUCTION_ORDER:inputs:FK"
+                );
+            }
+        }
+
+        /**
+         * 2. Validar se os inputs pertencem à OP
+         */
+        const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
+
+        if (targetIds.length) {
+            const found = await tx.productionOrderInput.findMany({
+                where: {
+                    enterpriseId,
+                    productionOrderId,
+                    id: { in: targetIds },
+                },
+                select: { id: true },
+            });
+
+            if (found.length !== targetIds.length) {
+                throw new AppError(
+                    "Insumo da ordem de produção não encontrado",
+                    404,
+                    "PRODUCTION_ORDER:inputs:NOT_FOUND"
+                );
+            }
+        }
+
+        /**
+         * 3. Remover
+         */
+        if (remove.length) {
+            await tx.productionOrderInput.deleteMany({
+                where: {
+                    enterpriseId,
+                    productionOrderId,
+                    id: { in: remove },
+                },
+            });
+        }
+
+        /**
+         * 4. Atualizar
+         */
+        for (const item of update) {
+            await tx.productionOrderInput.update({
+                where: { id: item.id },
+                data: {
+                    productId: typeof item.productId === "number" ? item.productId : undefined,
+
+                    quantity: item.quantity !== undefined ? new Decimal(item.quantity) : undefined,
+
+                    unitCost:
+                        item.unitCost !== undefined
+                            ? item.unitCost === null
+                                ? null
+                                : new Decimal(item.unitCost)
+                            : undefined,
+                },
+            });
+        }
+
+        /**
+         * 5. Criar
+         */
+        for (const item of create) {
+            await tx.productionOrderInput.create({
+                data: {
+                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                        ? { id: item.id }
+                        : {}),
+
+                    enterpriseId,
+                    productionOrderId,
+
+                    productId: item.productId,
+                    quantity: new Decimal(item.quantity),
+
+                    unitCost:
+                        item.unitCost !== undefined && item.unitCost !== null
+                            ? new Decimal(item.unitCost)
+                            : null,
+                },
+            });
+        }
+    }
 }

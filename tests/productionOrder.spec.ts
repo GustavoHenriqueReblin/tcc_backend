@@ -16,14 +16,17 @@ const createAuxUnity = async (request: APIRequestContext) => {
     return data;
 };
 
-const createAuxDefinition = async (request: APIRequestContext) => {
-    const name = `PD_${Date.now().toString().slice(-6)}`;
+const createAuxDefinition = async (
+    request: APIRequestContext,
+    type = ProductDefinitionType.FINISHED_PRODUCT
+) => {
+    const name = `PD_${type}_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/product-definitions`, {
         data: {
             id: genId(),
             name,
             description: "Aux",
-            type: ProductDefinitionType.FINISHED_PRODUCT,
+            type,
         },
     });
     expect(res.status()).toBe(200);
@@ -31,10 +34,14 @@ const createAuxDefinition = async (request: APIRequestContext) => {
     return data;
 };
 
-const createAuxProduct = async (request: APIRequestContext) => {
+const createAuxProduct = async (
+    request: APIRequestContext,
+    type = ProductDefinitionType.FINISHED_PRODUCT,
+    namePrefix = "PROD_PO"
+) => {
     const unity = await createAuxUnity(request);
-    const def = await createAuxDefinition(request);
-    const nameBase = `PROD_PO_${Date.now().toString().slice(-6)}`;
+    const def = await createAuxDefinition(request, type);
+    const nameBase = `${namePrefix}_${Date.now().toString().slice(-6)}`;
     const payload = {
         id: genId(),
         productDefinitionId: def.id,
@@ -132,6 +139,97 @@ test("Cria, busca e atualiza ordem de produÇõÇœo", async ({ request }) => {
     expect(updRes.status()).toBe(200);
     const { data: updated } = await updRes.json();
     expect(updated.status).toBe(ProductionOrderStatus.RUNNING);
+});
+
+test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ request }) => {
+    const { recipe } = await createAuxRecipe(request);
+
+    const inputA = await createAuxProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        "RAW_PO_IN_A"
+    );
+    const inputB = await createAuxProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        "RAW_PO_IN_B"
+    );
+    const inputC = await createAuxProduct(
+        request,
+        ProductDefinitionType.RAW_MATERIAL,
+        "RAW_PO_IN_C"
+    );
+
+    const code = `POIN${Date.now().toString().slice(-6)}`;
+    const createRes = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            plannedQty: 25,
+            inputs: {
+                create: [
+                    { productId: inputA.id, quantity: 5.5, unitCost: 2.25 },
+                    { productId: inputB.id, quantity: 3.75, unitCost: 1.8 },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const fetchCreated = await request.get(`${baseUrl}/production-orders/${created.id}`);
+    expect(fetchCreated.status()).toBe(200);
+    const { data: createdFull } = await fetchCreated.json();
+
+    const createdInputA = createdFull.inputs.find(
+        (item: { productId: number }) => item.productId === inputA.id
+    );
+    const createdInputB = createdFull.inputs.find(
+        (item: { productId: number }) => item.productId === inputB.id
+    );
+
+    expect(createdInputA).toBeTruthy();
+    expect(createdInputB).toBeTruthy();
+
+    const updateRes = await request.put(`${baseUrl}/production-orders/${created.id}`, {
+        data: {
+            code: createdFull.code,
+            recipeId: createdFull.recipeId,
+            plannedQty: Number(createdFull.plannedQty),
+            status: createdFull.status,
+            inputs: {
+                update: [
+                    {
+                        id: createdInputA.id,
+                        quantity: 6.25,
+                        unitCost: 2.35,
+                    },
+                ],
+                delete: [createdInputB.id],
+                create: [{ productId: inputC.id, quantity: 2.5, unitCost: 3.1 }],
+            },
+        },
+    });
+    expect(updateRes.status()).toBe(200);
+
+    const verifyRes = await request.get(`${baseUrl}/production-orders/${created.id}`);
+    expect(verifyRes.status()).toBe(200);
+    const { data: updated } = await verifyRes.json();
+
+    const updatedA = updated.inputs.find(
+        (item: { productId: number }) => item.productId === inputA.id
+    );
+    const deletedB = updated.inputs.find(
+        (item: { productId: number }) => item.productId === inputB.id
+    );
+    const addedC = updated.inputs.find(
+        (item: { productId: number }) => item.productId === inputC.id
+    );
+
+    expect(Number(updatedA.quantity)).toBeCloseTo(6.25, 4);
+    expect(deletedB).toBeUndefined();
+    expect(addedC).toBeTruthy();
 });
 
 test("Busca e ordenaÇõÇœo de production orders por produto", async ({ request }) => {
