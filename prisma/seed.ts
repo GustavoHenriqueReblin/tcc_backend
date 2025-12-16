@@ -465,6 +465,9 @@ export const generateData = async () => {
                 create: wh,
             });
         }
+        const mainWarehouse = await prisma.warehouse.findFirst({
+            where: { enterpriseId, code: "MAIN" },
+        });
 
         // Ativos e categorias de ativos padrão
         const assetCategoriesData = [
@@ -844,6 +847,7 @@ export const generateData = async () => {
                 recipeId: recipe.id,
                 productId: productFinished.id,
                 lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
+                warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
                 plannedQty: 100.0,
                 notes: "Ordem inicial",
             },
@@ -854,6 +858,7 @@ export const generateData = async () => {
                 recipeId: recipe.id,
                 productId: productFinished.id,
                 lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
+                warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
                 plannedQty: 100.0,
                 producedQty: null,
                 wasteQty: null,

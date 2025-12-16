@@ -16,9 +16,19 @@ const createAuxUnity = async (request: APIRequestContext) => {
     return data;
 };
 
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_PO_${Date.now().toString().slice(-6)}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
 const createAuxDefinition = async (
     request: APIRequestContext,
-    type = ProductDefinitionType.FINISHED_PRODUCT
+    type: ProductDefinitionType = ProductDefinitionType.FINISHED_PRODUCT
 ) => {
     const name = `PD_${type}_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/product-definitions`, {
@@ -36,8 +46,9 @@ const createAuxDefinition = async (
 
 const createAuxProduct = async (
     request: APIRequestContext,
-    type = ProductDefinitionType.FINISHED_PRODUCT,
-    namePrefix = "PROD_PO"
+    type: ProductDefinitionType = ProductDefinitionType.FINISHED_PRODUCT,
+    namePrefix = "PROD_PO",
+    inventoryOverride?: { costValue: number; saleValue: number; quantity: number }
 ) => {
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request, type);
@@ -48,7 +59,7 @@ const createAuxProduct = async (
         unityId: unity.id,
         name: nameBase,
         barcode: null,
-        inventory: { costValue: 4.44, saleValue: 8.88, quantity: 10 },
+        inventory: { costValue: 4.44, saleValue: 8.88, quantity: 10, ...inventoryOverride },
     };
     const res = await request.post(`${baseUrl}/products`, { data: payload });
     expect(res.status()).toBe(200);
@@ -71,21 +82,46 @@ const createAuxRecipe = async (request: APIRequestContext) => {
     return { recipe: data, product };
 };
 
-test("Lista ordens de produÇõÇœo com paginaÇõÇœo bÇ­sica", async ({ request }) => {
+const createRecipeForProduct = async (
+    request: APIRequestContext,
+    productId: number,
+    description = "Receita auxiliar para production order"
+) => {
+    const res = await request.post(`${baseUrl}/recipes`, {
+        data: { id: genId(), productId, description, notes: null },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
+const getInventorySnapshot = async (request: APIRequestContext, productId: number) => {
+    const res = await request.get(`${baseUrl}/products/${productId}`);
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    const inventory = data.productInventory?.[0];
+    expect(inventory).toBeTruthy();
+    return {
+        quantity: Number(inventory.quantity),
+        costValue: Number(inventory.costValue),
+    };
+};
+
+test("Lista ordens de producao com paginacao basica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/production-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
     expect(Array.isArray(data.items)).toBeTruthy();
 });
 
-test("ValidaÇõÇœo de query: status invÇ­lido", async ({ request }) => {
+test("Validacao de query: status invalido", async ({ request }) => {
     const res = await request.get(`${baseUrl}/production-orders?status=INVALID`);
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_STATUS);
 });
 
-test("ValidaÇõÇœo de id, paginaÇõÇœo e ordenaÇõÇœo de production order", async ({ request }) => {
+test("Validacao de id, paginacao e ordenacao de production order", async ({ request }) => {
     const resInvalidId = await request.get(`${baseUrl}/production-orders/not-a-number`);
     expect(resInvalidId.status()).toBe(400);
     const bodyInvalidId = await resInvalidId.json();
@@ -111,11 +147,19 @@ test("ValidaÇõÇœo de id, paginaÇõÇœo e ordenaÇõÇœo de production ord
     expect(bodyInvalidSortBy.message).toContain(PRODUCTION_ORDER_ERROR.SORT_BY);
 });
 
-test("Cria, busca e atualiza ordem de produÇõÇœo", async ({ request }) => {
+test("Cria, busca e atualiza ordem de producao", async ({ request }) => {
     const { recipe } = await createAuxRecipe(request);
+    const warehouse = await createAuxWarehouse(request);
     const code = `PRD${Date.now().toString().slice(-6)}`;
     const createRes = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 50.5, notes: null },
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 50.5,
+            notes: null,
+        },
     });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
@@ -134,6 +178,7 @@ test("Cria, busca e atualiza ordem de produÇõÇœo", async ({ request }) => {
             plannedQty: 60,
             code: fetched.code,
             recipeId: fetched.recipeId,
+            warehouseId: fetched.warehouseId,
         },
     });
     expect(updRes.status()).toBe(200);
@@ -143,6 +188,7 @@ test("Cria, busca e atualiza ordem de produÇõÇœo", async ({ request }) => {
 
 test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ request }) => {
     const { recipe } = await createAuxRecipe(request);
+    const warehouse = await createAuxWarehouse(request);
 
     const inputA = await createAuxProduct(
         request,
@@ -166,6 +212,7 @@ test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ re
             id: genId(),
             code,
             recipeId: recipe.id,
+            warehouseId: warehouse.id,
             plannedQty: 25,
             inputs: {
                 create: [
@@ -196,6 +243,7 @@ test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ re
         data: {
             code: createdFull.code,
             recipeId: createdFull.recipeId,
+            warehouseId: warehouse.id,
             plannedQty: Number(createdFull.plannedQty),
             status: createdFull.status,
             inputs: {
@@ -232,12 +280,155 @@ test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ re
     expect(addedC).toBeTruthy();
 });
 
-test("Busca e ordenaÇõÇœo de production orders por produto", async ({ request }) => {
+test("Finaliza ordem de producao movimentando estoque e custos", async ({ request }) => {
+    const warehouse = await createAuxWarehouse(request);
+
+    const finishedInitialQty = 1;
+    const finishedInitialCost = 2.5;
+    const finishedProduct = await createAuxProduct(
+        request,
+        ProductDefinitionType.FINISHED_PRODUCT,
+        "PROD_FIN",
+        { costValue: finishedInitialCost, saleValue: 12.5, quantity: finishedInitialQty }
+    );
+    const recipe = await createRecipeForProduct(
+        request,
+        finishedProduct.id,
+        "Receita para finalizacao"
+    );
+
+    const rawAUnitCost = 5;
+    const rawAQtyPerUnit = 0.5;
+    const rawAInitialQty = 10;
+    const rawA = await createAuxProduct(request, ProductDefinitionType.RAW_MATERIAL, "RAW_FIN_A", {
+        costValue: rawAUnitCost,
+        saleValue: 0,
+        quantity: rawAInitialQty,
+    });
+
+    const rawBUnitCost = 3.25;
+    const rawBQtyPerUnit = 0.25;
+    const rawBInitialQty = 6;
+    const rawB = await createAuxProduct(request, ProductDefinitionType.RAW_MATERIAL, "RAW_FIN_B", {
+        costValue: rawBUnitCost,
+        saleValue: 0,
+        quantity: rawBInitialQty,
+    });
+
+    const producedQty = 4;
+    const plannedQty = producedQty;
+    const code = `POFIN${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty,
+            inputs: {
+                create: [
+                    { productId: rawA.id, quantity: rawAQtyPerUnit, unitCost: rawAUnitCost },
+                    { productId: rawB.id, quantity: rawBQtyPerUnit, unitCost: rawBUnitCost },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const finalizeRes = await request.put(`${baseUrl}/production-orders/${created.id}`, {
+        data: {
+            code: created.code,
+            recipeId: created.recipeId,
+            warehouseId: warehouse.id,
+            plannedQty,
+            producedQty,
+            status: ProductionOrderStatus.FINISHED,
+        },
+    });
+    expect(finalizeRes.status()).toBe(200);
+    const { data: finalized } = await finalizeRes.json();
+    expect(finalized.status).toBe(ProductionOrderStatus.FINISHED);
+    expect(Number(finalized.producedQty)).toBeCloseTo(producedQty, 4);
+
+    const expectedRawABalance = rawAInitialQty - rawAQtyPerUnit * producedQty;
+    const expectedRawBBalance = rawBInitialQty - rawBQtyPerUnit * producedQty;
+    const totalProductionCost =
+        rawAQtyPerUnit * producedQty * rawAUnitCost + rawBQtyPerUnit * producedQty * rawBUnitCost;
+    const productionUnitCost = totalProductionCost / producedQty;
+    const expectedFinishedQty = finishedInitialQty + producedQty;
+    const expectedFinishedCost =
+        (finishedInitialQty * finishedInitialCost + producedQty * productionUnitCost) /
+        expectedFinishedQty;
+
+    const rawASnapshot = await getInventorySnapshot(request, rawA.id);
+    const rawBSnapshot = await getInventorySnapshot(request, rawB.id);
+    const finishedSnapshot = await getInventorySnapshot(request, finishedProduct.id);
+
+    expect(rawASnapshot.quantity).toBeCloseTo(expectedRawABalance, 4);
+    expect(rawBSnapshot.quantity).toBeCloseTo(expectedRawBBalance, 4);
+    expect(rawASnapshot.costValue).toBeCloseTo(rawAUnitCost, 4);
+    expect(rawBSnapshot.costValue).toBeCloseTo(rawBUnitCost, 4);
+    expect(finishedSnapshot.quantity).toBeCloseTo(expectedFinishedQty, 4);
+    expect(finishedSnapshot.costValue).toBeCloseTo(expectedFinishedCost, 4);
+
+    const rawAMovementsRes = await request.get(
+        `${baseUrl}/inventory-movement?productId=${rawA.id}`
+    );
+    expect(rawAMovementsRes.status()).toBe(200);
+    const { data: rawAMovements } = await rawAMovementsRes.json();
+    const rawAOut = rawAMovements.items.find(
+        (mv: { reference: string; direction: string }) =>
+            mv.reference === code && mv.direction === "OUT"
+    );
+    expect(rawAOut).toBeTruthy();
+    expect(Number(rawAOut.quantity)).toBeCloseTo(rawAQtyPerUnit * producedQty, 4);
+    expect(Number(rawAOut.balance)).toBeCloseTo(expectedRawABalance, 4);
+    expect(Number(rawAOut.unitCost)).toBeCloseTo(rawAUnitCost, 4);
+
+    const rawBMovementsRes = await request.get(
+        `${baseUrl}/inventory-movement?productId=${rawB.id}`
+    );
+    expect(rawBMovementsRes.status()).toBe(200);
+    const { data: rawBMovements } = await rawBMovementsRes.json();
+    const rawBOut = rawBMovements.items.find(
+        (mv: { reference: string; direction: string }) =>
+            mv.reference === code && mv.direction === "OUT"
+    );
+    expect(rawBOut).toBeTruthy();
+    expect(Number(rawBOut.quantity)).toBeCloseTo(rawBQtyPerUnit * producedQty, 4);
+    expect(Number(rawBOut.balance)).toBeCloseTo(expectedRawBBalance, 4);
+    expect(Number(rawBOut.unitCost)).toBeCloseTo(rawBUnitCost, 4);
+
+    const finishedMovementsRes = await request.get(
+        `${baseUrl}/inventory-movement?productId=${finishedProduct.id}`
+    );
+    expect(finishedMovementsRes.status()).toBe(200);
+    const { data: finishedMovements } = await finishedMovementsRes.json();
+    const prodIn = finishedMovements.items.find(
+        (mv: { reference: string; direction: string }) =>
+            mv.reference === code && mv.direction === "IN"
+    );
+    expect(prodIn).toBeTruthy();
+    expect(Number(prodIn.quantity)).toBeCloseTo(producedQty, 4);
+    expect(Number(prodIn.balance)).toBeCloseTo(expectedFinishedQty, 4);
+    expect(Number(prodIn.unitCost)).toBeCloseTo(productionUnitCost, 4);
+});
+
+test("Busca e ordenacao de production orders por produto", async ({ request }) => {
     const { recipe, product } = await createAuxRecipe(request);
+    const warehouse = await createAuxWarehouse(request);
     const code = `PRSRCH${Date.now().toString().slice(-6)}`;
 
     const createRes = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 15.5 },
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 15.5,
+        },
     });
     expect(createRes.status()).toBe(200);
 
@@ -266,13 +457,26 @@ test("Busca e ordenaÇõÇœo de production orders por produto", async ({ reques
 
 test("Criar ordem com code duplicado retorna 409", async ({ request }) => {
     const { recipe } = await createAuxRecipe(request);
+    const warehouse = await createAuxWarehouse(request);
     const code = `PDUP${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 10 },
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 10,
+        },
     });
     expect(res1.status()).toBe(200);
     const res2 = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, recipeId: recipe.id, plannedQty: 11 },
+        data: {
+            id: genId(),
+            code,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 11,
+        },
     });
     expect(res2.status()).toBe(409);
 });

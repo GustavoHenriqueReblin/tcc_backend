@@ -26,6 +26,16 @@ const createDefinition = async (request: APIRequestContext, type: ProductDefinit
     return data;
 };
 
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_POI_${Date.now().toString().slice(-6)}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
 const createProduct = async (
     request: APIRequestContext,
     type: ProductDefinitionType,
@@ -63,9 +73,10 @@ const createRecipe = async (
 };
 
 const createOrder = async (request: APIRequestContext, recipeId: number) => {
+    const warehouse = await createAuxWarehouse(request);
     const code = `PRODI_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/production-orders`, {
-        data: { id: genId(), code, recipeId, plannedQty: 20 },
+        data: { id: genId(), code, recipeId, warehouseId: warehouse.id, plannedQty: 20 },
     });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
