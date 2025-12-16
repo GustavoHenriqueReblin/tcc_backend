@@ -3,7 +3,13 @@ import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
-import { Prisma, ProductionOrderStatus } from "@prisma/client";
+import {
+    MovementSource,
+    MovementType,
+    Prisma,
+    ProductionOrder,
+    ProductionOrderStatus,
+} from "@prisma/client";
 import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 
@@ -16,6 +22,7 @@ export interface ProductionOrderPayload {
 
     status?: ProductionOrderStatus;
 
+    warehouseId: number;
     plannedQty: number;
     producedQty?: number | null;
     wasteQty?: number | null;
@@ -168,6 +175,7 @@ export class ProductionOrderService extends BaseService {
                             enterpriseId,
                             code: data.code,
                             recipeId: data.recipeId,
+                            warehouseId: data.warehouseId,
                             productId: recipe.productId,
                             lotId: data.lotId ?? null,
                             status: data.status ?? ProductionOrderStatus.PLANNED,
@@ -296,6 +304,20 @@ export class ProductionOrderService extends BaseService {
                         );
                     }
 
+                    const wasFinished = existing.status === ProductionOrderStatus.FINISHED;
+                    if (!wasFinished && order.status === ProductionOrderStatus.FINISHED) {
+                        const warehouse = await prisma.warehouse.findFirst({
+                            where: { id: data.warehouseId, enterpriseId },
+                            select: { id: true },
+                        });
+
+                        if (!warehouse) {
+                            throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
+                        }
+
+                        await this.finalizeProductionOrder(tx, enterpriseId, order, userId);
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -314,6 +336,163 @@ export class ProductionOrderService extends BaseService {
             enterpriseId
         );
 
+    private async finalizeProductionOrder(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        order: ProductionOrder,
+        userId: number
+    ) {
+        if (!order.producedQty || order.producedQty.lte(0)) {
+            throw new AppError(
+                "Quantidade produzida inválida",
+                400,
+                "PRODUCTION_ORDER:FINALIZE:INVALID_QTY"
+            );
+        }
+
+        if (!order.productId) {
+            throw new AppError(
+                "Produto final não definido na ordem",
+                400,
+                "PRODUCTION_ORDER:FINALIZE:NO_PRODUCT"
+            );
+        }
+
+        const inputs = await tx.productionOrderInput.findMany({
+            where: {
+                enterpriseId,
+                productionOrderId: order.id,
+            },
+            include: {
+                product: {
+                    include: {
+                        productInventory: true,
+                    },
+                },
+            },
+        });
+
+        if (!inputs.length) {
+            throw new AppError(
+                "Ordem não possui insumos",
+                400,
+                "PRODUCTION_ORDER:FINALIZE:NO_INPUTS"
+            );
+        }
+
+        let totalProductionCost = new Decimal(0);
+
+        for (const input of inputs) {
+            const inventory = input.product.productInventory?.[0];
+            const currentQty = inventory?.quantity ?? new Decimal(0);
+
+            const unitCost = input.unitCost ?? inventory?.costValue ?? new Decimal(0);
+
+            const totalConsumedQty = new Decimal(input.quantity).mul(order.producedQty);
+
+            if (currentQty.lt(totalConsumedQty)) {
+                throw new AppError(
+                    `Estoque insuficiente para ${input.product.name}`,
+                    400,
+                    "PRODUCTION_ORDER:FINALIZE:INSUFFICIENT_STOCK"
+                );
+            }
+
+            const newBalance = currentQty.minus(totalConsumedQty);
+            const inputTotalCost = totalConsumedQty.mul(unitCost);
+            totalProductionCost = totalProductionCost.plus(inputTotalCost);
+
+            await tx.inventoryMovement.create({
+                data: {
+                    enterpriseId,
+                    productId: input.productId,
+                    warehouseId: order.warehouseId,
+                    lotId: null,
+                    direction: MovementType.OUT,
+                    source: MovementSource.PRODUCTION,
+                    quantity: totalConsumedQty,
+                    balance: newBalance,
+                    unitCost,
+                    reference: order.code,
+                    notes: `Consumo de insumo na OP ${order.code}`,
+                    supplierId: null,
+                },
+            });
+
+            await tx.productInventory.update({
+                where: {
+                    enterpriseId_productId: {
+                        enterpriseId,
+                        productId: input.productId,
+                    },
+                },
+                data: {
+                    quantity: newBalance,
+                },
+            });
+        }
+
+        const producedQty = order.producedQty;
+        const productionUnitCost = totalProductionCost.div(producedQty);
+        const finishedInventory = await tx.productInventory.findUnique({
+            where: {
+                enterpriseId_productId: {
+                    enterpriseId,
+                    productId: order.productId,
+                },
+            },
+        });
+
+        const currentFinishedQty = finishedInventory?.quantity ?? new Decimal(0);
+        const currentCostValue = finishedInventory?.costValue ?? new Decimal(0);
+        const newFinishedQty = currentFinishedQty.plus(producedQty);
+        const newCostValue = currentFinishedQty.eq(0)
+            ? productionUnitCost
+            : currentFinishedQty
+                  .mul(currentCostValue)
+                  .plus(producedQty.mul(productionUnitCost))
+                  .div(newFinishedQty);
+
+        await tx.inventoryMovement.create({
+            data: {
+                enterpriseId,
+                productId: order.productId,
+                warehouseId: order.warehouseId,
+                lotId: order.lotId ?? null,
+                direction: MovementType.IN,
+                source: MovementSource.PRODUCTION,
+                quantity: producedQty,
+                balance: newFinishedQty,
+                unitCost: productionUnitCost,
+                reference: order.code,
+                notes: `Produção finalizada OP ${order.code}`,
+                supplierId: null,
+            },
+        });
+
+        await tx.productInventory.update({
+            where: {
+                enterpriseId_productId: {
+                    enterpriseId,
+                    productId: order.productId,
+                },
+            },
+            data: {
+                quantity: newFinishedQty,
+                costValue: newCostValue,
+            },
+        });
+
+        await tx.audit.create({
+            data: {
+                userId,
+                enterpriseId,
+                action: `Finalized production order ${order.code}`,
+                entity: "ProductionOrder",
+            },
+        });
+    }
+
     private async syncProductionOrderInputs(
         tx: Prisma.TransactionClient,
         enterpriseId: number,
@@ -326,9 +505,6 @@ export class ProductionOrderService extends BaseService {
 
         if (!create.length && !update.length && !remove.length) return;
 
-        /**
-         * 1. Validar produtos (FK)
-         */
         const productIds = Array.from(
             new Set([
                 ...create.map((item) => item.productId),
@@ -356,9 +532,6 @@ export class ProductionOrderService extends BaseService {
             }
         }
 
-        /**
-         * 2. Validar se os inputs pertencem à OP
-         */
         const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
 
         if (targetIds.length) {
@@ -380,9 +553,6 @@ export class ProductionOrderService extends BaseService {
             }
         }
 
-        /**
-         * 3. Remover
-         */
         if (remove.length) {
             await tx.productionOrderInput.deleteMany({
                 where: {
@@ -393,9 +563,6 @@ export class ProductionOrderService extends BaseService {
             });
         }
 
-        /**
-         * 4. Atualizar
-         */
         for (const item of update) {
             await tx.productionOrderInput.update({
                 where: { id: item.id },
@@ -414,9 +581,6 @@ export class ProductionOrderService extends BaseService {
             });
         }
 
-        /**
-         * 5. Criar
-         */
         for (const item of create) {
             await tx.productionOrderInput.create({
                 data: {

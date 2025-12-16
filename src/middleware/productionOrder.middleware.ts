@@ -79,7 +79,13 @@ export const validateProductionOrderListQuery =
 export const validateProductionOrderFields = (req: Request, res: Response, next: NextFunction) => {
     const order = req.body as ProductionOrderPayload;
 
-    if (!order || !order.code || !order.recipeId || order.plannedQty === undefined) {
+    if (
+        !order ||
+        !order.code ||
+        !order.recipeId ||
+        !order.warehouseId ||
+        order.plannedQty === undefined
+    ) {
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.MISSING_FIELDS });
     }
 

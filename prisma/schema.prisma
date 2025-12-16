@@ -64,6 +64,7 @@ enum MovementSource {
   HARVEST // entrada colhida
   SALE // saída por pedido
   ADJUSTMENT // ajuste manual
+  PRODUCTION // produção
 }
 
 enum ProductionOrderStatus {
@@ -500,8 +501,9 @@ model Warehouse {
   createdAt    DateTime @default(now()) @db.Timestamp(3)
   updatedAt    DateTime @updatedAt @db.Timestamp(3)
 
-  enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
-  movements  InventoryMovement[]
+  enterprise       Enterprise          @relation(fields: [enterpriseId], references: [id])
+  movements        InventoryMovement[]
+  productionOrders ProductionOrder[]
 
   @@unique([enterpriseId, code])
   /// Depósitos/almoxarifados da empresa.
@@ -599,6 +601,7 @@ model ProductionOrder {
   enterpriseId Int
   code         String                @unique @db.VarChar(40)
   recipeId     Int // receita que é vinculada ao produto final
+  warehouseId  Int // depósito onde a produção será realizada
   lotId        Int? // lote gerado
   status       ProductionOrderStatus @default(PLANNED)
   plannedQty   Decimal               @db.Decimal(14, 6)
@@ -612,6 +615,7 @@ model ProductionOrder {
 
   enterprise Enterprise             @relation(fields: [enterpriseId], references: [id])
   recipe     Recipe                 @relation(fields: [recipeId], references: [id])
+  warehouse  Warehouse              @relation(fields: [warehouseId], references: [id])
   lot        Lot?                   @relation(fields: [lotId], references: [id])
   inputs     ProductionOrderInput[]
   Product    Product?               @relation(fields: [productId], references: [id])
