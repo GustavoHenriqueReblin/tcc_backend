@@ -5,8 +5,24 @@ import { productionOrderService as service } from "@services/services";
 import { ProductionOrderStatus } from "@prisma/client";
 
 export const getAllProductionOrders = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", status, search, sortBy, sortOrder } = req.query;
+    const {
+        page = "1",
+        limit = "10",
+        status,
+        search,
+        sortBy,
+        sortOrder,
+        productId,
+        startDateFrom,
+        startDateTo,
+        endDateFrom,
+        endDateTo,
+    } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
+
+    const parsedProductId = productId !== undefined ? Number(productId) : undefined;
+    const parseDate = (value?: unknown) =>
+        value !== undefined && value !== null ? new Date(value.toString()) : undefined;
 
     const result = await service.getAll(
         enterpriseId,
@@ -15,7 +31,12 @@ export const getAllProductionOrders = async (req: Request, res: Response) => {
         status ? (status as ProductionOrderStatus) : undefined,
         search?.toString() ?? undefined,
         sortBy?.toString(),
-        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc",
+        parsedProductId,
+        parseDate(startDateFrom),
+        parseDate(startDateTo),
+        parseDate(endDateFrom),
+        parseDate(endDateTo)
     );
     return sendResponse(res, result, "Production orders fetched successfully");
 };

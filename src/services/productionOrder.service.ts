@@ -62,7 +62,12 @@ export class ProductionOrderService extends BaseService {
         status?: ProductionOrderStatus,
         search?: string | null,
         sortBy?: string,
-        sortOrder?: "asc" | "desc"
+        sortOrder?: "asc" | "desc",
+        productId?: number,
+        startDateFrom?: Date,
+        startDateTo?: Date,
+        endDateFrom?: Date,
+        endDateTo?: Date
     ) =>
         this.safeQuery(
             async () => {
@@ -74,6 +79,25 @@ export class ProductionOrderService extends BaseService {
                 const where = {
                     enterpriseId,
                     ...(status && { status }),
+                    ...(typeof productId === "number" ? { productId } : {}),
+
+                    ...(startDateFrom || startDateTo
+                        ? {
+                              startDate: {
+                                  ...(startDateFrom ? { gte: startDateFrom } : {}),
+                                  ...(startDateTo ? { lte: startDateTo } : {}),
+                              },
+                          }
+                        : {}),
+
+                    ...(endDateFrom || endDateTo
+                        ? {
+                              endDate: {
+                                  ...(endDateFrom ? { gte: endDateFrom } : {}),
+                                  ...(endDateTo ? { lte: endDateTo } : {}),
+                              },
+                          }
+                        : {}),
 
                     ...(search
                         ? {
@@ -137,7 +161,11 @@ export class ProductionOrderService extends BaseService {
             async () =>
                 prisma.productionOrder.findUnique({
                     where: { id, enterpriseId },
-                    include: { recipe: { include: { product: true } }, lot: true, inputs: true },
+                    include: {
+                        recipe: { include: { product: { include: { unity: true } } } },
+                        lot: true,
+                        inputs: { include: { product: { include: { unity: true } } } },
+                    },
                 }),
             "PRODUCTION_ORDER:getById",
             enterpriseId

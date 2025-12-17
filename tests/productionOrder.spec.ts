@@ -147,6 +147,34 @@ test("Validacao de id, paginacao e ordenacao de production order", async ({ requ
     expect(bodyInvalidSortBy.message).toContain(PRODUCTION_ORDER_ERROR.SORT_BY);
 });
 
+test("Validacao de filtros productId e datas em production order", async ({ request }) => {
+    const resInvalidProduct = await request.get(`${baseUrl}/production-orders?productId=abc`);
+    expect(resInvalidProduct.status()).toBe(400);
+    const bodyInvalidProduct = await resInvalidProduct.json();
+    expect(bodyInvalidProduct.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_PRODUCT);
+
+    const resInvalidStartDate = await request.get(
+        `${baseUrl}/production-orders?startDateFrom=data-invalida`
+    );
+    expect(resInvalidStartDate.status()).toBe(400);
+    const bodyInvalidStartDate = await resInvalidStartDate.json();
+    expect(bodyInvalidStartDate.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_START_DATE);
+
+    const resInvalidEndDate = await request.get(
+        `${baseUrl}/production-orders?endDateTo=data-invalida`
+    );
+    expect(resInvalidEndDate.status()).toBe(400);
+    const bodyInvalidEndDate = await resInvalidEndDate.json();
+    expect(bodyInvalidEndDate.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_END_DATE);
+
+    const resInvalidRange = await request.get(
+        `${baseUrl}/production-orders?startDateFrom=2024-05-10T00:00:00.000Z&startDateTo=2024-05-01T00:00:00.000Z`
+    );
+    expect(resInvalidRange.status()).toBe(400);
+    const bodyInvalidRange = await resInvalidRange.json();
+    expect(bodyInvalidRange.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_PERIOD_RANGE);
+});
+
 test("Cria, busca e atualiza ordem de producao", async ({ request }) => {
     const { recipe } = await createAuxRecipe(request);
     const warehouse = await createAuxWarehouse(request);
@@ -453,6 +481,87 @@ test("Busca e ordenacao de production orders por produto", async ({ request }) =
     );
     const sortedDates = [...createdDates].sort((a, b) => a - b);
     expect(createdDates).toEqual(sortedDates);
+});
+
+test("Filtra production orders por productId e periodo de datas", async ({ request }) => {
+    const warehouse = await createAuxWarehouse(request);
+    const { recipe, product } = await createAuxRecipe(request);
+
+    const startInRange = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const endInRange = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
+    const startOutRange = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+    const endOutRange = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const resInRange = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code: `POPER${Date.now().toString().slice(-6)}`,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 12,
+            startDate: startInRange,
+            endDate: endInRange,
+        },
+    });
+    expect(resInRange.status()).toBe(200);
+    const { data: orderInRange } = await resInRange.json();
+
+    const resOutRange = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code: `POPER${(Date.now() + 1).toString().slice(-6)}`,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 8,
+            startDate: startOutRange,
+            endDate: endOutRange,
+            status: ProductionOrderStatus.RUNNING,
+        },
+    });
+    expect(resOutRange.status()).toBe(200);
+    const { data: orderOutRange } = await resOutRange.json();
+
+    const startFromFilter = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const startToFilter = new Date(Date.now()).toISOString();
+    const endFromFilter = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const endToFilter = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString();
+
+    const filterRes = await request.get(
+        `${baseUrl}/production-orders?productId=${product.id}&status=${ProductionOrderStatus.PLANNED}&startDateFrom=${encodeURIComponent(
+            startFromFilter
+        )}&startDateTo=${encodeURIComponent(startToFilter)}&endDateFrom=${encodeURIComponent(
+            endFromFilter
+        )}&endDateTo=${encodeURIComponent(endToFilter)}`
+    );
+    expect(filterRes.status()).toBe(200);
+    const { data: filtered } = await filterRes.json();
+
+    expect(filtered.items.length).toBeGreaterThan(0);
+    expect(
+        filtered.items.find((order: { id: number }) => order.id === orderOutRange.id)
+    ).toBeUndefined();
+    expect(
+        filtered.items.find((order: { id: number }) => order.id === orderInRange.id)
+    ).toBeTruthy();
+
+    filtered.items.forEach(
+        (order: { productId: number; startDate: string; endDate: string; status: string }) => {
+            expect(order.productId).toBe(product.id);
+            expect(order.status).toBe(ProductionOrderStatus.PLANNED);
+            expect(new Date(order.startDate).getTime()).toBeGreaterThanOrEqual(
+                new Date(startFromFilter).getTime()
+            );
+            expect(new Date(order.startDate).getTime()).toBeLessThanOrEqual(
+                new Date(startToFilter).getTime()
+            );
+            expect(new Date(order.endDate).getTime()).toBeGreaterThanOrEqual(
+                new Date(endFromFilter).getTime()
+            );
+            expect(new Date(order.endDate).getTime()).toBeLessThanOrEqual(
+                new Date(endToFilter).getTime()
+            );
+        }
+    );
 });
 
 test("Criar ordem com code duplicado retorna 409", async ({ request }) => {

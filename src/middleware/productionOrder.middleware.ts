@@ -6,6 +6,10 @@ export const PRODUCTION_ORDER_ERROR = {
     ID: "Invalid Id parameter",
     PAGINATION: "page and limit must be numbers",
     INVALID_STATUS: "status must be a valid ProductionOrderStatus",
+    INVALID_PRODUCT: "productId must be a number",
+    INVALID_START_DATE: "startDateFrom and startDateTo must be valid dates",
+    INVALID_END_DATE: "endDateFrom and endDateTo must be valid dates",
+    INVALID_PERIOD_RANGE: "start/end date ranges are invalid",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
     SEARCH: "search filter is not allowed for this resource",
@@ -33,10 +37,28 @@ export const validateProductionOrderListQuery =
     (req: Request, res: Response, next: NextFunction) => {
         const { allowSearch = true, allowedSortFields = [] } = options;
 
-        let { page = "1", limit = "10", search, sortBy, sortOrder, status } = req.query;
+        let {
+            page = "1",
+            limit = "10",
+            search,
+            sortBy,
+            sortOrder,
+            status,
+            productId,
+            startDateFrom,
+            startDateTo,
+            endDateFrom,
+            endDateTo,
+        } = req.query;
 
         const pageNum = Number(page);
         const limitNum = Number(limit);
+        const normalizedProductId =
+            productId !== undefined && productId !== null ? productId.toString().trim() : undefined;
+        const productIdNum =
+            normalizedProductId !== undefined && normalizedProductId.length > 0
+                ? Number(normalizedProductId)
+                : undefined;
 
         if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
             return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.PAGINATION });
@@ -49,6 +71,51 @@ export const validateProductionOrderListQuery =
         if (typeof search === "string") {
             search = search.trim();
             if (search.length === 0) search = undefined;
+        }
+
+        if (
+            normalizedProductId !== undefined &&
+            normalizedProductId.length > 0 &&
+            Number.isNaN(productIdNum)
+        ) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_PRODUCT });
+        }
+
+        const parseDate = (value?: unknown) => {
+            if (value === undefined || value === null) return undefined;
+            const parsed = value.toString().trim();
+            if (parsed.length === 0) return undefined;
+
+            const dateVal = new Date(parsed);
+            if (Number.isNaN(dateVal.getTime())) return null;
+            return dateVal;
+        };
+
+        const startDateFromVal = parseDate(startDateFrom);
+        if (startDateFromVal === null) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_START_DATE });
+        }
+
+        const startDateToVal = parseDate(startDateTo);
+        if (startDateToVal === null) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_START_DATE });
+        }
+
+        const endDateFromVal = parseDate(endDateFrom);
+        if (endDateFromVal === null) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_END_DATE });
+        }
+
+        const endDateToVal = parseDate(endDateTo);
+        if (endDateToVal === null) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_END_DATE });
+        }
+
+        if (
+            (startDateFromVal && startDateToVal && startDateFromVal > startDateToVal) ||
+            (endDateFromVal && endDateToVal && endDateFromVal > endDateToVal)
+        ) {
+            return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_PERIOD_RANGE });
         }
 
         if (
@@ -68,6 +135,11 @@ export const validateProductionOrderListQuery =
 
         req.query.page = pageNum.toString();
         req.query.limit = limitNum.toString();
+        req.query.productId = productIdNum !== undefined ? productIdNum.toString() : undefined;
+        req.query.startDateFrom = startDateFromVal ? startDateFromVal.toISOString() : undefined;
+        req.query.startDateTo = startDateToVal ? startDateToVal.toISOString() : undefined;
+        req.query.endDateFrom = endDateFromVal ? endDateFromVal.toISOString() : undefined;
+        req.query.endDateTo = endDateToVal ? endDateToVal.toISOString() : undefined;
         req.query.search = search?.toString();
         req.query.sortBy = sortBy?.toString();
         req.query.sortOrder = sortOrder?.toString() || "desc";
