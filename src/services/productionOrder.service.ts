@@ -132,20 +132,6 @@ export class ProductionOrderService extends BaseService {
                         : {}),
                 };
 
-                console.log({
-    enterpriseId,
-    startDateFrom,
-    startDateTo,
-    startDateFromISO: startDateFrom?.toISOString(),
-    startDateToISO: startDateTo?.toISOString(),
-});
-
-console.log({
-    startFrom: startDateFrom ? startOfDayUTC(startDateFrom).toISOString() : null,
-    startTo: startDateTo ? endOfDayUTC(startDateTo).toISOString() : null,
-});
-
-
                 const validSortFields = productionOrderAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
