@@ -33,3 +33,15 @@ export const parseTimeToMs = (value: string): number => {
             throw new Error(`Unknown time unit: ${unit}`);
     }
 };
+
+export function startOfDayUTC(date: Date) {
+    return new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0)
+    );
+}
+
+export function endOfDayUTC(date: Date) {
+    return new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999)
+    );
+}

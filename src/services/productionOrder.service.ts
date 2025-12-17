@@ -12,6 +12,7 @@ import {
 } from "@prisma/client";
 import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
+import { endOfDayUTC, startOfDayUTC } from "@utils/functions";
 
 export interface ProductionOrderPayload {
     id?: number;
@@ -83,30 +84,39 @@ export class ProductionOrderService extends BaseService {
 
                     ...(startDateFrom || startDateTo
                         ? {
-                              startDate: {
-                                  ...(startDateFrom ? { gte: startDateFrom } : {}),
-                                  ...(startDateTo ? { lte: startDateTo } : {}),
-                              },
-                          }
-                        : {}),
+                              AND: [
+                                  ...(startDateTo
+                                      ? [
+                                            {
+                                                startDate: {
+                                                    lte: endOfDayUTC(startDateTo),
+                                                },
+                                            },
+                                        ]
+                                      : []),
 
-                    ...(endDateFrom || endDateTo
-                        ? {
-                              endDate: {
-                                  ...(endDateFrom ? { gte: endDateFrom } : {}),
-                                  ...(endDateTo ? { lte: endDateTo } : {}),
-                              },
+                                  ...(startDateFrom
+                                      ? [
+                                            {
+                                                OR: [
+                                                    { endDate: null },
+                                                    {
+                                                        endDate: {
+                                                            gte: startOfDayUTC(startDateFrom),
+                                                        },
+                                                    },
+                                                ],
+                                            },
+                                        ]
+                                      : []),
+                              ],
                           }
                         : {}),
 
                     ...(search
                         ? {
                               OR: [
-                                  {
-                                      code: {
-                                          contains: search,
-                                      },
-                                  },
+                                  { code: { contains: search } },
                                   {
                                       recipe: {
                                           product: {
@@ -121,6 +131,20 @@ export class ProductionOrderService extends BaseService {
                           }
                         : {}),
                 };
+
+                console.log({
+    enterpriseId,
+    startDateFrom,
+    startDateTo,
+    startDateFromISO: startDateFrom?.toISOString(),
+    startDateToISO: startDateTo?.toISOString(),
+});
+
+console.log({
+    startFrom: startDateFrom ? startOfDayUTC(startDateFrom).toISOString() : null,
+    startTo: startDateTo ? endOfDayUTC(startDateTo).toISOString() : null,
+});
+
 
                 const validSortFields = productionOrderAllowedSortFields;
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
