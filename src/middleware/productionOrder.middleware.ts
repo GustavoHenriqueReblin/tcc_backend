@@ -161,12 +161,11 @@ export const validateProductionOrderFields = (req: Request, res: Response, next:
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.MISSING_FIELDS });
     }
 
+    const otherCostsValue = Number(order.otherCosts);
     const invalidOtherCosts =
         order.otherCosts !== undefined &&
         order.otherCosts !== null &&
-        (typeof order.otherCosts !== "number" ||
-            Number.isNaN(order.otherCosts) ||
-            order.otherCosts < 0);
+        (Number.isNaN(otherCostsValue) || otherCostsValue < 0);
 
     if (invalidOtherCosts) {
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.WRONG_FIELD_VALUE });
