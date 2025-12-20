@@ -84,11 +84,11 @@ export class RecipeService extends BaseService {
                     prisma.recipe.findMany({
                         where,
                         include: {
-                            product: { include: { unity: true } },
+                            product: { include: { unity: true, productInventory: true } },
                             items: {
                                 include: {
                                     product: {
-                                        include: { unity: true },
+                                        include: { unity: true, productInventory: true },
                                     },
                                 },
                             },
@@ -119,8 +119,12 @@ export class RecipeService extends BaseService {
                 prisma.recipe.findUnique({
                     where: { id, enterpriseId },
                     include: {
-                        product: { include: { unity: true } },
-                        items: { include: { product: { include: { unity: true } } } },
+                        product: { include: { unity: true, productInventory: true } },
+                        items: {
+                            include: {
+                                product: { include: { unity: true, productInventory: true } },
+                            },
+                        },
                     },
                 }),
             "RECIPE:getById",
