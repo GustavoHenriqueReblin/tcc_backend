@@ -173,7 +173,26 @@ export class SupplierService extends BaseService {
                         where: { taxId: data.person.taxId, enterpriseId },
                     });
 
-                    if (!existingPerson) {
+                    const duplicate = await tx.supplier.findFirst({
+                        where: {
+                            enterpriseId,
+                            person: {
+                                taxId: data.person.taxId,
+                            },
+                        },
+                        include: {
+                            person: true,
+                        },
+                    });
+
+                    if (duplicate && duplicate.id !== existingPerson?.id)
+                        throw new AppError(
+                            `CPF/CNPJ ${data.person.taxId} já está vinculado a outro fornecedor`,
+                            409,
+                            "SUPPLIER:update"
+                        );
+
+                    if (!existingPerson || !data.person.taxId) {
                         const newPerson = await tx.person.create({
                             data: {
                                 ...(env.ENVIRONMENT !== "PRODUCTION" &&
@@ -339,7 +358,7 @@ export class SupplierService extends BaseService {
                         );
                     }
 
-                    const duplicate = await prisma.customer.findFirst({
+                    const duplicate = await prisma.supplier.findFirst({
                         where: {
                             enterpriseId,
                             person: {
@@ -355,7 +374,7 @@ export class SupplierService extends BaseService {
                         throw new AppError(
                             `CPF/CNPJ ${data.person.taxId} já está vinculado a outro fornecedor`,
                             409,
-                            "CUSTOMER:create"
+                            "SUPPLIER:update"
                         );
                 }
 

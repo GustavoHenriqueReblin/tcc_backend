@@ -136,13 +136,21 @@ export const generateData = async () => {
             postalCode: "89900000",
         };
 
-        const userPerson = await prisma.person.upsert({
+        const existingPerson = await prisma.person.findFirst({
             where: {
-                enterpriseId_taxId: { enterpriseId, taxId: userPersonData.taxId },
+                enterpriseId,
+                taxId: userPersonData.taxId,
             },
-            update: userPersonData,
-            create: userPersonData,
         });
+
+        const userPerson = existingPerson
+            ? await prisma.person.update({
+                  where: { id: existingPerson.id },
+                  data: userPersonData,
+              })
+            : await prisma.person.create({
+                  data: userPersonData,
+              });
 
         const userData = {
             id: genId(),
@@ -235,16 +243,21 @@ export const generateData = async () => {
                 ...customerData.person,
             };
 
-            const person = await prisma.person.upsert({
+            const existing = await prisma.person.findFirst({
                 where: {
-                    enterpriseId_taxId: {
-                        enterpriseId,
-                        taxId: customerData.person.taxId,
-                    },
+                    enterpriseId,
+                    taxId: customerData.person.taxId,
                 },
-                update: personData,
-                create: personData,
             });
+
+            const person = existing
+                ? await prisma.person.update({
+                      where: { id: existing.id },
+                      data: personData,
+                  })
+                : await prisma.person.create({
+                      data: personData,
+                  });
 
             // Cliente
             const customerId = genId();
@@ -340,16 +353,21 @@ export const generateData = async () => {
                     ...supplierData.person,
                 };
 
-                const person = await prisma.person.upsert({
+                const existingPerson = await prisma.person.findFirst({
                     where: {
-                        enterpriseId_taxId: {
-                            enterpriseId,
-                            taxId: supplierData.person.taxId,
-                        },
+                        enterpriseId,
+                        taxId: supplierData.person.taxId,
                     },
-                    update: personData,
-                    create: personData,
                 });
+
+                const person = existingPerson
+                    ? await prisma.person.update({
+                          where: { id: existingPerson.id },
+                          data: personData,
+                      })
+                    : await prisma.person.create({
+                          data: personData,
+                      });
 
                 const supplierId = genId();
                 await prisma.supplier.upsert({

@@ -175,7 +175,26 @@ export class CustomerService extends BaseService {
                         where: { taxId: data.person.taxId, enterpriseId },
                     });
 
-                    if (!existingPerson) {
+                    const duplicate = await prisma.customer.findFirst({
+                        where: {
+                            enterpriseId,
+                            person: {
+                                taxId: data.person.taxId,
+                            },
+                        },
+                        include: {
+                            person: true,
+                        },
+                    });
+
+                    if (duplicate && duplicate.id !== existingPerson?.id)
+                        throw new AppError(
+                            `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
+                            409,
+                            "CUSTOMER:create"
+                        );
+
+                    if (!existingPerson || !data.person.taxId) {
                         const newPerson = await tx.person.create({
                             data: {
                                 ...(env.ENVIRONMENT !== "PRODUCTION" &&

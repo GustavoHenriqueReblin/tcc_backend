@@ -264,7 +264,6 @@ model Person {
   customer   Customer[]
   suppliers  Supplier[]
 
-  @@unique([enterpriseId, taxId])
   /// Pessoas físicas ou jurídicas vinculadas à empresa.
   @@map("person")
 }
