@@ -71,22 +71,19 @@ export const clearData = async () => {
 export const generateData = async () => {
     if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados de teste...");
 
-    const country = await prisma.country.upsert({
+    const [cityCount, stateCount] = await Promise.all([prisma.city.count(), prisma.state.count()]);
+    if (cityCount < 4000 || stateCount < 20) await insertGeoData();
+
+    const country = await prisma.country.findFirst({
         where: { isoCode: "BRA" },
-        update: {},
-        create: { name: "Brazil", isoCode: "BRA" },
     });
 
-    const state = await prisma.state.upsert({
+    const state = await prisma.state.findFirst({
         where: { ibgeCode: 42 },
-        update: {},
-        create: { name: "Santa Catarina", uf: "SC", ibgeCode: 42, countryId: country.id },
     });
 
-    const city = await prisma.city.upsert({
-        where: { ibgeCode: 4217202 },
-        update: {},
-        create: { name: "São Miguel do Oeste", ibgeCode: 4217202, stateId: state.id },
+    const city = await prisma.city.findFirst({
+        where: { ibgeCode: 4217204 },
     });
 
     // 3 empresas com Ids negativos
@@ -95,9 +92,9 @@ export const generateData = async () => {
 
         const enterpriseData = {
             id: enterpriseId,
-            countryId: country.id,
-            stateId: state.id,
-            cityId: city.id,
+            countryId: country?.id ?? 0,
+            stateId: state?.id ?? 0,
+            cityId: city?.id ?? 0,
             name: `TCC Test Factory ${i}`,
             legalName: `TCC Test Factory LTDA ${i}`,
             taxId: `999.000.00${i}/0001-00`,
@@ -123,9 +120,9 @@ export const generateData = async () => {
         const userPersonData = {
             id: genId(),
             enterpriseId,
-            countryId: country.id,
-            stateId: state.id,
-            cityId: city.id,
+            countryId: country?.id ?? 0,
+            stateId: state?.id ?? 0,
+            cityId: city?.id ?? 0,
             name: "Gustavo Hique",
             legalName: "Gustavo Hique",
             taxId: `123.456.789-${i}0`,
@@ -232,9 +229,9 @@ export const generateData = async () => {
             const personData = {
                 id: genId(),
                 enterpriseId,
-                countryId: country.id,
-                stateId: state.id,
-                cityId: city.id,
+                countryId: country?.id ?? 0,
+                stateId: state?.id ?? 0,
+                cityId: city?.id ?? 0,
                 ...customerData.person,
             };
 
@@ -337,9 +334,9 @@ export const generateData = async () => {
                 const personData = {
                     id: genId(),
                     enterpriseId,
-                    countryId: country.id,
-                    stateId: state.id,
-                    cityId: city.id,
+                    countryId: country?.id ?? 0,
+                    stateId: state?.id ?? 0,
+                    cityId: city?.id ?? 0,
                     ...supplierData.person,
                 };
 
@@ -411,9 +408,9 @@ export const generateData = async () => {
                 id: genId(),
                 customerId: customer.id,
                 enterpriseId,
-                cityId: city.id,
-                stateId: state.id,
-                countryId: country.id,
+                cityId: city?.id ?? 0,
+                stateId: state?.id ?? 0,
+                countryId: country?.id ?? 0,
             }));
 
             await prisma.deliveryAddress.deleteMany({
@@ -1024,9 +1021,6 @@ export const generateData = async () => {
             });
         }
     }
-
-    const [cityCount, stateCount] = await Promise.all([prisma.city.count(), prisma.state.count()]);
-    if (cityCount < 4000 || stateCount < 20) await insertGeoData();
 
     if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Seed de teste finalizada com sucesso!");
 
