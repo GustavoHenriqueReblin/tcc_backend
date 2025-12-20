@@ -607,6 +607,7 @@ model ProductionOrder {
   plannedQty   Decimal               @db.Decimal(14, 6)
   producedQty  Decimal?              @db.Decimal(14, 6)
   wasteQty     Decimal?              @db.Decimal(14, 6)
+  otherCosts   Decimal?              @db.Decimal(14, 6)
   startDate    DateTime?
   endDate      DateTime?
   notes        String?

@@ -187,18 +187,21 @@ test("Cria, busca e atualiza ordem de producao", async ({ request }) => {
             warehouseId: warehouse.id,
             plannedQty: 50.5,
             notes: null,
+            otherCosts: 12.34,
         },
     });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
     expect(created.code).toBe(code);
     expect(created.recipeId).toBe(recipe.id);
+    expect(Number(created.otherCosts)).toBeCloseTo(12.34, 4);
 
     const getRes = await request.get(`${baseUrl}/production-orders/${created.id}`);
     expect(getRes.status()).toBe(200);
     const { data: fetched } = await getRes.json();
     expect(fetched.id).toBe(created.id);
     expect(fetched.recipeId).toBe(recipe.id);
+    expect(Number(fetched.otherCosts)).toBeCloseTo(12.34, 4);
 
     const updRes = await request.put(`${baseUrl}/production-orders/${created.id}`, {
         data: {
@@ -207,11 +210,13 @@ test("Cria, busca e atualiza ordem de producao", async ({ request }) => {
             code: fetched.code,
             recipeId: fetched.recipeId,
             warehouseId: fetched.warehouseId,
+            otherCosts: 0,
         },
     });
     expect(updRes.status()).toBe(200);
     const { data: updated } = await updRes.json();
     expect(updated.status).toBe(ProductionOrderStatus.RUNNING);
+    expect(Number(updated.otherCosts)).toBe(0);
 });
 
 test("Permite cadastrar e atualizar inputs pelo endpoint principal", async ({ request }) => {
@@ -345,6 +350,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
 
     const producedQty = 4;
     const plannedQty = producedQty;
+    const otherCosts = 10.5;
     const code = `POFIN${Date.now().toString().slice(-6)}`;
 
     const createRes = await request.post(`${baseUrl}/production-orders`, {
@@ -354,6 +360,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
             recipeId: recipe.id,
             warehouseId: warehouse.id,
             plannedQty,
+            otherCosts,
             inputs: {
                 create: [
                     { productId: rawA.id, quantity: rawAQtyPerUnit, unitCost: rawAUnitCost },
@@ -373,6 +380,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
             plannedQty,
             producedQty,
             status: ProductionOrderStatus.FINISHED,
+            otherCosts,
         },
     });
     expect(finalizeRes.status()).toBe(200);
@@ -383,7 +391,9 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
     const expectedRawABalance = rawAInitialQty - rawAQtyPerUnit * producedQty;
     const expectedRawBBalance = rawBInitialQty - rawBQtyPerUnit * producedQty;
     const totalProductionCost =
-        rawAQtyPerUnit * producedQty * rawAUnitCost + rawBQtyPerUnit * producedQty * rawBUnitCost;
+        rawAQtyPerUnit * producedQty * rawAUnitCost +
+        rawBQtyPerUnit * producedQty * rawBUnitCost +
+        otherCosts;
     const productionUnitCost = totalProductionCost / producedQty;
     const expectedFinishedQty = finishedInitialQty + producedQty;
     const expectedFinishedCost =

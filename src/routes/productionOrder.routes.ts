@@ -18,6 +18,7 @@ export const productionOrderAllowedSortFields = [
     "plannedQty",
     "producedQty",
     "wasteQty",
+    "otherCosts",
     "startDate",
     "endDate",
     "createdAt",

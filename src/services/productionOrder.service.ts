@@ -27,6 +27,7 @@ export interface ProductionOrderPayload {
     plannedQty: number;
     producedQty?: number | null;
     wasteQty?: number | null;
+    otherCosts?: number | null;
 
     startDate?: Date | string | null;
     endDate?: Date | string | null;
@@ -226,6 +227,10 @@ export class ProductionOrderService extends BaseService {
                                 data.wasteQty !== undefined && data.wasteQty !== null
                                     ? new Decimal(data.wasteQty)
                                     : null,
+                            otherCosts:
+                                data.otherCosts !== undefined && data.otherCosts !== null
+                                    ? new Decimal(data.otherCosts)
+                                    : null,
                             startDate: data.startDate ? new Date(data.startDate) : null,
                             endDate: data.endDate ? new Date(data.endDate) : null,
                             notes: data.notes ?? null,
@@ -324,6 +329,10 @@ export class ProductionOrderService extends BaseService {
                                 data.wasteQty !== undefined && data.wasteQty !== null
                                     ? new Decimal(data.wasteQty)
                                     : existing.wasteQty,
+                            otherCosts:
+                                data.otherCosts !== undefined && data.otherCosts !== null
+                                    ? new Decimal(data.otherCosts)
+                                    : (existing.otherCosts ?? null),
                             startDate: data.startDate
                                 ? new Date(data.startDate)
                                 : existing.startDate,
@@ -419,6 +428,7 @@ export class ProductionOrderService extends BaseService {
         }
 
         let totalProductionCost = new Decimal(0);
+        const extraCosts = order.otherCosts ?? new Decimal(0);
 
         for (const input of inputs) {
             const inventory = input.product.productInventory?.[0];
@@ -471,7 +481,7 @@ export class ProductionOrderService extends BaseService {
         }
 
         const producedQty = order.producedQty;
-        const productionUnitCost = totalProductionCost.div(producedQty);
+        const productionUnitCost = totalProductionCost.plus(extraCosts).div(producedQty);
         const finishedInventory = await tx.productInventory.findUnique({
             where: {
                 enterpriseId_productId: {
