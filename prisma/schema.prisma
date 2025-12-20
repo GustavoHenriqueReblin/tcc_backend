@@ -191,8 +191,8 @@ model Enterprise {
   branch            Branch         @default(INDUSTRY)
   plan              Plan           @default(START)
   status            Status         @default(ACTIVE)
-  createdAt         DateTime       @default(now()) @db.Timestamp(3)
-  updatedAt         DateTime       @updatedAt @db.Timestamp(3)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   country              Country                @relation(fields: [countryId], references: [id])
   state                State                  @relation(fields: [stateId], references: [id])
@@ -253,8 +253,8 @@ model Person {
   phone         String?        @db.VarChar(40)
   cellphone     String?        @db.VarChar(40)
   dateOfBirth   DateTime?      @db.Date
-  createdAt     DateTime       @default(now()) @db.Timestamp(3)
-  updatedAt     DateTime       @updatedAt @db.Timestamp(3)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   country    Country?   @relation(fields: [countryId], references: [id])
@@ -277,8 +277,8 @@ model User {
   password     String   @db.VarChar(80)
   status       Status   @default(ACTIVE)
   role         Role     @default(EMPLOYEE)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   person     Person     @relation(fields: [personId], references: [id])
@@ -298,8 +298,8 @@ model Customer {
   contactName  String?    @db.VarChar(80) // nome da pessoa de contato
   contactPhone String?    @db.VarChar(20)
   contactEmail String?    @db.VarChar(40)
-  createdAt    DateTime   @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime   @updatedAt @db.Timestamp(3)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
   person             Person               @relation(fields: [personId], references: [id])
@@ -325,8 +325,8 @@ model Supplier {
   deliveryTime String?    @db.VarChar(40) // Tempo médio de entrega
   category     String?    @db.VarChar(60) // Ex: embalagens, frutas, transporte
   notes        String?
-  createdAt    DateTime   @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime   @updatedAt @db.Timestamp(3)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   enterprise        Enterprise          @relation(fields: [enterpriseId], references: [id])
   person            Person              @relation(fields: [personId], references: [id])
@@ -354,8 +354,8 @@ model DeliveryAddress {
   countryId    Int?
   isDefault    Boolean  @default(false)
   status       Status   @default(ACTIVE)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   customer   Customer   @relation(fields: [customerId], references: [id])
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
@@ -373,9 +373,10 @@ model Token {
   enterpriseId Int
   token        String   @unique @db.VarChar(512)
   valid        Boolean  @default(true)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
-  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  expiresAt DateTime
 
   user       User       @relation(fields: [userId], references: [id])
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
@@ -391,7 +392,7 @@ model Audit {
   enterpriseId Int
   action       String
   entity       String?
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
+  createdAt    DateTime @default(now())
 
   user       User       @relation(fields: [userId], references: [id])
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
@@ -406,7 +407,7 @@ model Log {
   stack        String?  @db.Text
   context      String?
   enterpriseId Int?
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
+  createdAt    DateTime @default(now())
 
   enterprise Enterprise? @relation(fields: [enterpriseId], references: [id])
 
@@ -436,8 +437,8 @@ model Unity {
   enterpriseId Int
   simbol       String   @db.VarChar(8)
   description  String?
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   product    Product[]
@@ -454,8 +455,8 @@ model Product {
   unityId             Int?
   name                String   @db.VarChar(80)
   barcode             String?  @db.VarChar(40)
-  createdAt           DateTime @default(now()) @db.Timestamp(3)
-  updatedAt           DateTime @updatedAt @db.Timestamp(3)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   enterprise         Enterprise             @relation(fields: [enterpriseId], references: [id])
   productDefinition  ProductDefinition?     @relation(fields: [productDefinitionId], references: [id])
@@ -481,8 +482,8 @@ model ProductInventory {
   costValue    Decimal  @db.Decimal(14, 6)
   saleValue    Decimal  @db.Decimal(14, 6)
   quantity     Decimal  @db.Decimal(14, 6)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   product    Product    @relation(fields: [productId], references: [id])
@@ -498,8 +499,8 @@ model Warehouse {
   code         String   @db.VarChar(20)
   name         String   @db.VarChar(80)
   description  String?  @db.VarChar(120)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise       Enterprise          @relation(fields: [enterpriseId], references: [id])
   movements        InventoryMovement[]
@@ -524,8 +525,8 @@ model InventoryMovement {
   reference    String?        @db.VarChar(80) // NF, código colheita...
   notes        String?
   supplierId   Int? // se for uma compra
-  createdAt    DateTime       @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime       @updatedAt @db.Timestamp(3)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   product    Product    @relation(fields: [productId], references: [id])
@@ -549,8 +550,8 @@ model Lot {
   harvestDate  DateTime? @db.Date
   expiration   DateTime? @db.Date
   notes        String?
-  createdAt    DateTime  @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamp(3)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
   product         Product?            @relation(fields: [productId], references: [id])
@@ -567,8 +568,8 @@ model Recipe {
   productId    Int
   description  String?
   notes        String?
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise      Enterprise        @relation(fields: [enterpriseId], references: [id])
   product         Product           @relation(fields: [productId], references: [id])
@@ -585,8 +586,8 @@ model RecipeItem {
   recipeId     Int
   productId    Int
   quantity     Decimal  @db.Decimal(14, 6)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   recipe     Recipe     @relation(fields: [recipeId], references: [id])
@@ -611,8 +612,8 @@ model ProductionOrder {
   startDate    DateTime?
   endDate      DateTime?
   notes        String?
-  createdAt    DateTime              @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime              @updatedAt @db.Timestamp(3)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   enterprise Enterprise             @relation(fields: [enterpriseId], references: [id])
   recipe     Recipe                 @relation(fields: [recipeId], references: [id])
@@ -633,8 +634,8 @@ model ProductionOrderInput {
   productId         Int
   quantity          Decimal  @db.Decimal(14, 6)
   unitCost          Decimal? @db.Decimal(14, 6)
-  createdAt         DateTime @default(now()) @db.Timestamp(3)
-  updatedAt         DateTime @updatedAt @db.Timestamp(3)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   enterprise      Enterprise      @relation(fields: [enterpriseId], references: [id])
   productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
@@ -652,8 +653,8 @@ model SaleOrder {
   status       OrderStatus @default(PENDING)
   totalValue   Decimal     @db.Decimal(14, 6)
   notes        String?
-  createdAt    DateTime    @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime    @updatedAt @db.Timestamp(3)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
   customer           Customer             @relation(fields: [customerId], references: [id])
@@ -673,8 +674,8 @@ model SaleOrderItem {
   unitPrice        Decimal  @db.Decimal(14, 6)
   productUnitPrice Decimal  @db.Decimal(14, 6)
   unitCost         Decimal  @db.Decimal(14, 6)
-  createdAt        DateTime @default(now()) @db.Timestamp(3)
-  updatedAt        DateTime @updatedAt @db.Timestamp(3)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   saleOrder  SaleOrder  @relation(fields: [saleOrderId], references: [id])
@@ -691,8 +692,8 @@ model PurchaseOrder {
   code         String      @unique @db.VarChar(40)
   status       OrderStatus @default(PENDING)
   notes        String?
-  createdAt    DateTime    @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime    @updatedAt @db.Timestamp(3)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
   supplier        Supplier            @relation(fields: [supplierId], references: [id])
@@ -710,8 +711,8 @@ model PurchaseOrderItem {
   productId       Int
   quantity        Decimal  @db.Decimal(14, 6)
   unitCost        Decimal  @db.Decimal(14, 6)
-  createdAt       DateTime @default(now()) @db.Timestamp(3)
-  updatedAt       DateTime @updatedAt @db.Timestamp(3)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   enterprise    Enterprise    @relation(fields: [enterpriseId], references: [id])
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
@@ -733,8 +734,8 @@ model AccountsReceivable {
   method       PaymentMethod?
   status       PaymentStatus  @default(PENDING)
   notes        String?
-  createdAt    DateTime       @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime       @updatedAt @db.Timestamp(3)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   enterprise   Enterprise             @relation(fields: [enterpriseId], references: [id])
   customer     Customer?              @relation(fields: [customerId], references: [id])
@@ -760,8 +761,8 @@ model AccountsPayable {
   method          PaymentMethod?
   status          PaymentStatus  @default(PENDING)
   notes           String?
-  createdAt       DateTime       @default(now()) @db.Timestamp(3)
-  updatedAt       DateTime       @updatedAt @db.Timestamp(3)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   enterprise    Enterprise             @relation(fields: [enterpriseId], references: [id])
   supplier      Supplier?              @relation(fields: [supplierId], references: [id])
@@ -786,8 +787,8 @@ model FinancialTransaction {
   accountsReceivableId Int?
   accountsPayableId    Int?
   notes                String?
-  createdAt            DateTime        @default(now()) @db.Timestamp(3)
-  updatedAt            DateTime        @updatedAt @db.Timestamp(3)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
   receivable AccountsReceivable? @relation(fields: [accountsReceivableId], references: [id])
@@ -805,8 +806,8 @@ model AssetCategory {
   enterpriseId Int
   name         String   @db.VarChar(40)
   description  String?  @db.VarChar(120)
-  createdAt    DateTime @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime @updatedAt @db.Timestamp(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   assets     Asset[]
@@ -828,8 +829,8 @@ model Asset {
   location         String?     @db.VarChar(80) // onde está o ativo
   status           AssetStatus @default(ACTIVE)
   notes            String?
-  createdAt        DateTime    @default(now()) @db.Timestamp(3)
-  updatedAt        DateTime    @updatedAt @db.Timestamp(3)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   enterprise  Enterprise         @relation(fields: [enterpriseId], references: [id])
   category    AssetCategory      @relation(fields: [categoryId], references: [id])
@@ -851,8 +852,8 @@ model AssetMaintenance {
   date         DateTime             @db.Date
   technician   String?              @db.VarChar(80)
   notes        String?
-  createdAt    DateTime             @default(now()) @db.Timestamp(3)
-  updatedAt    DateTime             @updatedAt @db.Timestamp(3)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 
   enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
   asset      Asset      @relation(fields: [assetId], references: [id])
