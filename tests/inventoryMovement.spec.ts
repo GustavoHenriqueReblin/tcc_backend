@@ -1,6 +1,6 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
-import { ProductDefinitionType } from "@prisma/client";
+import { MovementSource, MovementType, ProductDefinitionType } from "@prisma/client";
 import { INVENTORY_MOVEMENT_ERROR } from "../src/middleware/inventoryMovement.middleware";
 import { genId } from "./utils/idGenerator";
 
@@ -42,7 +42,6 @@ const createAuxWarehouse = async (request: APIRequestContext) => {
 };
 
 test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ request }) => {
-    // Arrange - cria dependências e produto inicial
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request);
     const warehouse = await createAuxWarehouse(request);
@@ -62,7 +61,6 @@ test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ re
         },
     };
 
-    // Create product -> gera movimento IN com balance = initialQty
     const createRes = await request.post(`${baseUrl}/products`, { data: payload });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
@@ -79,7 +77,6 @@ test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ re
     expect(Number(last.quantity)).toBeCloseTo(initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(initialQty, 6);
 
-    // Ajuste para quantidade maior -> movimento IN com delta positivo e balance atualizado
     const higherQty = 25.75;
     const adjustInRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
         data: {
@@ -99,7 +96,6 @@ test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ re
     expect(Number(last.quantity)).toBeCloseTo(higherQty - initialQty, 6);
     expect(Number(last.balance)).toBeCloseTo(higherQty, 6);
 
-    // Ajuste para quantidade menor -> movimento OUT com delta positivo e balance atualizado
     const lowerQty = 7.25;
     const adjustOutRes = await request.post(`${baseUrl}/inventory-movement/adjustments`, {
         data: {
@@ -120,11 +116,11 @@ test("Movimentos IN/OUT via ajustes atualizam balance corretamente", async ({ re
     expect(Number(last.balance)).toBeCloseTo(lowerQty, 6);
 });
 
-test("Validação, busca e ordenação de inventory-movement", async ({ request }) => {
+test("Validacao, busca e ordenacao de inventory-movement", async ({ request }) => {
     const resMissingProduct = await request.get(`${baseUrl}/inventory-movement`);
-    expect(resMissingProduct.status()).toBe(400);
-    const bodyMissingProduct = await resMissingProduct.json();
-    expect(bodyMissingProduct.message).toContain(INVENTORY_MOVEMENT_ERROR.MISSING_PRODUCT);
+    expect(resMissingProduct.status()).toBe(200);
+    const { data: missingProductData } = await resMissingProduct.json();
+    expect(Array.isArray(missingProductData.items)).toBeTruthy();
 
     const resInvalidPagination = await request.get(
         `${baseUrl}/inventory-movement?productId=1&page=abc&limit=xyz`
@@ -146,6 +142,36 @@ test("Validação, busca e ordenação de inventory-movement", async ({ request 
     expect(resInvalidSortBy.status()).toBe(400);
     const bodyInvalidSortBy = await resInvalidSortBy.json();
     expect(bodyInvalidSortBy.message).toContain(INVENTORY_MOVEMENT_ERROR.SORT_BY);
+
+    const resInvalidStartDate = await request.get(
+        `${baseUrl}/inventory-movement?productId=1&startDate=data-invalida`
+    );
+    expect(resInvalidStartDate.status()).toBe(400);
+    const bodyInvalidStartDate = await resInvalidStartDate.json();
+    expect(bodyInvalidStartDate.message).toContain(INVENTORY_MOVEMENT_ERROR.INVALID_START_DATE);
+
+    const resInvalidEndDate = await request.get(
+        `${baseUrl}/inventory-movement?productId=1&endDate=data-invalida`
+    );
+    expect(resInvalidEndDate.status()).toBe(400);
+    const bodyInvalidEndDate = await resInvalidEndDate.json();
+    expect(bodyInvalidEndDate.message).toContain(INVENTORY_MOVEMENT_ERROR.INVALID_END_DATE);
+
+    const resInvalidMovementType = await request.get(
+        `${baseUrl}/inventory-movement?productId=1&movementType=INVALID`
+    );
+    expect(resInvalidMovementType.status()).toBe(400);
+    const bodyInvalidMovementType = await resInvalidMovementType.json();
+    expect(bodyInvalidMovementType.message).toContain(
+        INVENTORY_MOVEMENT_ERROR.INVALID_MOVEMENT_TYPE
+    );
+
+    const resInvalidSource = await request.get(
+        `${baseUrl}/inventory-movement?productId=1&source=INVALID`
+    );
+    expect(resInvalidSource.status()).toBe(400);
+    const bodyInvalidSource = await resInvalidSource.json();
+    expect(bodyInvalidSource.message).toContain(INVENTORY_MOVEMENT_ERROR.INVALID_SOURCE);
 
     const unity = await createAuxUnity(request);
     const def = await createAuxDefinition(request);
@@ -180,6 +206,20 @@ test("Validação, busca e ordenação de inventory-movement", async ({ request 
     expect(resSearch.status()).toBe(200);
     const { data: searchData } = await resSearch.json();
     expect(searchData.items.length).toBeGreaterThanOrEqual(0);
+
+    const now = new Date();
+    const yesterdayIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const tomorrowIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const filterRes = await request.get(
+        `${baseUrl}/inventory-movement?productId=${createdProduct.id}&startDate=${encodeURIComponent(
+            yesterdayIso
+        )}&endDate=${encodeURIComponent(tomorrowIso)}&movementType=${MovementType.IN}&source=${
+            MovementSource.ADJUSTMENT
+        }&sortBy=createdAt&sortOrder=desc`
+    );
+    expect(filterRes.status()).toBe(200);
+    const { data: filtered } = await filterRes.json();
+    expect(filtered.items.length).toBeGreaterThanOrEqual(0);
 });
 
 test("Cria ajuste de estoque IN e atualiza balance com nova quantidade alvo", async ({

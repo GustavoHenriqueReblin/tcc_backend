@@ -5,6 +5,7 @@ import { AppError } from "@utils/appError";
 import { MovementType, MovementSource, Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { inventoryMovementAllowedSortFields } from "@routes/inventoryMovement.routes";
+import { endOfDayUTC, startOfDayUTC } from "@utils/functions";
 
 export interface InventoryAdjustmentInput {
     productId: number;
@@ -38,11 +39,15 @@ export class InventoryMovementService extends BaseService {
     getAll = async (
         enterpriseId: number,
         page = 1,
-        limit = 10,
-        productId: number,
+        limit = 200,
+        productId?: number,
         search?: string | null,
         sortBy?: string,
-        sortOrder?: "asc" | "desc"
+        sortOrder?: "asc" | "desc",
+        startDate?: Date,
+        endDate?: Date,
+        movementType?: MovementType,
+        source?: MovementSource
     ) =>
         this.safeQuery(
             async () => {
@@ -50,11 +55,35 @@ export class InventoryMovementService extends BaseService {
                 sortBy = sortBy || "createdAt";
                 sortOrder = sortOrder || "desc";
 
+                const startDateFilter = startDate ? startOfDayUTC(startDate) : undefined;
+                const endDateFilter = endDate ? endOfDayUTC(endDate) : undefined;
+
                 const skip = (page - 1) * limit;
                 const where = {
                     enterpriseId,
-                    productId,
-                    ...(search ? { reference: { contains: search } } : {}),
+                    ...(typeof productId === "number" ? { productId } : {}),
+                    ...(startDateFilter || endDateFilter
+                        ? {
+                              createdAt: {
+                                  ...(startDateFilter ? { gte: startDateFilter } : {}),
+                                  ...(endDateFilter ? { lte: endDateFilter } : {}),
+                              },
+                          }
+                        : {}),
+                    ...(movementType ? { direction: movementType } : {}),
+                    ...(source ? { source } : {}),
+                    ...(search
+                        ? {
+                              OR: [
+                                  { reference: { contains: search } },
+                                  {
+                                      product: {
+                                          name: { contains: search },
+                                      },
+                                  },
+                              ],
+                          }
+                        : {}),
                 };
 
                 const validSortFields = inventoryMovementAllowedSortFields;
