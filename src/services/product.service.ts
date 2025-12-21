@@ -202,22 +202,24 @@ export class ProductService extends BaseService {
                         },
                     });
 
-                    const warehouse = await tx.warehouse.findFirst({
-                        where: { enterpriseId },
-                    });
+                    if (data.inventory.quantity > 0) {
+                        const warehouse = await tx.warehouse.findFirst({
+                            where: { enterpriseId },
+                        });
 
-                    await tx.inventoryMovement.create({
-                        data: {
-                            direction: MovementType.IN,
-                            quantity: data.inventory.quantity,
-                            balance: new Decimal(data.inventory.quantity),
-                            source: "ADJUSTMENT",
-                            unitCost: data.inventory.costValue,
-                            enterpriseId,
-                            productId: prod.id,
-                            warehouseId: warehouse!.id,
-                        },
-                    });
+                        await tx.inventoryMovement.create({
+                            data: {
+                                direction: MovementType.IN,
+                                quantity: data.inventory.quantity,
+                                balance: new Decimal(data.inventory.quantity),
+                                source: "ADJUSTMENT",
+                                unitCost: data.inventory.costValue,
+                                enterpriseId,
+                                productId: prod.id,
+                                warehouseId: warehouse!.id,
+                            },
+                        });
+                    }
 
                     if (data.recipes) {
                         await recipeService.syncRecipes(tx, enterpriseId, prod.id, data.recipes);
