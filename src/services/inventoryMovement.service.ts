@@ -64,7 +64,11 @@ export class InventoryMovementService extends BaseService {
                 const [movements, total] = await prisma.$transaction([
                     prisma.inventoryMovement.findMany({
                         where,
-                        include: { product: true, warehouse: true, supplier: true },
+                        include: {
+                            product: { include: { unity: true } },
+                            warehouse: true,
+                            supplier: true,
+                        },
                         skip,
                         take: limit,
                         orderBy: { [safeSortBy]: safeSortOrder },
