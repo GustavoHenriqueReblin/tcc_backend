@@ -7,20 +7,17 @@ import { errorHandler } from "@middleware/errorHandler";
 import { env } from "@config/env";
 
 const app = express();
-const allowedOrigins = [
-    `http://${env.DOMAIN}:${env.CLIENT_PORT}`,
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://192.168.2.181:5173", // ip local
-    "http://192.168.2.181:3000", // ip local
-];
+const localNetworkRegex =
+    /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+
+const allowedDomains = [`http://${env.DOMAIN}:${env.CLIENT_PORT}`];
 
 app.use(
     cors({
         origin: (origin, callback) => {
             if (!origin) return callback(null, true);
 
-            if (allowedOrigins.includes(origin)) {
+            if (allowedDomains.includes(origin) || localNetworkRegex.test(origin)) {
                 return callback(null, true);
             }
 

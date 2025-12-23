@@ -8,9 +8,9 @@ import { prisma } from "@config/prisma";
 export const me = async (req: Request, res: Response): Promise<Response> => {
     try {
         if (!req.auth) {
-            res.clearCookie("__Host-erp-access", {
+            res.clearCookie(env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access", {
                 httpOnly: true,
-                secure: true,
+                secure: env.ENVIRONMENT === "PRODUCTION",
                 sameSite: "strict",
             });
 
@@ -20,7 +20,8 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             });
         }
 
-        const token = req.cookies?.["__Host-erp-access"];
+        const token =
+            req.cookies?.[env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access"];
         const userId = req.auth.sub;
 
         if (token) {
@@ -33,12 +34,16 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             });
 
             if (count > 0) {
-                res.cookie("__Host-erp-access", token, {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: "strict",
-                    maxAge: expiresInMs,
-                });
+                res.cookie(
+                    env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access",
+                    token,
+                    {
+                        httpOnly: true,
+                        secure: env.ENVIRONMENT === "PRODUCTION",
+                        sameSite: "strict",
+                        maxAge: expiresInMs,
+                    }
+                );
             }
         }
 
@@ -116,26 +121,31 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         });
     }
 
-    res.cookie("__Host-erp-access", result.token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        maxAge: parseTimeToMs(env.JWT_EXPIRES_IN),
-    });
+    res.cookie(
+        env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access",
+        result.token,
+        {
+            httpOnly: true,
+            secure: env.ENVIRONMENT === "PRODUCTION",
+            sameSite: "strict",
+            maxAge: parseTimeToMs(env.JWT_EXPIRES_IN),
+        }
+    );
 
     const { token, ...data } = result;
     return sendResponse(res, data, "Login successful");
 };
 
 export const logout = async (req: Request, res: Response) => {
-    const token = req.cookies?.["__Host-erp-access"];
+    const token =
+        req.cookies?.[env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access"];
     if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
 
     const result = await service.logout(token);
 
-    res.clearCookie("__Host-erp-access", {
+    res.clearCookie(env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access", {
         httpOnly: true,
-        secure: true,
+        secure: env.ENVIRONMENT === "PRODUCTION",
         sameSite: "strict",
     });
 
