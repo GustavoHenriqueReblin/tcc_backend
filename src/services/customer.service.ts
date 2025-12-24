@@ -114,7 +114,10 @@ export class CustomerService extends BaseService {
             async () => {
                 return prisma.customer.findUnique({
                     where: { id, enterpriseId },
-                    include: { person: true, deliveryAddress: true },
+                    include: {
+                        person: { include: { city: true, state: true, country: true } },
+                        deliveryAddress: true,
+                    },
                 });
             },
             "CUSTOMER:getById",

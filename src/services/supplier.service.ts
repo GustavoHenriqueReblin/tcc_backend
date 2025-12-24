@@ -86,7 +86,9 @@ export class SupplierService extends BaseService {
                 const [suppliers, total] = await prisma.$transaction([
                     prisma.supplier.findMany({
                         where,
-                        include: { person: true },
+                        include: {
+                            person: { include: { city: true, state: true, country: true } },
+                        },
                         skip,
                         take: limit,
                         orderBy,
@@ -112,7 +114,7 @@ export class SupplierService extends BaseService {
             async () => {
                 return prisma.supplier.findUnique({
                     where: { id, enterpriseId },
-                    include: { person: true },
+                    include: { person: { include: { city: true, state: true, country: true } } },
                 });
             },
             "SUPPLIER:getById",
