@@ -10,6 +10,8 @@ export const PRODUCTION_ORDER_ERROR = {
     INVALID_START_DATE: "startDateFrom and startDateTo must be valid dates",
     INVALID_END_DATE: "endDateFrom and endDateTo must be valid dates",
     INVALID_PERIOD_RANGE: "start/end date ranges are invalid",
+    INVALID_START_END_DATE: "startDate and endDate must be valid dates",
+    END_DATE_BEFORE_START: "endDate must be greater than startDate",
     MISSING_FIELDS: "Required fields not provided",
     WRONG_FIELD_VALUE: "Fields submitted with invalid values",
     SEARCH: "search filter is not allowed for this resource",
@@ -169,6 +171,27 @@ export const validateProductionOrderFields = (req: Request, res: Response, next:
 
     if (invalidOtherCosts) {
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.WRONG_FIELD_VALUE });
+    }
+
+    const parseDate = (value?: unknown) => {
+        if (value === undefined || value === null) return undefined;
+        const normalized = typeof value === "string" ? value.trim() : value;
+        if (typeof normalized === "string" && normalized.length === 0) return undefined;
+
+        const parsed = new Date(normalized as string | number | Date);
+        if (Number.isNaN(parsed.getTime())) return null;
+        return parsed;
+    };
+
+    const startDateVal = parseDate(order.startDate);
+    const endDateVal = parseDate(order.endDate);
+
+    if (startDateVal === null || endDateVal === null) {
+        return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_START_END_DATE });
+    }
+
+    if (startDateVal && endDateVal && endDateVal <= startDateVal) {
+        return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.END_DATE_BEFORE_START });
     }
 
     if (order.status && !Object.values(ProductionOrderStatus).includes(order.status)) {

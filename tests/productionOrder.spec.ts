@@ -175,6 +175,60 @@ test("Validacao de filtros productId e datas em production order", async ({ requ
     expect(bodyInvalidRange.message).toContain(PRODUCTION_ORDER_ERROR.INVALID_PERIOD_RANGE);
 });
 
+test("Valida startDate e endDate na criacao e atualizacao da ordem", async ({ request }) => {
+    const { recipe } = await createAuxRecipe(request);
+    const warehouse = await createAuxWarehouse(request);
+
+    const now = Date.now();
+    const startDate = new Date(now).toISOString();
+    const invalidEndDate = new Date(now - 60 * 60 * 1000).toISOString();
+    const validEndDate = new Date(now + 60 * 60 * 1000).toISOString();
+    const codeBase = `PODATE${now.toString().slice(-6)}`;
+
+    const invalidCreate = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code: `${codeBase}_INV`,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 5,
+            startDate,
+            endDate: invalidEndDate,
+        },
+    });
+    expect(invalidCreate.status()).toBe(400);
+    const invalidCreateBody = await invalidCreate.json();
+    expect(invalidCreateBody.message).toContain(PRODUCTION_ORDER_ERROR.END_DATE_BEFORE_START);
+
+    const createRes = await request.post(`${baseUrl}/production-orders`, {
+        data: {
+            id: genId(),
+            code: `${codeBase}_OK`,
+            recipeId: recipe.id,
+            warehouseId: warehouse.id,
+            plannedQty: 5,
+            startDate,
+            endDate: validEndDate,
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const invalidUpdate = await request.put(`${baseUrl}/production-orders/${created.id}`, {
+        data: {
+            code: created.code,
+            recipeId: created.recipeId,
+            warehouseId: created.warehouseId,
+            plannedQty: Number(created.plannedQty),
+            startDate,
+            endDate: invalidEndDate,
+        },
+    });
+    expect(invalidUpdate.status()).toBe(400);
+    const invalidUpdateBody = await invalidUpdate.json();
+    expect(invalidUpdateBody.message).toContain(PRODUCTION_ORDER_ERROR.END_DATE_BEFORE_START);
+});
+
 test("Cria, busca e atualiza ordem de producao", async ({ request }) => {
     const { recipe } = await createAuxRecipe(request);
     const warehouse = await createAuxWarehouse(request);
