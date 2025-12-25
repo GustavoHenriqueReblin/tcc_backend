@@ -27,6 +27,7 @@ import assetMaintenanceRoutes from "@routes/assetMaintenance.routes";
 import countryRoutes from "@routes/country.routes";
 import stateRoutes from "@routes/state.routes";
 import cityRoutes from "@routes/city.routes";
+import reportRoutes from "@reports/report.routes";
 
 const router = Router();
 
@@ -58,5 +59,6 @@ router.use("/asset-maintenance", assetMaintenanceRoutes);
 router.use("/countries", countryRoutes);
 router.use("/states", stateRoutes);
 router.use("/cities", cityRoutes);
+router.use("/reports", reportRoutes);
 
 export default router;

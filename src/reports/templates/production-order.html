@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Relatório - Ordem de Produção</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg: #f8fafc;
+                --card: #ffffff;
+                --border: #e5e7eb;
+                --muted: #64748b;
+                --text: #0f172a;
+                --primary: #4f46e5;
+                --primary-soft: #eef2ff;
+                --success: #16a34a;
+                --success-soft: #dcfce7;
+                --radius: 14px;
+                --radius-sm: 10px;
+            }
+
+            * {
+                box-sizing: border-box;
+                font-family: "Plus Jakarta Sans", Arial, Helvetica, sans-serif;
+                color: var(--text);
+            }
+
+            body {
+                margin: 0;
+                padding: 32px;
+                background: var(--bg);
+            }
+
+            .bg-gray-200 {
+                background: #e5e7eb;
+            }
+
+            .text-gray-800 {
+                color: #1f2937;
+            }
+
+            .bg-blue-100 {
+                background: #dbeafe;
+            }
+
+            .text-blue-800 {
+                color: #1e40af;
+            }
+
+            .bg-green-100 {
+                background: #dcfce7;
+            }
+
+            .text-green-800 {
+                color: #166534;
+            }
+
+            .bg-red-100 {
+                background: #fee2e2;
+            }
+
+            .text-red-800 {
+                color: #991b1b;
+            }
+
+            .badge.planned {
+                background: #e5e7eb;
+                color: #1f2937;
+            }
+
+            .badge.running {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+
+            .badge.finished {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .badge.canceled {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+
+            .card {
+                background: #ffffff;
+                padding: 32px;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            }
+
+            .header {
+                padding-bottom: 16px;
+                border-bottom: 1px solid #e5e7eb;
+                margin-bottom: 20px;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: 26px;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+            }
+
+            .subtitle {
+                font-size: 13px;
+                color: var(--muted);
+            }
+
+            .badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .badge.success {
+                background: var(--success-soft);
+                color: var(--success);
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                margin: 20px 0;
+            }
+
+            .item {
+                padding: 14px 16px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                background: #fafafa;
+            }
+
+            .label {
+                font-size: 11px;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                margin-bottom: 6px;
+                display: block;
+            }
+
+            .value {
+                font-size: 15px;
+                font-weight: 600;
+            }
+
+            .section {
+                margin-top: 28px;
+            }
+
+            .section-title {
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 12px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+
+            thead {
+                background: #f1f5f9;
+            }
+
+            th {
+                text-align: left;
+                padding: 12px;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+
+            td {
+                padding: 14px 12px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .totals {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                margin-top: 16px;
+            }
+
+            .total-item {
+                padding: 14px 16px;
+                border-radius: var(--radius-sm);
+                background: var(--primary-soft);
+                border: 1px solid #c7d2fe;
+            }
+
+            .total-item .label {
+                color: #4338ca;
+            }
+
+            .total-item .value {
+                font-size: 16px;
+                color: #1e1b4b;
+            }
+
+            .notes {
+                margin-top: 24px;
+                padding: 16px;
+                border-radius: var(--radius-sm);
+                background: #f8fafc;
+                border: 1px dashed var(--border);
+                font-size: 14px;
+            }
+
+            .notes strong {
+                display: block;
+                margin-bottom: 6px;
+            }
+
+            .footer {
+                margin-top: 24px;
+                font-size: 12px;
+                color: var(--muted);
+                text-align: right;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <h1>Ordem de Produção</h1>
+                <div class="subtitle">Código {{code}} · Produto {{productName}}</div>
+                <span class="badge {{statusClass}}">{{status}}</span>
+            </div>
+            <div class="grid">
+                <div class="item">
+                    <span class="label">Planejado</span>
+                    <span class="value">{{plannedQty}} {{unit}}</span>
+                </div>
+                <div class="item">
+                    <span class="label">Produzido</span>
+                    <span class="value">{{producedQty}} {{unit}}</span>
+                </div>
+                <div class="item">
+                    <span class="label">Perda / Refugo</span>
+                    <span class="value">{{wasteQty}} {{unit}}</span>
+                </div>
+                <div class="item">
+                    <span class="label">Início</span>
+                    <span class="value">{{startDate}}</span>
+                </div>
+                <div class="item">
+                    <span class="label">Término</span>
+                    <span class="value">{{endDate}}</span>
+                </div>
+                <div class="item">
+                    <span class="label">Código interno</span>
+                    <span class="value">#{{code}}</span>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">Insumos</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Quantidade</th>
+                            <th>Custo unit.</th>
+                            <th>Custo total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{inputsRows}}
+                    </tbody>
+                </table>
+                <div class="totals">
+                    <div class="total-item">
+                        <span class="label">Total insumos</span>
+                        <span class="value">{{inputQuantityTotal}}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Custo insumos</span>
+                        <span class="value">{{inputCostTotal}}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Outros custos</span>
+                        <span class="value">{{otherCostsTotal}}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Custo total OP</span>
+                        <span class="value">{{productionCostTotal}}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="notes">
+                <strong>Observações</strong>
+                {{notes}}
+            </div>
+            <div class="footer">Gerado em {{generatedAt}}</div>
+        </div>
+    </body>
+</html>
