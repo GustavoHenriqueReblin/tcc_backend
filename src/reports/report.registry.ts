@@ -80,6 +80,8 @@ const productionOrderReport: ReportDefinition<ProductionOrderReportData> = {
             throw new AppError("Ordem de producao nao encontrada", 404, "REPORT:PRODUCTION_ORDER");
         }
 
+        const producedQty = toNumber(order.producedQty ?? order.plannedQty);
+
         return {
             id: String(order.id),
             code: order.code,
@@ -100,20 +102,23 @@ const productionOrderReport: ReportDefinition<ProductionOrderReportData> = {
             inputs:
                 order.inputs?.map((input) => ({
                     name: input.product?.name ?? `ID ${input.productId}`,
-                    quantity: formatDecimal(input.quantity),
+                    quantity: formatDecimal(toNumber(input.quantity) * producedQty),
                     unity: input.product?.unity?.simbol ?? input.product?.unity?.description ?? "-",
                     cost: formatCurrency(input.unitCost),
-                    totalCost: formatCurrency(toNumber(input.quantity) * toNumber(input.unitCost)),
+                    totalCost: formatCurrency(
+                        toNumber(input.quantity) * producedQty * toNumber(input.unitCost)
+                    ),
                 })) ?? [],
             totals: (() => {
                 const inputCost = (order.inputs ?? []).reduce(
-                    (acc, input) => acc + toNumber(input.quantity) * toNumber(input.unitCost),
+                    (acc, input) =>
+                        acc + toNumber(input.quantity) * producedQty * toNumber(input.unitCost),
                     0
                 );
                 const otherCosts = toNumber(order.otherCosts);
                 const productionCost = inputCost + otherCosts;
                 const inputQuantity = (order.inputs ?? []).reduce(
-                    (acc, input) => acc + toNumber(input.quantity),
+                    (acc, input) => acc + toNumber(input.quantity) * producedQty,
                     0
                 );
 
