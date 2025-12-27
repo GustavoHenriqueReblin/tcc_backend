@@ -3,7 +3,7 @@ import { env } from "../src/config/env";
 import { WAREHOUSE_ERROR } from "../src/middleware/warehouse.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 test("Lista warehouses com paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/warehouses`);

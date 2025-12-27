@@ -4,7 +4,7 @@ import { ProductDefinitionType } from "@prisma/client";
 import { PRODUCT_DEFINITION_ERROR } from "../src/middleware/productDefinition.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 const findDefinitionByType = async (request: APIRequestContext, type: ProductDefinitionType) => {
     const res = await request.get(`${baseUrl}/product-definitions?type=${type}`);

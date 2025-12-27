@@ -5,7 +5,7 @@ import { SupplierInput } from "../src/services/supplier.service";
 import { SUPPLIER_ERROR } from "../src/middleware/supplier.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 test("Lista fornecedores (somente ativos por padrão) e paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/suppliers`);

@@ -5,7 +5,7 @@ import { CustomerInput } from "../src/services/customer.service";
 import { CUSTOMER_ERROR } from "../src/middleware/customer.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 test("Lista clientes (somente ativos por padrão) e paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/customers`);

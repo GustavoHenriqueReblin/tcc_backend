@@ -4,7 +4,7 @@ import { TransactionType } from "@prisma/client";
 import { FINANCIAL_TRANSACTION_ERROR } from "../src/middleware/financialTransaction.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 test("Lista lancamentos financeiros e valida paginacao basica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/financial-transactions`);

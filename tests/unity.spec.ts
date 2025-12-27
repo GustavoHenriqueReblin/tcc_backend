@@ -3,7 +3,7 @@ import { env } from "../src/config/env";
 import { UNITY_ERROR } from "../src/middleware/unity.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 test("Lista unities com paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/unities`);

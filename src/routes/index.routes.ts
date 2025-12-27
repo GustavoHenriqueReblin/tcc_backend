@@ -31,6 +31,10 @@ import reportRoutes from "@reports/report.routes";
 
 const router = Router();
 
+router.get("/health", (_req, res) => {
+    return res.status(200).json({ status: "ok" });
+});
+
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/customers", customerRoutes);

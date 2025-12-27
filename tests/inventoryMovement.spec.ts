@@ -4,7 +4,7 @@ import { MovementSource, MovementType, ProductDefinitionType } from "@prisma/cli
 import { INVENTORY_MOVEMENT_ERROR } from "../src/middleware/inventoryMovement.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `U${Date.now().toString().slice(-6)}`;

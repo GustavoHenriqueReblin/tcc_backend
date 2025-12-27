@@ -4,7 +4,7 @@ import { ProductDefinitionType } from "@prisma/client";
 import { PRODUCT_ERROR } from "../src/middleware/product.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${env.PORT}/api/v1`;
 
 const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `U${Date.now().toString().slice(-6)}`;

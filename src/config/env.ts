@@ -1,7 +1,5 @@
+import "dotenv/config";
 import { z } from "zod";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const envSchema = z.object({
     DB_HOST: z.string().nonempty(),
@@ -18,11 +16,7 @@ const envSchema = z.object({
         .transform((val) => parseInt(val, 10))
         .refine((val) => !isNaN(val) && val > 0, "PORT must be a valid number")
         .default(3333),
-    CLIENT_PORT: z
-        .string()
-        .transform((val) => parseInt(val, 10))
-        .refine((val) => !isNaN(val) && val > 0, "PORT must be a valid number")
-        .default(3000),
+    CLIENT_URL: z.string().default("http://localhost:5173"),
 
     DATABASE_URL: z.string().url(),
 
@@ -30,7 +24,6 @@ const envSchema = z.object({
 
     APP_SECRET: z.string().min(10, "APP_SECRET must be at least 10 characters long"),
     JWT_EXPIRES_IN: z.string().default("2d"),
-    DOMAIN: z.string().default("localhost"),
 });
 
 const parsed = envSchema.safeParse(process.env);
