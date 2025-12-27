@@ -17,6 +17,7 @@ export interface InventoryAdjustmentInput {
 export interface HarvestInput {
     productId: number;
     quantity: number;
+    unitCost?: number | null;
     warehouseId: number;
     notes?: string;
 }
@@ -234,11 +235,11 @@ export class InventoryMovementService extends BaseService {
                 if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
 
                 const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
-
                 const harvestedQty = new Decimal(data.quantity);
                 const newBalance = currentQty.plus(harvestedQty);
-
-                const unitCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
+                const unitCost = new Decimal(
+                    data.unitCost ?? product.productInventory?.[0]?.costValue ?? 0
+                );
 
                 const created = await prisma.$transaction(async (tx) => {
                     const inventoryMovement = await tx.inventoryMovement.create({

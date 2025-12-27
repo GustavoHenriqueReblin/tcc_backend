@@ -60,13 +60,14 @@ export const createHarvestEntry = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
 
-    const { productId, quantity, warehouseId, notes } = req.body as HarvestInput;
+    const { productId, quantity, unitCost, warehouseId, notes } = req.body as HarvestInput;
 
     const result = await service.createHarvestEntry(
         enterpriseId,
         {
             productId,
             quantity,
+            unitCost,
             warehouseId,
             notes,
         },

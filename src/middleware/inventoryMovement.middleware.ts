@@ -187,7 +187,7 @@ export const validateInventoryAdjustmentFields = (
 };
 
 export const validateHarvestFields = (req: Request, res: Response, next: NextFunction) => {
-    const { productId, quantity, warehouseId, notes } = req.body ?? {};
+    const { productId, quantity, unitCost, warehouseId, notes } = req.body ?? {};
 
     if (productId === undefined || quantity === undefined || warehouseId === undefined) {
         return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
@@ -195,9 +195,15 @@ export const validateHarvestFields = (req: Request, res: Response, next: NextFun
 
     const productNum = Number(productId);
     const quantityNum = Number(quantity);
+    const unitCostNum = Number(unitCost);
     const warehouseNum = Number(warehouseId);
 
-    if (Number.isNaN(productNum) || Number.isNaN(quantityNum) || Number.isNaN(warehouseNum)) {
+    if (
+        Number.isNaN(productNum) ||
+        Number.isNaN(quantityNum) ||
+        Number.isNaN(unitCostNum) ||
+        Number.isNaN(warehouseNum)
+    ) {
         return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.INVALID_HARVEST_FIELDS });
     }
 
@@ -210,6 +216,7 @@ export const validateHarvestFields = (req: Request, res: Response, next: NextFun
     req.body = {
         productId: productNum,
         quantity: quantityNum,
+        unitCost: unitCostNum,
         warehouseId: warehouseNum,
         ...(parsedNotes ? { notes: parsedNotes } : {}),
     } as HarvestInput;
