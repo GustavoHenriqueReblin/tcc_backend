@@ -1,0 +1,67 @@
+import type { Response } from "express";
+import { sendResponse } from "@utils/functions";
+import { Request } from "@middleware/auth.middleware";
+import { productionOrderService as service } from "@services/services";
+import { ProductionOrderStatus } from "@prisma/client";
+
+export const getAllProductionOrders = async (req: Request, res: Response) => {
+    const {
+        page = "1",
+        limit = "10",
+        status,
+        search,
+        sortBy,
+        sortOrder,
+        productId,
+        startDateFrom,
+        startDateTo,
+        endDateFrom,
+        endDateTo,
+    } = req.query;
+    const enterpriseId = req.auth!.enterpriseId;
+
+    const parsedProductId = productId !== undefined ? Number(productId) : undefined;
+    const parseDate = (value?: unknown) =>
+        value !== undefined && value !== null ? new Date(value.toString()) : undefined;
+
+    const result = await service.getAll(
+        enterpriseId,
+        Number(page),
+        Number(limit),
+        status ? (status as ProductionOrderStatus) : undefined,
+        search?.toString() ?? undefined,
+        sortBy?.toString(),
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc",
+        parsedProductId,
+        parseDate(startDateFrom),
+        parseDate(startDateTo),
+        parseDate(endDateFrom),
+        parseDate(endDateTo)
+    );
+    return sendResponse(res, result, "Production orders fetched successfully");
+};
+
+export const getProductionOrderById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const enterpriseId = req.auth!.enterpriseId;
+
+    const result = await service.getById(Number(id), enterpriseId);
+    return sendResponse(res, result, "Production order fetched successfully");
+};
+
+export const createProductionOrder = async (req: Request, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+    const userId = req.auth!.sub;
+
+    const result = await service.create(enterpriseId, req.body, userId);
+    return sendResponse(res, result, "Production order created successfully");
+};
+
+export const updateProductionOrder = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const enterpriseId = req.auth!.enterpriseId;
+    const userId = req.auth!.sub;
+
+    const result = await service.update(Number(id), enterpriseId, req.body, userId);
+    return sendResponse(res, result, "Production order updated successfully");
+};

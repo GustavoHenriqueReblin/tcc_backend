@@ -1,0 +1,68 @@
+import { Router } from "express";
+import userRoutes from "@routes/user.routes";
+import authRoutes from "@routes/auth.routes";
+import customerRoutes from "@routes/customer.routes";
+import deliveryAddress from "@routes/deliveryAddress.routes";
+import productRoutes from "@routes/product.routes";
+import supplierRoutes from "@routes/supplier.routes";
+import unityRoutes from "@routes/unity.routes";
+import productDefinitionRoutes from "@routes/productDefinition.routes";
+import warehouseRoutes from "@routes/warehouse.routes";
+import inventoryMovementRoutes from "@routes/inventoryMovement.routes";
+import lotRoutes from "@routes/lot.routes";
+import recipeRoutes from "@routes/recipe.routes";
+import recipeItemRoutes from "@routes/recipeItem.routes";
+import productionOrderRoutes from "@routes/productionOrder.routes";
+import productionOrderInputRoutes from "@routes/productionOrderInput.routes";
+import saleOrderRoutes from "@routes/saleOrder.routes";
+import saleOrderItemRoutes from "@routes/saleOrderItem.routes";
+import purchaseOrderRoutes from "@routes/purchaseOrder.routes";
+import purchaseOrderItemRoutes from "@routes/purchaseOrderItem.routes";
+import accountsReceivableRoutes from "@routes/accountsReceivable.routes";
+import accountsPayableRoutes from "@routes/accountsPayable.routes";
+import financialTransactionRoutes from "@routes/financialTransaction.routes";
+import assetCategoryRoutes from "@routes/assetCategory.routes";
+import assetRoutes from "@routes/asset.routes";
+import assetMaintenanceRoutes from "@routes/assetMaintenance.routes";
+import countryRoutes from "@routes/country.routes";
+import stateRoutes from "@routes/state.routes";
+import cityRoutes from "@routes/city.routes";
+import reportRoutes from "@reports/report.routes";
+
+const router = Router();
+
+router.get("/health", (_req, res) => {
+    return res.status(200).json({ status: "ok" });
+});
+
+router.use("/auth", authRoutes);
+router.use("/users", userRoutes);
+router.use("/customers", customerRoutes);
+router.use("/delivery-address", deliveryAddress);
+router.use("/products", productRoutes);
+router.use("/unities", unityRoutes);
+router.use("/product-definitions", productDefinitionRoutes);
+router.use("/suppliers", supplierRoutes);
+router.use("/warehouses", warehouseRoutes);
+router.use("/inventory-movement", inventoryMovementRoutes);
+router.use("/lots", lotRoutes);
+router.use("/recipes", recipeRoutes);
+router.use("/recipe-items", recipeItemRoutes);
+router.use("/production-orders", productionOrderRoutes);
+router.use("/production-order-inputs", productionOrderInputRoutes);
+router.use("/sale-orders", saleOrderRoutes);
+router.use("/sale-order-items", saleOrderItemRoutes);
+router.use("/purchase-orders", purchaseOrderRoutes);
+router.use("/purchase-order-items", purchaseOrderItemRoutes);
+router.use("/accounts-receivable", accountsReceivableRoutes);
+router.use("/accounts-payable", accountsPayableRoutes);
+router.use("/financial-transactions", financialTransactionRoutes);
+router.use("/asset-categories", assetCategoryRoutes);
+router.use("/assets", assetRoutes);
+router.use("/asset-maintenance", assetMaintenanceRoutes);
+router.use("/countries", countryRoutes);
+router.use("/states", stateRoutes);
+router.use("/cities", cityRoutes);
+router.use("/reports", reportRoutes);
+
+export default router;

@@ -1,0 +1,864 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum Plan {
+  START
+  PRO
+  BUSINESS
+}
+
+enum Branch {
+  INDUSTRY
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  OWNER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  SEPARATED
+  OTHER
+}
+
+enum PersonType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum ProductDefinitionType {
+  RAW_MATERIAL // Matéria-prima
+  FINISHED_PRODUCT // Produto acabado
+  RESALE_PRODUCT // Produto para revenda
+  IN_PROCESS_PRODUCT // Produto em processo de fabricação
+  COMPONENT // Componente usado na montagem
+  CONSUMABLE_MATERIAL // Material de consumo (uso interno)
+  PACKAGING_MATERIAL // Material de embalagem
+  BY_PRODUCT // Subproduto
+  RETURNED_PRODUCT // Produto devolvido
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum MovementSource {
+  PURCHASE // entrada comprada
+  HARVEST // entrada colhida
+  SALE // saída por pedido
+  ADJUSTMENT // ajuste manual
+  PRODUCTION // produção
+}
+
+enum ProductionOrderStatus {
+  PLANNED // planejada
+  RUNNING // em execução
+  FINISHED // finalizada
+  CANCELED // cancelada
+}
+
+enum OrderStatus {
+  PENDING // aguardando
+  APPROVED // aprovado
+  SHIPPED // enviado
+  RECEIVED // recebido (só compras)
+  FINISHED // concluído
+  CANCELED // cancelado
+}
+
+enum TransactionType {
+  CREDIT // entrada
+  DEBIT // saída
+}
+
+enum PaymentStatus {
+  PENDING // aguardando
+  PAID // pago
+  OVERDUE // vencido
+  CANCELLED // cancelado
+}
+
+enum PaymentMethod {
+  CASH // dinheiro
+  PIX
+  CARD
+  BANK_SLIP // boleto
+  TRANSFER // transferência bancária
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE // em uso
+  INACTIVE // parado, não utilizado
+  SOLD // vendido
+  DISPOSED // descartado
+  LOST // perdido / não localizado
+}
+
+enum AssetMaintenanceType {
+  CLEANING // limpeza
+  LUBRICATION // lubrificação
+  ADJUSTMENT // ajuste
+  PART_REPLACEMENT // troca de peça
+  INSPECTION // inspeção
+  CORRECTIVE // corretiva
+  PREVENTIVE // preventiva
+  OTHER
+}
+
+model Country {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(40)
+  isoCode         String            @unique @db.Char(3)
+  states          State[]
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
+
+  /// Tabela de países cadastrados.
+  @@map("country")
+}
+
+model State {
+  id              Int               @id @default(autoincrement())
+  countryId       Int
+  name            String            @db.VarChar(40)
+  uf              String            @unique @db.Char(2)
+  ibgeCode        Int               @unique
+  country         Country           @relation(fields: [countryId], references: [id])
+  cities          City[]
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
+
+  /// Tabela de estados vinculados a um país.
+  @@map("state")
+}
+
+model City {
+  id              Int               @id @default(autoincrement())
+  stateId         Int
+  name            String            @db.VarChar(60)
+  ibgeCode        Int               @unique
+  state           State             @relation(fields: [stateId], references: [id])
+  enterprises     Enterprise[]
+  people          Person[]
+  deliveryAddress DeliveryAddress[]
+
+  /// Tabela de cidades vinculadas a um estado.
+  @@map("city")
+}
+
+model Enterprise {
+  id                Int            @id @default(autoincrement())
+  countryId         Int
+  stateId           Int
+  cityId            Int
+  name              String?        @db.VarChar(80) // Nome Fantasia / Apelido
+  legalName         String?        @db.VarChar(80) // Razão Social / Nome
+  taxId             String?        @db.VarChar(20) // CNPJ/CPF
+  responsiblePerson String?        @db.VarChar(40) // Responsável
+  email             String?
+  phone             String?
+  cellphone         String?
+  stateRegistration String?        @db.VarChar(40) // IE
+  cityRegistration  String?        @db.VarChar(40) // IM
+  maritalStatus     MaritalStatus? // Estado Civil
+  neighborhood      String?        @db.VarChar(40) // Bairro
+  street            String?        @db.VarChar(40) // Rua
+  number            String?        @db.VarChar(40) // Número
+  complement        String?        @db.VarChar(80) // Complemento
+  postalCode        String?        @db.VarChar(20) // CEP
+  notes             String?
+  logo              String?
+  branch            Branch         @default(INDUSTRY)
+  plan              Plan           @default(START)
+  status            Status         @default(ACTIVE)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  country              Country                @relation(fields: [countryId], references: [id])
+  state                State                  @relation(fields: [stateId], references: [id])
+  city                 City                   @relation(fields: [cityId], references: [id])
+  people               Person[]
+  users                User[]
+  audits               Audit[]
+  logs                 Log[]
+  customers            Customer[]
+  suppliers            Supplier[]
+  deliveryAddress      DeliveryAddress[]
+  tokens               Token[]
+  productDefinition    ProductDefinition[]
+  unity                Unity[]
+  product              Product[]
+  productInventory     ProductInventory[]
+  warehouse            Warehouse[]
+  inventoryMovement    InventoryMovement[]
+  lot                  Lot[]
+  recipe               Recipe[]
+  recipeItem           RecipeItem[]
+  productionOrder      ProductionOrder[]
+  productionOrderInput ProductionOrderInput[]
+  saleOrder            SaleOrder[]
+  saleOrderItem        SaleOrderItem[]
+  purchaseOrder        PurchaseOrder[]
+  purchaseOrderItem    PurchaseOrderItem[]
+  AccountsReceivable   AccountsReceivable[]
+  AccountsPayable      AccountsPayable[]
+  FinancialTransaction FinancialTransaction[]
+  Asset                Asset[]
+  AssetMaintenance     AssetMaintenance[]
+  AssetCategory        AssetCategory[]
+
+  @@unique([taxId, countryId, stateId, cityId]) // CNPJ único no contexto da localização
+  /// Empresas/empreendimentos que utilizam o sistema.
+  @@map("enterprise")
+}
+
+model Person {
+  id            Int            @id @default(autoincrement())
+  enterpriseId  Int
+  countryId     Int?
+  stateId       Int?
+  cityId        Int?
+  name          String?        @db.VarChar(80) // Nome Fantasia / Apelido
+  legalName     String?        @db.VarChar(80) // Razão Social / Nome
+  taxId         String?        @db.VarChar(20) // CNPJ/CPF
+  nationalId    String?        @db.VarChar(20) // RG
+  maritalStatus MaritalStatus? // Estado Civil
+  neighborhood  String?        @db.VarChar(80) // Bairro
+  street        String?        @db.VarChar(80) // Rua
+  number        String?        @db.VarChar(40) // Número
+  complement    String?        @db.VarChar(80) // Complemento
+  postalCode    String?        @db.VarChar(20) // CEP
+  notes         String?
+  email         String?        @db.VarChar(40)
+  phone         String?        @db.VarChar(40)
+  cellphone     String?        @db.VarChar(40)
+  dateOfBirth   DateTime?      @db.Date
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  country    Country?   @relation(fields: [countryId], references: [id])
+  state      State?     @relation(fields: [stateId], references: [id])
+  city       City?      @relation(fields: [cityId], references: [id])
+  users      User[]
+  customer   Customer[]
+  suppliers  Supplier[]
+
+  /// Pessoas físicas ou jurídicas vinculadas à empresa.
+  @@map("person")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  personId     Int      @unique
+  username     String   @unique
+  password     String   @db.VarChar(80)
+  status       Status   @default(ACTIVE)
+  role         Role     @default(EMPLOYEE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  person     Person     @relation(fields: [personId], references: [id])
+  tokens     Token[]
+  audits     Audit[]
+
+  /// Usuários de acesso ao sistema.
+  @@map("user")
+}
+
+model Customer {
+  id           Int        @id @default(autoincrement())
+  enterpriseId Int
+  personId     Int        @unique
+  status       Status     @default(ACTIVE)
+  type         PersonType @default(INDIVIDUAL)
+  contactName  String?    @db.VarChar(80) // nome da pessoa de contato
+  contactPhone String?    @db.VarChar(20)
+  contactEmail String?    @db.VarChar(40)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
+  person             Person               @relation(fields: [personId], references: [id])
+  deliveryAddress    DeliveryAddress[]
+  saleOrder          SaleOrder[]
+  AccountsReceivable AccountsReceivable[]
+
+  /// Clientes atendidos pela empresa.
+  @@map("customer")
+}
+
+model Supplier {
+  id           Int        @id @default(autoincrement())
+  enterpriseId Int
+  personId     Int        @unique
+  status       Status     @default(ACTIVE)
+  type         PersonType @default(BUSINESS)
+  contactName  String?    @db.VarChar(80) // Nome do contato principal
+  contactPhone String?    @db.VarChar(20)
+  contactEmail String?    @db.VarChar(40)
+  website      String?    @db.VarChar(100)
+  paymentTerms String?    @db.VarChar(40) // Prazo de pagamento (ex: 30 dias)
+  deliveryTime String?    @db.VarChar(40) // Tempo médio de entrega
+  category     String?    @db.VarChar(60) // Ex: embalagens, frutas, transporte
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  enterprise        Enterprise          @relation(fields: [enterpriseId], references: [id])
+  person            Person              @relation(fields: [personId], references: [id])
+  inventoryMovement InventoryMovement[]
+  purchaseOrder     PurchaseOrder[]
+  AccountsPayable   AccountsPayable[]
+
+  /// Fornecedores de produtos e serviços da empresa.
+  @@map("supplier")
+}
+
+model DeliveryAddress {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  enterpriseId Int
+  label        String?  @db.VarChar(40) // Ex: "Matriz", "Filial Porto Alegre", "Armazém"
+  street       String?  @db.VarChar(80)
+  number       String?  @db.VarChar(40)
+  neighborhood String?  @db.VarChar(40)
+  complement   String?  @db.VarChar(80)
+  reference    String?  @db.VarChar(80)
+  postalCode   String?  @db.VarChar(20)
+  cityId       Int
+  stateId      Int
+  countryId    Int?
+  isDefault    Boolean  @default(false)
+  status       Status   @default(ACTIVE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  city       City       @relation(fields: [cityId], references: [id])
+  state      State?     @relation(fields: [stateId], references: [id])
+  country    Country?   @relation(fields: [countryId], references: [id])
+
+  /// Endereços de entrega associados a clientes/fornecedores.
+  @@map("deliveryAddress")
+}
+
+model Token {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  enterpriseId Int
+  token        String   @unique @db.VarChar(512)
+  valid        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  expiresAt DateTime
+
+  user       User       @relation(fields: [userId], references: [id])
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  @@index([userId])
+  /// Tokens de autenticação e recuperação de acesso.
+  @@map("token")
+}
+
+model Audit {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  enterpriseId Int
+  action       String
+  entity       String?
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id])
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  /// Registros de auditoria de ações dos usuários.
+  @@map("audit")
+}
+
+model Log {
+  id           Int      @id @default(autoincrement())
+  message      String   @db.Text
+  stack        String?  @db.Text
+  context      String?
+  enterpriseId Int?
+  createdAt    DateTime @default(now())
+
+  enterprise Enterprise? @relation(fields: [enterpriseId], references: [id])
+
+  /// Logs técnicos e de erro do sistema.
+  @@map("log")
+}
+
+model ProductDefinition {
+  id           Int                   @id @default(autoincrement())
+  enterpriseId Int
+  name         String                @db.VarChar(40)
+  description  String?
+  type         ProductDefinitionType
+  createdAt    DateTime              @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime              @updatedAt @db.Timestamp(3)
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  product    Product[]
+
+  @@unique([enterpriseId, name])
+  /// Definições conceituais de tipos de produtos.
+  @@map("productDefinition")
+}
+
+model Unity {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  simbol       String   @db.VarChar(8)
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  product    Product[]
+
+  @@unique([enterpriseId, simbol])
+  /// Unidades de medida utilizadas nos produtos.
+  @@map("unity")
+}
+
+model Product {
+  id                  Int      @id @default(autoincrement())
+  enterpriseId        Int
+  productDefinitionId Int?
+  unityId             Int?
+  name                String   @db.VarChar(80)
+  barcode             String?  @db.VarChar(40)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  enterprise         Enterprise             @relation(fields: [enterpriseId], references: [id])
+  productDefinition  ProductDefinition?     @relation(fields: [productDefinitionId], references: [id])
+  unity              Unity?                 @relation(fields: [unityId], references: [id])
+  productInventory   ProductInventory[]
+  inventoryMovement  InventoryMovement[]
+  recipe             Recipe[]
+  recipeItems        RecipeItem[]
+  productionOrders   ProductionOrder[]
+  saleOrderItems     SaleOrderItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  productionInputs   ProductionOrderInput[]
+  lot                Lot[]
+
+  /// Produtos cadastrados para venda ou produção.
+  @@map("product")
+}
+
+model ProductInventory {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  productId    Int
+  costValue    Decimal  @db.Decimal(14, 6)
+  saleValue    Decimal  @db.Decimal(14, 6)
+  quantity     Decimal  @db.Decimal(14, 6)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+
+  @@unique([enterpriseId, productId])
+  /// Estoque e valores atuais de cada produto.
+  @@map("productInventory")
+}
+
+model Warehouse {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  code         String   @db.VarChar(20)
+  name         String   @db.VarChar(80)
+  description  String?  @db.VarChar(120)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise       Enterprise          @relation(fields: [enterpriseId], references: [id])
+  movements        InventoryMovement[]
+  productionOrders ProductionOrder[]
+
+  @@unique([enterpriseId, code])
+  /// Depósitos/almoxarifados da empresa.
+  @@map("warehouse")
+}
+
+model InventoryMovement {
+  id           Int            @id @default(autoincrement())
+  enterpriseId Int
+  productId    Int
+  warehouseId  Int
+  lotId        Int? // controle de lote
+  direction    MovementType
+  source       MovementSource
+  quantity     Decimal        @db.Decimal(14, 6)
+  balance      Decimal        @db.Decimal(14, 6)
+  unitCost     Decimal?       @db.Decimal(14, 6)
+  reference    String?        @db.VarChar(80) // NF, código colheita...
+  notes        String?
+  supplierId   Int? // se for uma compra
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+  warehouse  Warehouse  @relation(fields: [warehouseId], references: [id])
+  supplier   Supplier?  @relation(fields: [supplierId], references: [id])
+  lot        Lot?       @relation("LotToMovements", fields: [lotId], references: [id])
+
+  @@index([enterpriseId, productId])
+  @@index([warehouseId])
+  @@index([direction])
+  @@index([source])
+  /// Movimentações de estoque (entradas e saídas).
+  @@map("inventoryMovement")
+}
+
+model Lot {
+  id           Int       @id @default(autoincrement())
+  enterpriseId Int
+  code         String    @unique @db.VarChar(40)
+  productId    Int?
+  harvestDate  DateTime? @db.Date
+  expiration   DateTime? @db.Date
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
+  product         Product?            @relation(fields: [productId], references: [id])
+  movements       InventoryMovement[] @relation("LotToMovements")
+  productionOrder ProductionOrder[]
+
+  /// Lotes de produtos associados a produção ou compra.
+  @@map("lot")
+}
+
+model Recipe {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  productId    Int
+  description  String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise      Enterprise        @relation(fields: [enterpriseId], references: [id])
+  product         Product           @relation(fields: [productId], references: [id])
+  items           RecipeItem[]
+  ProductionOrder ProductionOrder[]
+
+  /// Receitas/fórmulas de produção de um produto.
+  @@map("recipe")
+}
+
+model RecipeItem {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  recipeId     Int
+  productId    Int
+  quantity     Decimal  @db.Decimal(14, 6)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  recipe     Recipe     @relation(fields: [recipeId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+
+  /// Itens/componentes que compõem uma receita.
+  @@map("recipeItem")
+}
+
+model ProductionOrder {
+  id           Int                   @id @default(autoincrement())
+  enterpriseId Int
+  code         String                @unique @db.VarChar(40)
+  recipeId     Int // receita que é vinculada ao produto final
+  warehouseId  Int // depósito onde a produção será realizada
+  lotId        Int? // lote gerado
+  status       ProductionOrderStatus @default(PLANNED)
+  plannedQty   Decimal               @db.Decimal(14, 6)
+  producedQty  Decimal?              @db.Decimal(14, 6)
+  wasteQty     Decimal?              @db.Decimal(14, 6)
+  otherCosts   Decimal?              @db.Decimal(14, 6)
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  enterprise Enterprise             @relation(fields: [enterpriseId], references: [id])
+  recipe     Recipe                 @relation(fields: [recipeId], references: [id])
+  warehouse  Warehouse              @relation(fields: [warehouseId], references: [id])
+  lot        Lot?                   @relation(fields: [lotId], references: [id])
+  inputs     ProductionOrderInput[]
+  Product    Product?               @relation(fields: [productId], references: [id])
+  productId  Int?
+
+  /// Ordens de produção planejadas e executadas.
+  @@map("productionOrder")
+}
+
+model ProductionOrderInput {
+  id                Int      @id @default(autoincrement())
+  enterpriseId      Int
+  productionOrderId Int
+  productId         Int
+  quantity          Decimal  @db.Decimal(14, 6)
+  unitCost          Decimal? @db.Decimal(14, 6)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  enterprise      Enterprise      @relation(fields: [enterpriseId], references: [id])
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  product         Product         @relation(fields: [productId], references: [id])
+
+  /// Consumo de insumos em cada ordem de produção.
+  @@map("productionOrderInput")
+}
+
+model SaleOrder {
+  id           Int         @id @default(autoincrement())
+  enterpriseId Int
+  customerId   Int
+  code         String      @unique @db.VarChar(40)
+  status       OrderStatus @default(PENDING)
+  totalValue   Decimal     @db.Decimal(14, 6)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
+  customer           Customer             @relation(fields: [customerId], references: [id])
+  items              SaleOrderItem[]
+  AccountsReceivable AccountsReceivable[]
+
+  /// Pedidos de venda realizados para clientes.
+  @@map("saleOrder")
+}
+
+model SaleOrderItem {
+  id               Int      @id @default(autoincrement())
+  enterpriseId     Int
+  saleOrderId      Int
+  productId        Int
+  quantity         Decimal  @db.Decimal(14, 6)
+  unitPrice        Decimal  @db.Decimal(14, 6)
+  productUnitPrice Decimal  @db.Decimal(14, 6)
+  unitCost         Decimal  @db.Decimal(14, 6)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  saleOrder  SaleOrder  @relation(fields: [saleOrderId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+
+  /// Itens pertencentes a um pedido de venda.
+  @@map("saleOrderItem")
+}
+
+model PurchaseOrder {
+  id           Int         @id @default(autoincrement())
+  enterpriseId Int
+  supplierId   Int
+  code         String      @unique @db.VarChar(40)
+  status       OrderStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  enterprise      Enterprise          @relation(fields: [enterpriseId], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  items           PurchaseOrderItem[]
+  AccountsPayable AccountsPayable[]
+
+  /// Pedidos de compra realizados a fornecedores.
+  @@map("purchaseOrder")
+}
+
+model PurchaseOrderItem {
+  id              Int      @id @default(autoincrement())
+  enterpriseId    Int
+  purchaseOrderId Int
+  productId       Int
+  quantity        Decimal  @db.Decimal(14, 6)
+  unitCost        Decimal  @db.Decimal(14, 6)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  enterprise    Enterprise    @relation(fields: [enterpriseId], references: [id])
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
+
+  /// Itens pertencentes a um pedido de compra.
+  @@map("purchaseOrderItem")
+}
+
+model AccountsReceivable {
+  id           Int            @id @default(autoincrement())
+  enterpriseId Int
+  customerId   Int? // pode ser avulso
+  saleOrderId  Int? // pode vir da venda (opcional)
+  description  String?        @db.VarChar(120)
+  value        Decimal        @db.Decimal(14, 6)
+  dueDate      DateTime       @db.Date
+  paymentDate  DateTime?      @db.Date
+  method       PaymentMethod?
+  status       PaymentStatus  @default(PENDING)
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  enterprise   Enterprise             @relation(fields: [enterpriseId], references: [id])
+  customer     Customer?              @relation(fields: [customerId], references: [id])
+  saleOrder    SaleOrder?             @relation(fields: [saleOrderId], references: [id])
+  transactions FinancialTransaction[]
+
+  @@index([enterpriseId])
+  @@index([customerId])
+  @@index([saleOrderId])
+  /// Contas a receber da empresa.
+  @@map("accountsReceivable")
+}
+
+model AccountsPayable {
+  id              Int            @id @default(autoincrement())
+  enterpriseId    Int
+  supplierId      Int? // também pode ser avulso
+  purchaseOrderId Int? // opcional
+  description     String?        @db.VarChar(120)
+  value           Decimal        @db.Decimal(14, 6)
+  dueDate         DateTime       @db.Date
+  paymentDate     DateTime?      @db.Date
+  method          PaymentMethod?
+  status          PaymentStatus  @default(PENDING)
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  enterprise    Enterprise             @relation(fields: [enterpriseId], references: [id])
+  supplier      Supplier?              @relation(fields: [supplierId], references: [id])
+  purchaseOrder PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
+  transactions  FinancialTransaction[]
+
+  @@index([enterpriseId])
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+  /// Contas a pagar da empresa.
+  @@map("accountsPayable")
+}
+
+model FinancialTransaction {
+  id                   Int             @id @default(autoincrement())
+  enterpriseId         Int
+  type                 TransactionType
+  value                Decimal         @db.Decimal(14, 6)
+  date                 DateTime        @default(now()) @db.Timestamp(3)
+  category             String?         @db.VarChar(60) // Venda, Compra, Diesel, Embalagens...
+  description          String?         @db.VarChar(120)
+  accountsReceivableId Int?
+  accountsPayableId    Int?
+  notes                String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  enterprise Enterprise          @relation(fields: [enterpriseId], references: [id])
+  receivable AccountsReceivable? @relation(fields: [accountsReceivableId], references: [id])
+  payable    AccountsPayable?    @relation(fields: [accountsPayableId], references: [id])
+
+  @@index([enterpriseId])
+  @@index([accountsReceivableId])
+  @@index([accountsPayableId])
+  /// Transações financeiras ligadas a contas a pagar e receber.
+  @@map("financialTransaction")
+}
+
+model AssetCategory {
+  id           Int      @id @default(autoincrement())
+  enterpriseId Int
+  name         String   @db.VarChar(40)
+  description  String?  @db.VarChar(120)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  assets     Asset[]
+
+  @@unique([enterpriseId, name])
+  /// Categorias dos bens patrimoniais (ex: máquinas, veículos, informática, móveis).
+  @@map("assetCategory")
+}
+
+model Asset {
+  id               Int         @id @default(autoincrement())
+  enterpriseId     Int
+  categoryId       Int // vínculo com AssetCategory
+  name             String      @db.VarChar(80)
+  acquisitionDate  DateTime    @db.Date
+  acquisitionCost  Decimal     @db.Decimal(14, 6)
+  usefulLifeMonths Int // vida útil total (em meses)
+  salvageValue     Decimal     @db.Decimal(14, 6) // valor residual (sucata)
+  location         String?     @db.VarChar(80) // onde está o ativo
+  status           AssetStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  enterprise  Enterprise         @relation(fields: [enterpriseId], references: [id])
+  category    AssetCategory      @relation(fields: [categoryId], references: [id])
+  maintenance AssetMaintenance[]
+
+  @@index([enterpriseId])
+  @@index([categoryId])
+  /// Bens patrimoniais da empresa (máquinas, veículos, etc.).
+  @@map("asset")
+}
+
+model AssetMaintenance {
+  id           Int                  @id @default(autoincrement())
+  enterpriseId Int
+  assetId      Int
+  type         AssetMaintenanceType @default(OTHER)
+  description  String?              @db.VarChar(200)
+  cost         Decimal?             @db.Decimal(14, 6)
+  date         DateTime             @db.Date
+  technician   String?              @db.VarChar(80)
+  notes        String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+  asset      Asset      @relation(fields: [assetId], references: [id])
+
+  @@index([enterpriseId])
+  @@index([assetId])
+  /// Manutenções realizadas nos bens patrimoniais.
+  @@map("assetMaintenance")
+}
