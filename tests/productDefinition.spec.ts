@@ -1,10 +1,29 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, APIRequestContext } from "@playwright/test";
 import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
 import { PRODUCT_DEFINITION_ERROR } from "../src/middleware/productDefinition.middleware";
 import { genId } from "./utils/idGenerator";
 
 const baseUrl = `http://${env.DOMAIN}:${env.PORT}/api/v1`;
+
+const createDefinition = async (
+    request: APIRequestContext,
+    type: ProductDefinitionType,
+    suffix = Date.now().toString().slice(-6)
+) => {
+    const name = `DEF_${type}_${suffix}`;
+    const res = await request.post(`${baseUrl}/product-definitions`, {
+        data: {
+            id: genId(),
+            name,
+            description: `Definição ${type}`,
+            type,
+        },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
 
 test("Lista definições de produto com paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/product-definitions`);
@@ -26,7 +45,6 @@ test("Cria, busca e atualiza uma definição de produto", async ({ request }) =>
         type: ProductDefinitionType.FINISHED_PRODUCT,
     };
 
-    // Create
     const createRes = await request.post(`${baseUrl}/product-definitions`, { data: payload });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
@@ -34,14 +52,12 @@ test("Cria, busca e atualiza uma definição de produto", async ({ request }) =>
     expect(created.name).toBe(uniqueName);
     expect(created.type).toBe(ProductDefinitionType.FINISHED_PRODUCT);
 
-    // Get by id
     const getRes = await request.get(`${baseUrl}/product-definitions/${created.id}`);
     expect(getRes.status()).toBe(200);
     const { data: fetched } = await getRes.json();
     expect(fetched).toBeTruthy();
     expect(fetched.id).toBe(created.id);
 
-    // Update
     const updateRes = await request.put(`${baseUrl}/product-definitions/${created.id}`, {
         data: {
             name: `${uniqueName}_UPD`,
@@ -91,12 +107,34 @@ test("Validação de id e query de definição de produto", async ({ request }) 
     const bodyInvalidSortOrder = await resInvalidSortOrder.json();
     expect(bodyInvalidSortOrder.message).toContain(PRODUCT_DEFINITION_ERROR.SORT);
 
+    const resInvalidType = await request.get(`${baseUrl}/product-definitions?type=INVALID_TYPE`);
+    expect(resInvalidType.status()).toBe(400);
+    const bodyInvalidType = await resInvalidType.json();
+    expect(bodyInvalidType.message).toContain(PRODUCT_DEFINITION_ERROR.TYPE);
+
     const resInvalidSortBy = await request.get(
         `${baseUrl}/product-definitions?sortBy=unknownField`
     );
     expect(resInvalidSortBy.status()).toBe(400);
     const bodyInvalidSortBy = await resInvalidSortBy.json();
     expect(bodyInvalidSortBy.message).toContain(PRODUCT_DEFINITION_ERROR.SORT_BY);
+});
+
+test("Filtra definições de produto por type", async ({ request }) => {
+    const rawDef = await createDefinition(request, ProductDefinitionType.RAW_MATERIAL);
+    await createDefinition(request, ProductDefinitionType.FINISHED_PRODUCT);
+
+    const res = await request.get(
+        `${baseUrl}/product-definitions?type=${ProductDefinitionType.RAW_MATERIAL}`
+    );
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+
+    expect(data.items.length).toBeGreaterThan(0);
+    expect(
+        data.items.every((pd: { type: ProductDefinitionType }) => pd.type === rawDef.type)
+    ).toBeTruthy();
+    expect(data.items.some((pd: { id: number }) => pd.id === rawDef.id)).toBeTruthy();
 });
 
 test("Busca e ordenação de definições de produto", async ({ request }) => {

@@ -11,6 +11,7 @@ export const PRODUCT_DEFINITION_ERROR = {
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
+    TYPE: "type must be a valid ProductDefinitionType",
 };
 
 export interface ProductDefinitionQueryValidationOptions {
@@ -34,10 +35,19 @@ export function validateProductDefinitionsQuery(
     const { allowSearch = true, allowedSortFields = [] } = options;
 
     return (req: Request, res: Response, next: NextFunction) => {
-        let { page = "1", limit = "10", search, sortBy, sortOrder, includeInactive } = req.query;
+        let {
+            page = "1",
+            limit = "10",
+            search,
+            sortBy,
+            sortOrder,
+            includeInactive,
+            type,
+        } = req.query;
 
         const pageNum = Number(page);
         const limitNum = Number(limit);
+        const normalizedType = typeof type === "string" ? type.trim() : type;
 
         if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
             return res.status(400).json({ message: PRODUCT_DEFINITION_ERROR.PAGINATION });
@@ -53,6 +63,14 @@ export function validateProductDefinitionsQuery(
 
         if (!allowSearch && search !== undefined) {
             return res.status(400).json({ message: PRODUCT_DEFINITION_ERROR.SEARCH });
+        }
+
+        if (
+            normalizedType !== undefined &&
+            normalizedType !== "" &&
+            !Object.values(ProductDefinitionType).includes(normalizedType as ProductDefinitionType)
+        ) {
+            return res.status(400).json({ message: PRODUCT_DEFINITION_ERROR.TYPE });
         }
 
         if (typeof search === "string") {
@@ -74,6 +92,9 @@ export function validateProductDefinitionsQuery(
         req.query.sortBy = sortBy?.toString();
         req.query.sortOrder = sortOrder?.toString() || "desc";
         req.query.includeInactive = includeInactive?.toLowerCase() === "true" ? "true" : "false";
+        if (normalizedType) {
+            req.query.type = normalizedType as ProductDefinitionType;
+        }
 
         return next();
     };

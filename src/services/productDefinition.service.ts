@@ -19,7 +19,8 @@ export class ProductDefinitionService extends BaseService {
         limit = 10,
         search?: string | null,
         sortBy?: string,
-        sortOrder?: "asc" | "desc"
+        sortOrder?: "asc" | "desc",
+        type?: ProductDefinitionType
     ) =>
         this.safeQuery(
             async () => {
@@ -30,6 +31,7 @@ export class ProductDefinitionService extends BaseService {
 
                 const where = {
                     enterpriseId,
+                    ...(type ? { type } : {}),
                     ...(search
                         ? {
                               OR: [

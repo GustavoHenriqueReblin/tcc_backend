@@ -2,9 +2,10 @@ import type { Response } from "express";
 import { sendResponse } from "@utils/functions";
 import { Request } from "@middleware/auth.middleware";
 import { productDefinitionService as service } from "@services/services";
+import { ProductDefinitionType } from "@prisma/client";
 
 export const getAllProductDefinitions = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
+    const { page = "1", limit = "10", search, sortBy, sortOrder, type } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
@@ -13,7 +14,8 @@ export const getAllProductDefinitions = async (req: Request, res: Response) => {
         Number(limit),
         search?.toString() ?? undefined,
         sortBy?.toString(),
-        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc",
+        type?.toString() as ProductDefinitionType | undefined
     );
     return sendResponse(res, result, "Product definitions fetched successfully");
 };
