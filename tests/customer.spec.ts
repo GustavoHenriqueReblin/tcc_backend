@@ -1,11 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { env } from "../src/config/env";
 import { Status, PersonType, Customer } from "@prisma/client";
 import { CustomerInput } from "../src/services/customer.service";
 import { CUSTOMER_ERROR } from "../src/middleware/customer.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 test("Lista clientes (somente ativos por padrão) e paginação básica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/customers`);

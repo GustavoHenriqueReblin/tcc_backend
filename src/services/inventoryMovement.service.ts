@@ -1,5 +1,4 @@
 ﻿import { prisma } from "@config/prisma";
-import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { MovementType, MovementSource, Prisma } from "@prisma/client";
@@ -299,7 +298,7 @@ export class InventoryMovementService extends BaseService {
 
         const movement = await tx.inventoryMovement.create({
             data: {
-                ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                ...(process.env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
                     ? { id: data.id }
                     : {}),
                 enterpriseId,

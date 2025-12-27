@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { env } from "../src/config/env";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { ACCOUNTS_RECEIVABLE_ERROR } from "../src/middleware/accountsReceivable.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 test("Lista contas a receber e valida paginacao basica", async ({ request }) => {
     const res = await request.get(`${baseUrl}/accounts-receivable`);

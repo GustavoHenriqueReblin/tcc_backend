@@ -1,8 +1,7 @@
 import { request, expect } from "@playwright/test";
-import { env } from "../src/config/env";
 import { defaultUser } from "../src/config/default.data";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = "http://localhost:3333/api/v1";
 
 const globalSetup = async () => {
     const apiContext = await request.newContext();

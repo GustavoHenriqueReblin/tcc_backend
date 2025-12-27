@@ -1,10 +1,9 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
-import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
 import { PRODUCT_DEFINITION_ERROR } from "../src/middleware/productDefinition.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 const findDefinitionByType = async (request: APIRequestContext, type: ProductDefinitionType) => {
     const res = await request.get(`${baseUrl}/product-definitions?type=${type}`);

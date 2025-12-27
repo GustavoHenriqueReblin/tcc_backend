@@ -1,4 +1,3 @@
-import { env } from "@config/env";
 import { prisma } from "@config/prisma";
 
 export const handleError = async (
@@ -15,7 +14,7 @@ export const handleError = async (
         enterpriseId,
     };
 
-    if (env.ENVIRONMENT === "DEVELOPMENT")
+    if (process.env.ENVIRONMENT === "DEVELOPMENT")
         console.error(`[ERROR] ${context ? `[${context}]` : ""} ${err.message}`);
 
     try {

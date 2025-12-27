@@ -1,7 +1,8 @@
 import cron from "node-cron";
 import { prisma } from "@config/prisma";
 import axios from "axios";
-import { env } from "@config/env";
+
+const isDevelopment = process.env.ENVIRONMENT === "DEVELOPMENT";
 
 // Agenda: todo domingo às 03:00 da manhã
 const schedule = "0 3 * * 0";
@@ -55,7 +56,7 @@ export const insertGeoData = async () => {
             });
         }
 
-        if (env.ENVIRONMENT === "DEVELOPMENT")
+        if (isDevelopment)
             console.log(`[CRON] ${cities.length} cidades atualizadas para ${s.sigla}`);
     }
 };
@@ -64,14 +65,13 @@ export const startGeoDataCron = () => {
     cron.schedule(
         schedule,
         async () => {
-            if (env.ENVIRONMENT === "DEVELOPMENT")
+            if (isDevelopment)
                 console.log("[CRON] Iniciando atualização de países, estados e cidades...");
 
             try {
                 await insertGeoData();
             } catch (error) {
-                if (env.ENVIRONMENT === "DEVELOPMENT")
-                    console.error("[CRON] Erro ao executar atualização:", error);
+                if (isDevelopment) console.error("[CRON] Erro ao executar atualização:", error);
             }
         },
         {
@@ -79,6 +79,6 @@ export const startGeoDataCron = () => {
         }
     );
 
-    if (env.ENVIRONMENT === "DEVELOPMENT")
+    if (isDevelopment)
         console.log("[CRON] Rotina de atualização geográfica agendada para domingos às 03:00.");
 };

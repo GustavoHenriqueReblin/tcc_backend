@@ -16,7 +16,6 @@ import {
     AssetMaintenanceType,
 } from "@prisma/client";
 import { insertGeoData } from "../src/cron/updateGeoData";
-import { env } from "../src/config/env";
 import { defaultUser } from "../src/config/default.data";
 
 let nextId = -1;
@@ -69,7 +68,7 @@ export const clearData = async () => {
 };
 
 export const generateData = async () => {
-    if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados de teste...");
+    if (process.env.ENVIRONMENT === "DEVELOPMENT") console.log("Inserindo dados de teste...");
 
     const [cityCount, stateCount] = await Promise.all([prisma.city.count(), prisma.state.count()]);
     if (cityCount < 4000 || stateCount < 20) await insertGeoData();
@@ -157,7 +156,7 @@ export const generateData = async () => {
             enterpriseId,
             personId: userPerson.id,
             username: defaultUser.username(i),
-            password: await bcrypt.hash(env.APP_SECRET + defaultUser.password, 10),
+            password: await bcrypt.hash(process.env.APP_SECRET + defaultUser.password, 10),
             role: Role.OWNER,
             status: Status.ACTIVE,
         };
@@ -1040,7 +1039,8 @@ export const generateData = async () => {
         }
     }
 
-    if (env.ENVIRONMENT === "DEVELOPMENT") console.log("Seed de teste finalizada com sucesso!");
+    if (process.env.ENVIRONMENT === "DEVELOPMENT")
+        console.log("Seed de teste finalizada com sucesso!");
 
     fs.writeFileSync("seedData.json", JSON.stringify({ lastId: nextId }, null, 2));
 };

@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { Decimal } from "@prisma/client/runtime/library";
@@ -208,7 +207,8 @@ export class ProductionOrderService extends BaseService {
                 const created = await prisma.$transaction(async (tx) => {
                     const order = await tx.productionOrder.create({
                         data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,
@@ -632,7 +632,7 @@ export class ProductionOrderService extends BaseService {
         for (const item of create) {
             await tx.productionOrderInput.create({
                 data: {
-                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                    ...(process.env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
                         ? { id: item.id }
                         : {}),
 

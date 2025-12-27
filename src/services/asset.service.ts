@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { AssetStatus } from "@prisma/client";
@@ -109,7 +108,8 @@ export class AssetService extends BaseService {
                 const created = await prisma.$transaction(async (tx) => {
                     const asset = await tx.asset.create({
                         data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,

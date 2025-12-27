@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { OrderStatus } from "@prisma/client";
@@ -129,7 +128,8 @@ export class SaleOrderService extends BaseService {
                 const created = await prisma.$transaction(async (tx) => {
                     const order = await tx.saleOrder.create({
                         data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,
@@ -294,7 +294,7 @@ export class SaleOrderService extends BaseService {
         for (const item of create) {
             await tx.saleOrderItem.create({
                 data: {
-                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                    ...(process.env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
                         ? { id: item.id }
                         : {}),
                     enterpriseId,

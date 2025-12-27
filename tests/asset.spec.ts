@@ -1,10 +1,9 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
-import { env } from "../src/config/env";
 import { AssetStatus } from "@prisma/client";
 import { ASSET_ERROR } from "../src/middleware/asset.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 const createAuxAssetCategory = async (request: APIRequestContext) => {
     const name = `CAT_AUX_${Date.now().toString().slice(-6)}`;

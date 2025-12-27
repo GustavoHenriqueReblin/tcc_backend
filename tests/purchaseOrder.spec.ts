@@ -1,10 +1,9 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
-import { env } from "../src/config/env";
 import { PURCHASE_ORDER_ERROR } from "../src/middleware/purchaseOrder.middleware";
 import { OrderStatus, ProductDefinitionType } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `UPO${Math.abs(genId())}`;

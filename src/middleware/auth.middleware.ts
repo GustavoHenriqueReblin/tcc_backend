@@ -1,7 +1,10 @@
 import type { Request as ExpressRequest, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+
+const isProduction = process.env.ENVIRONMENT === "PRODUCTION";
+const cookieName = isProduction ? "__Host-erp-access" : "erp-access";
+const APP_SECRET = process.env.APP_SECRET ?? "";
 
 interface AuthPayload {
     sub: number;
@@ -22,13 +25,12 @@ export const authMiddleware = async (
     next: NextFunction
 ): Promise<Response | void> => {
     try {
-        const token =
-            req.cookies?.[env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access"];
+        const token = req.cookies?.[cookieName];
         if (!token) {
             return res.status(401).json({ error: true, message: "Token not provided" });
         }
 
-        const decoded = jwt.verify(token, env.APP_SECRET);
+        const decoded = jwt.verify(token, APP_SECRET);
         if (typeof decoded === "string" || !("sub" in decoded)) {
             return res.status(401).json({ error: true, message: "Malformed token" });
         }
@@ -44,9 +46,9 @@ export const authMiddleware = async (
 
         const tokenRecord = await prisma.token.findUnique({ where: { token } });
         if (!tokenRecord || !tokenRecord.valid || tokenRecord.expiresAt < new Date()) {
-            res.clearCookie(env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access", {
+            res.clearCookie(cookieName, {
                 httpOnly: true,
-                secure: env.ENVIRONMENT === "PRODUCTION",
+                secure: isProduction,
                 sameSite: "strict",
             });
             return res.status(401).json({ error: true, message: "Token revoked or expired" });

@@ -1,10 +1,9 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
-import { env } from "../src/config/env";
 import { SALE_ORDER_ITEM_ERROR } from "../src/middleware/saleOrderItem.middleware";
 import { ProductDefinitionType } from "@prisma/client";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `U${Date.now().toString().slice(-6)}`;
@@ -173,7 +172,7 @@ test("Busca itens de pedido de venda com search por produto e ordena por unitPri
     const { data } = await res.json();
 
     const matching = data.items.filter(
-        (item: { product: { name: string } }) =>
+        (item: { code: string; product: { name: string } }) =>
             item.product.name.includes(searchTerm) || item.code?.includes(searchTerm)
     );
     expect(matching.length).toBeGreaterThanOrEqual(2);

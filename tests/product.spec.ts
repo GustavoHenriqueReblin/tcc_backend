@@ -1,10 +1,9 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
-import { env } from "../src/config/env";
 import { ProductDefinitionType } from "@prisma/client";
 import { PRODUCT_ERROR } from "../src/middleware/product.middleware";
 import { genId } from "./utils/idGenerator";
 
-const baseUrl = `http://localhost:${env.PORT}/api/v1`;
+const baseUrl = `http://localhost:${process.env.PORT ?? "3333"}/api/v1`;
 
 const createAuxUnity = async (request: APIRequestContext) => {
     const simbol = `U${Date.now().toString().slice(-6)}`;
@@ -25,7 +24,7 @@ const findDefinitionByType = async (request: APIRequestContext, type: ProductDef
 
 const createAuxDefinition = async (
     request: APIRequestContext,
-    type = ProductDefinitionType.FINISHED_PRODUCT
+    type: ProductDefinitionType = ProductDefinitionType.FINISHED_PRODUCT
 ) => {
     const existing = await findDefinitionByType(request, type);
     if (existing) return existing;

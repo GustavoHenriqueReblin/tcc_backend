@@ -1,6 +1,5 @@
-import * as jwt from "jsonwebtoken";
+﻿import * as jwt from "jsonwebtoken";
 import { BaseService } from "@services/base.service";
-import { env } from "@config/env";
 import bcrypt from "bcrypt";
 import { parseTimeToMs } from "@utils/functions";
 import { AppError } from "@utils/appError";
@@ -12,6 +11,9 @@ interface TokenPayload {
     enterpriseId: number;
 }
 
+const APP_SECRET = process.env.APP_SECRET ?? "";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "2d";
+
 export class AuthService extends BaseService {
     login = async (username: string, password: string) => {
         return this.safeQuery(async () => {
@@ -20,7 +22,7 @@ export class AuthService extends BaseService {
                 include: { person: true, enterprise: true },
             });
 
-            const isValid = await bcrypt.compare(env.APP_SECRET + password, user?.password ?? "");
+            const isValid = await bcrypt.compare(APP_SECRET + password, user?.password ?? "");
             if (!user || !isValid) throw new AppError("Credenciais inválidas");
 
             const existingToken = await this.prisma.token.findFirst({
@@ -45,11 +47,11 @@ export class AuthService extends BaseService {
                     enterpriseId: user.enterpriseId,
                 };
 
-                token = jwt.sign(payload, env.APP_SECRET, {
-                    expiresIn: env.JWT_EXPIRES_IN,
+                token = jwt.sign(payload, APP_SECRET, {
+                    expiresIn: JWT_EXPIRES_IN,
                 } as jwt.SignOptions);
 
-                const expiresAt = new Date(Date.now() + parseTimeToMs(env.JWT_EXPIRES_IN));
+                const expiresAt = new Date(Date.now() + parseTimeToMs(JWT_EXPIRES_IN));
 
                 await this.prisma.token.create({
                     data: {
@@ -89,7 +91,7 @@ export class AuthService extends BaseService {
             let decoded: TokenPayload | undefined = undefined;
 
             try {
-                const payload = jwt.verify(token, env.APP_SECRET);
+                const payload = jwt.verify(token, APP_SECRET);
                 if (typeof payload === "string") {
                     throw new AppError("Token inválido", 401);
                 }

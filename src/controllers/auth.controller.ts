@@ -1,16 +1,19 @@
 import type { Response } from "express";
 import { authService as service } from "@services/services";
 import { parseTimeToMs, sendResponse } from "@utils/functions";
-import { env } from "@config/env";
 import { Request } from "@middleware/auth.middleware";
 import { prisma } from "@config/prisma";
+
+const isProduction = process.env.ENVIRONMENT === "PRODUCTION";
+const cookieName = isProduction ? "__Host-erp-access" : "erp-access";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "2d";
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
     try {
         if (!req.auth) {
-            res.clearCookie(env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access", {
+            res.clearCookie(cookieName, {
                 httpOnly: true,
-                secure: env.ENVIRONMENT === "PRODUCTION",
+                secure: isProduction,
                 sameSite: "strict",
             });
 
@@ -20,12 +23,11 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             });
         }
 
-        const token =
-            req.cookies?.[env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access"];
+        const token = req.cookies?.[cookieName];
         const userId = req.auth.sub;
 
         if (token) {
-            const expiresInMs = parseTimeToMs(env.JWT_EXPIRES_IN);
+            const expiresInMs = parseTimeToMs(JWT_EXPIRES_IN);
             const expiresAt = new Date(Date.now() + expiresInMs);
 
             const { count } = await prisma.token.updateMany({
@@ -34,16 +36,12 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             });
 
             if (count > 0) {
-                res.cookie(
-                    env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access",
-                    token,
-                    {
-                        httpOnly: true,
-                        secure: env.ENVIRONMENT === "PRODUCTION",
-                        sameSite: "strict",
-                        maxAge: expiresInMs,
-                    }
-                );
+                res.cookie(cookieName, token, {
+                    httpOnly: true,
+                    secure: isProduction,
+                    sameSite: "strict",
+                    maxAge: expiresInMs,
+                });
             }
         }
 
@@ -121,31 +119,26 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         });
     }
 
-    res.cookie(
-        env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access",
-        result.token,
-        {
-            httpOnly: true,
-            secure: env.ENVIRONMENT === "PRODUCTION",
-            sameSite: "strict",
-            maxAge: parseTimeToMs(env.JWT_EXPIRES_IN),
-        }
-    );
+    res.cookie(cookieName, result.token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "strict",
+        maxAge: parseTimeToMs(JWT_EXPIRES_IN),
+    });
 
     const { token, ...data } = result;
     return sendResponse(res, data, "Login successful");
 };
 
 export const logout = async (req: Request, res: Response) => {
-    const token =
-        req.cookies?.[env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access"];
+    const token = req.cookies?.[cookieName];
     if (!token) return res.status(401).json({ error: true, message: "Token não fornecido" });
 
     const result = await service.logout(token);
 
-    res.clearCookie(env.ENVIRONMENT === "PRODUCTION" ? "__Host-erp-access" : "erp-access", {
+    res.clearCookie(cookieName, {
         httpOnly: true,
-        secure: env.ENVIRONMENT === "PRODUCTION",
+        secure: isProduction,
         sameSite: "strict",
     });
 

@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { unityAllowedSortFields } from "@routes/unity.routes";
@@ -85,7 +84,8 @@ export class UnityService extends BaseService {
                 const created = await prisma.$transaction(async (tx) => {
                     const unity = await tx.unity.create({
                         data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,

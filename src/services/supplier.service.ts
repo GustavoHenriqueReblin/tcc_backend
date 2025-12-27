@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { Status, PersonType, MaritalStatus } from "@prisma/client";
 import { AppError } from "@utils/appError";
@@ -197,7 +196,7 @@ export class SupplierService extends BaseService {
                     if (!existingPerson || !data.person.taxId) {
                         const newPerson = await tx.person.create({
                             data: {
-                                ...(env.ENVIRONMENT !== "PRODUCTION" &&
+                                ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
                                 typeof data.person.id === "number"
                                     ? { id: data.person.id }
                                     : {}),
@@ -228,7 +227,8 @@ export class SupplierService extends BaseService {
 
                         const newSupplier = await tx.supplier.create({
                             data: {
-                                ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                                ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                                typeof data.id === "number"
                                     ? { id: data.id }
                                     : {}),
                                 enterpriseId,

@@ -1,5 +1,4 @@
-import { prisma } from "@config/prisma";
-import { env } from "@config/env";
+﻿import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
 import { recipeAllowedSortFields } from "@routes/recipe.routes";
@@ -143,7 +142,8 @@ export class RecipeService extends BaseService {
                 const created = await prisma.$transaction(async (tx) => {
                     const recipe = await tx.recipe.create({
                         data: {
-                            ...(env.ENVIRONMENT !== "PRODUCTION" && typeof data.id === "number"
+                            ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                            typeof data.id === "number"
                                 ? { id: data.id }
                                 : {}),
                             enterpriseId,
@@ -289,7 +289,8 @@ export class RecipeService extends BaseService {
         for (const recipeData of create) {
             const recipe = await tx.recipe.create({
                 data: {
-                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof recipeData.id === "number"
+                    ...(process.env.ENVIRONMENT !== "PRODUCTION" &&
+                    typeof recipeData.id === "number"
                         ? { id: recipeData.id }
                         : {}),
                     enterpriseId,
@@ -365,7 +366,7 @@ export class RecipeService extends BaseService {
         for (const item of create) {
             await tx.recipeItem.create({
                 data: {
-                    ...(env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
+                    ...(process.env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
                         ? { id: item.id }
                         : {}),
                     enterpriseId,
