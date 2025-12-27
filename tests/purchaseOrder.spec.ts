@@ -16,7 +16,17 @@ const createAuxUnity = async (request: APIRequestContext) => {
     return data;
 };
 
+const findDefinitionByType = async (request: APIRequestContext, type: ProductDefinitionType) => {
+    const res = await request.get(`${baseUrl}/product-definitions?type=${type}`);
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data.items.find((pd: { type: ProductDefinitionType }) => pd.type === type) ?? null;
+};
+
 const createRawDefinition = async (request: APIRequestContext) => {
+    const existing = await findDefinitionByType(request, ProductDefinitionType.RAW_MATERIAL);
+    if (existing) return existing;
+
     const name = `PD_PO_${Math.abs(genId())}`;
     const res = await request.post(`${baseUrl}/product-definitions`, {
         data: {
