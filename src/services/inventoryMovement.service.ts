@@ -1,4 +1,4 @@
-import { prisma } from "@config/prisma";
+﻿import { prisma } from "@config/prisma";
 import { env } from "@config/env";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
@@ -169,35 +169,20 @@ export class InventoryMovementService extends BaseService {
 
                 const direction = difference.isPositive() ? MovementType.IN : MovementType.OUT;
                 const movedQty = difference.abs();
-                const unitCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
 
-                const created = await prisma.$transaction(async (tx) => {
-                    const inventoryMovement = await tx.inventoryMovement.create({
-                        data: {
-                            enterpriseId,
-                            productId: data.productId,
-                            warehouseId: data.warehouseId,
-                            lotId: null,
-                            direction,
-                            source: MovementSource.ADJUSTMENT,
-                            quantity: movedQty,
-                            balance: targetQty,
-                            unitCost,
-                            reference: null,
-                            notes: data.notes ?? null,
-                            supplierId: null,
-                        },
-                    });
-
-                    await tx.productInventory.update({
-                        where: {
-                            enterpriseId_productId: { enterpriseId, productId: data.productId },
-                        },
-                        data: { quantity: targetQty },
-                    });
-
-                    return inventoryMovement;
-                });
+                const created = await prisma.$transaction(async (tx) =>
+                    this._createInternal(tx, enterpriseId, {
+                        productId: data.productId,
+                        warehouseId: data.warehouseId,
+                        lotId: null,
+                        direction,
+                        source: MovementSource.ADJUSTMENT,
+                        quantity: movedQty.toNumber(),
+                        reference: null,
+                        notes: data.notes ?? null,
+                        supplierId: null,
+                    })
+                );
 
                 return created;
             },
@@ -216,63 +201,20 @@ export class InventoryMovementService extends BaseService {
                     );
                 }
 
-                const [product, warehouse] = await Promise.all([
-                    prisma.product.findFirst({
-                        where: { id: data.productId, enterpriseId },
-                        include: {
-                            productInventory: {
-                                select: { quantity: true, costValue: true },
-                            },
-                        },
-                    }),
-                    prisma.warehouse.findFirst({
-                        where: { id: data.warehouseId, enterpriseId },
-                        select: { id: true },
-                    }),
-                ]);
-
-                if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
-                if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
-
-                const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
-                const harvestedQty = new Decimal(data.quantity);
-                const newBalance = currentQty.plus(harvestedQty);
-                const unitCost = new Decimal(
-                    data.unitCost ?? product.productInventory?.[0]?.costValue ?? 0
+                const created = await prisma.$transaction(async (tx) =>
+                    this._createInternal(tx, enterpriseId, {
+                        productId: data.productId,
+                        warehouseId: data.warehouseId,
+                        lotId: null,
+                        direction: MovementType.IN,
+                        source: MovementSource.HARVEST,
+                        quantity: data.quantity,
+                        unitCost: data.unitCost ?? null,
+                        reference: null,
+                        notes: data.notes ?? null,
+                        supplierId: null,
+                    })
                 );
-
-                const created = await prisma.$transaction(async (tx) => {
-                    const inventoryMovement = await tx.inventoryMovement.create({
-                        data: {
-                            enterpriseId,
-                            productId: data.productId,
-                            warehouseId: data.warehouseId,
-                            lotId: null,
-                            direction: MovementType.IN,
-                            source: MovementSource.HARVEST,
-                            quantity: harvestedQty,
-                            balance: newBalance,
-                            unitCost,
-                            reference: null,
-                            notes: data.notes ?? null,
-                            supplierId: null,
-                        },
-                    });
-
-                    await tx.productInventory.update({
-                        where: {
-                            enterpriseId_productId: {
-                                enterpriseId,
-                                productId: data.productId,
-                            },
-                        },
-                        data: {
-                            quantity: newBalance,
-                        },
-                    });
-
-                    return inventoryMovement;
-                });
 
                 return created;
             },
@@ -288,11 +230,9 @@ export class InventoryMovementService extends BaseService {
         this.safeQuery(
             async () => {
                 if (tx) {
-                    // já está dentro de transação → usa ela
                     return this._createInternal(tx, enterpriseId, data);
                 }
 
-                // não está em transação → cria uma transação
                 return prisma.$transaction(async (trx) => {
                     return this._createInternal(trx, enterpriseId, data);
                 });
@@ -339,11 +279,23 @@ export class InventoryMovementService extends BaseService {
             throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
 
         const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
+        const currentCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
         const movedQty = new Decimal(data.quantity);
+        const unitCost =
+            data.unitCost !== undefined && data.unitCost !== null
+                ? new Decimal(data.unitCost)
+                : currentCost;
         const newBalance =
             data.direction === MovementType.IN
                 ? currentQty.plus(movedQty)
                 : currentQty.minus(movedQty);
+
+        const newCostValue =
+            data.direction === MovementType.IN
+                ? newBalance.isZero()
+                    ? unitCost
+                    : currentQty.mul(currentCost).plus(movedQty.mul(unitCost)).div(newBalance)
+                : currentCost;
 
         const movement = await tx.inventoryMovement.create({
             data: {
@@ -358,10 +310,7 @@ export class InventoryMovementService extends BaseService {
                 source: data.source,
                 quantity: movedQty,
                 balance: newBalance,
-                unitCost:
-                    data.unitCost !== undefined && data.unitCost !== null
-                        ? new Decimal(data.unitCost)
-                        : product.productInventory[0].costValue,
+                unitCost,
                 reference: data.reference ?? null,
                 notes: data.notes ?? null,
                 supplierId: data.supplierId ?? null,
@@ -374,8 +323,7 @@ export class InventoryMovementService extends BaseService {
             },
             data: {
                 quantity: newBalance,
-                ...(data.direction === MovementType.IN &&
-                    data.unitCost && { costValue: new Decimal(data.unitCost) }),
+                ...(data.direction === MovementType.IN ? { costValue: newCostValue } : {}),
             },
         });
 

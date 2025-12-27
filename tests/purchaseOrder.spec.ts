@@ -81,6 +81,17 @@ const getProductInventorySnapshot = async (request: APIRequestContext, productId
     };
 };
 
+const calcWeightedCost = (
+    currentQty: number,
+    currentCost: number,
+    addedQty: number,
+    addedUnitCost: number
+) => {
+    const totalQty = currentQty + addedQty;
+    if (totalQty === 0) return addedUnitCost;
+    return (currentQty * currentCost + addedQty * addedUnitCost) / totalQty;
+};
+
 test("Lista compras e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/purchase-orders`);
     expect(res.status()).toBe(200);
@@ -332,7 +343,13 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
 
     const afterInventory = await getProductInventorySnapshot(request, raw.id);
     expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity + purchaseQty, 6);
-    expect(afterInventory.costValue).toBeCloseTo(unitCost, 6);
+    const expectedCost = calcWeightedCost(
+        beforeInventory.quantity,
+        beforeInventory.costValue,
+        purchaseQty,
+        unitCost
+    );
+    expect(afterInventory.costValue).toBeCloseTo(expectedCost, 6);
 });
 
 test("Adicionar item em compra existente cria novo movimento de estoque IN", async ({
@@ -406,5 +423,11 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
 
     const extraAfterInventory = await getProductInventorySnapshot(request, rawExtra.id);
     expect(extraAfterInventory.quantity).toBeCloseTo(extraBeforeInventory.quantity + extraQty, 6);
-    expect(extraAfterInventory.costValue).toBeCloseTo(extraUnitCost, 6);
+    const expectedCost = calcWeightedCost(
+        extraBeforeInventory.quantity,
+        extraBeforeInventory.costValue,
+        extraQty,
+        extraUnitCost
+    );
+    expect(extraAfterInventory.costValue).toBeCloseTo(expectedCost, 6);
 });
