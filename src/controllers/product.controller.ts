@@ -4,7 +4,7 @@ import { Request } from "@middleware/auth.middleware";
 import { productService as service } from "@services/services";
 
 export const getAllProducts = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", search, sortBy, sortOrder } = req.query;
+    const { page = "1", limit = "10", search, sortBy, sortOrder, productDefinitionId } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
@@ -14,7 +14,8 @@ export const getAllProducts = async (req: Request, res: Response) => {
         req.query.includeInactive === "true",
         search?.toString() ?? undefined,
         sortBy?.toString(),
-        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc",
+        productDefinitionId !== undefined ? Number(productDefinitionId) : undefined
     );
     return sendResponse(res, result, "Products fetched successfully");
 };
@@ -42,10 +43,4 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     const result = await service.update(Number(id), enterpriseId, req.body, userId);
     return sendResponse(res, result, "Product updated successfully");
-};
-
-export const findMaterials = async (req: Request, res: Response) => {
-    const enterpriseId = req.auth!.enterpriseId;
-    const result = await service.findMaterials(enterpriseId);
-    return sendResponse(res, result, "Materials fetched successfully");
 };

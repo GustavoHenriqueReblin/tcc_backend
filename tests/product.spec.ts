@@ -16,14 +16,17 @@ const createAuxUnity = async (request: APIRequestContext) => {
     return data;
 };
 
-const createAuxDefinition = async (request: APIRequestContext) => {
+const createAuxDefinition = async (
+    request: APIRequestContext,
+    type = ProductDefinitionType.FINISHED_PRODUCT
+) => {
     const name = `PD_${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/product-definitions`, {
         data: {
             id: genId(),
             name,
             description: "Aux",
-            type: ProductDefinitionType.FINISHED_PRODUCT,
+            type,
         },
     });
     expect(res.status()).toBe(200);
@@ -80,6 +83,13 @@ test("Validação de id, paginação e ordenação de products", async ({ reques
     expect(resInvalidSortOrder.status()).toBe(400);
     const bodyInvalidSortOrder = await resInvalidSortOrder.json();
     expect(bodyInvalidSortOrder.message).toContain(PRODUCT_ERROR.SORT);
+
+    const resInvalidDefinition = await request.get(
+        `${baseUrl}/products?productDefinitionId=not-a-number`
+    );
+    expect(resInvalidDefinition.status()).toBe(400);
+    const bodyInvalidDefinition = await resInvalidDefinition.json();
+    expect(bodyInvalidDefinition.message).toContain(PRODUCT_ERROR.PRODUCT_DEFINITION_ID);
 
     const resInvalidSortBy = await request.get(`${baseUrl}/products?sortBy=unknown`);
     expect(resInvalidSortBy.status()).toBe(400);
@@ -400,6 +410,52 @@ test("Busca e ordenação de products", async ({ request }) => {
     const names = searchData.items.map((p: { name: string }) => p.name.toLowerCase());
     const sortedNames = [...names].sort();
     expect(names).toEqual(sortedNames);
+});
+
+test("Filtra products por productDefinitionId", async ({ request }) => {
+    const unity = await createAuxUnity(request);
+    const finishedDef = await createAuxDefinition(request, ProductDefinitionType.FINISHED_PRODUCT);
+    const rawDef = await createAuxDefinition(request, ProductDefinitionType.RAW_MATERIAL);
+
+    const rawName = `PROD_RAW_${Date.now().toString().slice(-6)}`;
+    const rawRes = await request.post(`${baseUrl}/products`, {
+        data: {
+            id: genId(),
+            productDefinitionId: rawDef.id,
+            unityId: unity.id,
+            name: rawName,
+            barcode: null,
+            inventory: { costValue: 7.7, saleValue: 8.8, quantity: 9.9 },
+        },
+    });
+    expect(rawRes.status()).toBe(200);
+    const { data: rawProduct } = await rawRes.json();
+
+    const finishedRes = await request.post(`${baseUrl}/products`, {
+        data: {
+            id: genId(),
+            productDefinitionId: finishedDef.id,
+            unityId: unity.id,
+            name: `${rawName}_FIN`,
+            barcode: null,
+            inventory: { costValue: 1.1, saleValue: 2.2, quantity: 3.3 },
+        },
+    });
+    expect(finishedRes.status()).toBe(200);
+
+    const filteredRes = await request.get(
+        `${baseUrl}/products?productDefinitionId=${rawDef.id}&sortBy=createdAt`
+    );
+    expect(filteredRes.status()).toBe(200);
+    const { data: filtered } = await filteredRes.json();
+
+    expect(filtered.items.length).toBeGreaterThan(0);
+    expect(
+        filtered.items.every(
+            (p: { productDefinitionId?: number | null }) => p.productDefinitionId === rawDef.id
+        )
+    ).toBeTruthy();
+    expect(filtered.items.some((p: { id: number }) => p.id === rawProduct.id)).toBeTruthy();
 });
 
 test("Criar produto com recipes sem estrutura válida retorna 400", async ({ request }) => {

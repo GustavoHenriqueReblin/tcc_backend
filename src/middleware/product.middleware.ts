@@ -11,6 +11,7 @@ export const PRODUCT_ERROR = {
     SEARCH: "search filter is not allowed for this resource",
     SORT: "sortOrder must be 'asc' or 'desc'",
     SORT_BY: "Invalid sortBy field",
+    PRODUCT_DEFINITION_ID: "productDefinitionId must be a number",
 };
 
 export interface ProductQueryValidationOptions {
@@ -32,10 +33,22 @@ export function validateProductsQuery(options: ProductQueryValidationOptions = {
     const { allowSearch = true, allowedSortFields = [] } = options;
 
     return (req: Request, res: Response, next: NextFunction) => {
-        let { page = "1", limit = "10", search, sortBy, sortOrder, includeInactive } = req.query;
+        let {
+            page = "1",
+            limit = "10",
+            search,
+            sortBy,
+            sortOrder,
+            includeInactive,
+            productDefinitionId,
+        } = req.query;
 
         const pageNum = Number(page);
         const limitNum = Number(limit);
+        const productDefinitionIdNum =
+            productDefinitionId !== undefined && productDefinitionId !== null
+                ? Number(productDefinitionId)
+                : undefined;
 
         if (Number.isNaN(pageNum) || Number.isNaN(limitNum)) {
             return res.status(400).json({ message: PRODUCT_ERROR.PAGINATION });
@@ -47,6 +60,13 @@ export function validateProductsQuery(options: ProductQueryValidationOptions = {
             includeInactive !== "false"
         ) {
             return res.status(400).json({ message: PRODUCT_ERROR.INCLUDE_INACTIVE });
+        }
+
+        if (
+            productDefinitionId !== undefined &&
+            (productDefinitionId === "" || Number.isNaN(productDefinitionIdNum!))
+        ) {
+            return res.status(400).json({ message: PRODUCT_ERROR.PRODUCT_DEFINITION_ID });
         }
 
         if (!allowSearch && search !== undefined) {
@@ -72,6 +92,9 @@ export function validateProductsQuery(options: ProductQueryValidationOptions = {
         req.query.sortBy = sortBy?.toString();
         req.query.sortOrder = sortOrder?.toString() || "desc";
         req.query.includeInactive = includeInactive?.toLowerCase() === "true" ? "true" : "false";
+        if (productDefinitionIdNum !== undefined) {
+            req.query.productDefinitionId = productDefinitionIdNum.toString();
+        }
 
         return next();
     };
