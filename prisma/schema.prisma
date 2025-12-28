@@ -363,7 +363,7 @@ model DeliveryAddress {
   country    Country?   @relation(fields: [countryId], references: [id])
 
   /// Endereços de entrega associados a clientes/fornecedores.
-  @@map("deliveryAddress")
+  @@map("deliveryaddress")
 }
 
 model Token {
@@ -428,7 +428,7 @@ model ProductDefinition {
 
   @@unique([enterpriseId, name])
   /// Definições conceituais de tipos de produtos.
-  @@map("productDefinition")
+  @@map("productdefinition")
 }
 
 model Unity {
@@ -489,7 +489,7 @@ model ProductInventory {
 
   @@unique([enterpriseId, productId])
   /// Estoque e valores atuais de cada produto.
-  @@map("productInventory")
+  @@map("productinventory")
 }
 
 model Warehouse {
@@ -538,7 +538,7 @@ model InventoryMovement {
   @@index([direction])
   @@index([source])
   /// Movimentações de estoque (entradas e saídas).
-  @@map("inventoryMovement")
+  @@map("inventorymovement")
 }
 
 model Lot {
@@ -593,7 +593,7 @@ model RecipeItem {
   product    Product    @relation(fields: [productId], references: [id])
 
   /// Itens/componentes que compõem uma receita.
-  @@map("recipeItem")
+  @@map("recipeitem")
 }
 
 model ProductionOrder {
@@ -623,7 +623,7 @@ model ProductionOrder {
   productId  Int?
 
   /// Ordens de produção planejadas e executadas.
-  @@map("productionOrder")
+  @@map("productionorder")
 }
 
 model ProductionOrderInput {
@@ -641,7 +641,7 @@ model ProductionOrderInput {
   product         Product         @relation(fields: [productId], references: [id])
 
   /// Consumo de insumos em cada ordem de produção.
-  @@map("productionOrderInput")
+  @@map("productionorderinput")
 }
 
 model SaleOrder {
@@ -661,7 +661,7 @@ model SaleOrder {
   AccountsReceivable AccountsReceivable[]
 
   /// Pedidos de venda realizados para clientes.
-  @@map("saleOrder")
+  @@map("saleorder")
 }
 
 model SaleOrderItem {
@@ -681,7 +681,7 @@ model SaleOrderItem {
   product    Product    @relation(fields: [productId], references: [id])
 
   /// Itens pertencentes a um pedido de venda.
-  @@map("saleOrderItem")
+  @@map("saleorderitem")
 }
 
 model PurchaseOrder {
@@ -700,7 +700,7 @@ model PurchaseOrder {
   AccountsPayable AccountsPayable[]
 
   /// Pedidos de compra realizados a fornecedores.
-  @@map("purchaseOrder")
+  @@map("purchaseorder")
 }
 
 model PurchaseOrderItem {
@@ -718,7 +718,7 @@ model PurchaseOrderItem {
   product       Product       @relation(fields: [productId], references: [id])
 
   /// Itens pertencentes a um pedido de compra.
-  @@map("purchaseOrderItem")
+  @@map("purchaseorderitem")
 }
 
 model AccountsReceivable {
@@ -745,7 +745,7 @@ model AccountsReceivable {
   @@index([customerId])
   @@index([saleOrderId])
   /// Contas a receber da empresa.
-  @@map("accountsReceivable")
+  @@map("accountsreceivable")
 }
 
 model AccountsPayable {
@@ -772,7 +772,7 @@ model AccountsPayable {
   @@index([supplierId])
   @@index([purchaseOrderId])
   /// Contas a pagar da empresa.
-  @@map("accountsPayable")
+  @@map("accountspayable")
 }
 
 model FinancialTransaction {
@@ -797,7 +797,7 @@ model FinancialTransaction {
   @@index([accountsReceivableId])
   @@index([accountsPayableId])
   /// Transações financeiras ligadas a contas a pagar e receber.
-  @@map("financialTransaction")
+  @@map("financialtransaction")
 }
 
 model AssetCategory {
@@ -813,7 +813,7 @@ model AssetCategory {
 
   @@unique([enterpriseId, name])
   /// Categorias dos bens patrimoniais (ex: máquinas, veículos, informática, móveis).
-  @@map("assetCategory")
+  @@map("assetcategory")
 }
 
 model Asset {
@@ -860,5 +860,5 @@ model AssetMaintenance {
   @@index([enterpriseId])
   @@index([assetId])
   /// Manutenções realizadas nos bens patrimoniais.
-  @@map("assetMaintenance")
+  @@map("assetmaintenance")
 }
