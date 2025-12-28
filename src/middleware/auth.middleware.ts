@@ -49,7 +49,7 @@ export const authMiddleware = async (
             res.clearCookie(cookieName, {
                 httpOnly: true,
                 secure: isProduction,
-                sameSite: "strict",
+                sameSite: "none",
             });
             return res.status(401).json({ error: true, message: "Token revoked or expired" });
         }

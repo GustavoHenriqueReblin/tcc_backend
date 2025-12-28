@@ -14,7 +14,7 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
             res.clearCookie(cookieName, {
                 httpOnly: true,
                 secure: isProduction,
-                sameSite: "strict",
+                sameSite: "none",
             });
 
             return res.status(401).json({
@@ -39,7 +39,7 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
                 res.cookie(cookieName, token, {
                     httpOnly: true,
                     secure: isProduction,
-                    sameSite: "strict",
+                    sameSite: "none",
                     maxAge: expiresInMs,
                 });
             }
@@ -122,7 +122,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
     res.cookie(cookieName, result.token, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: "strict",
+        sameSite: "none",
         maxAge: parseTimeToMs(JWT_EXPIRES_IN),
     });
 
@@ -139,7 +139,7 @@ export const logout = async (req: Request, res: Response) => {
     res.clearCookie(cookieName, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: "strict",
+        sameSite: "none",
     });
 
     return sendResponse(res, result, "Logout successful");
