@@ -36,8 +36,6 @@ export class ReportService {
             const html = await this.renderHtml(definition, context);
             const executablePath = SYSTEM_CHROMIUM_PATHS.find((path) => fsSync.existsSync(path));
 
-            console.log("[REPORT][PDF] Chromium executablePath:", executablePath ?? "NOT_FOUND");
-
             browser = await chromium.launch({
                 headless: true,
                 executablePath,
