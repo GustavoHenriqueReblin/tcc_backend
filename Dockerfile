@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala dependências (prod + prisma generate no postinstall)
-RUN npm install --omit=dev
+RUN npm install
 
 # Copia o restante do código
 COPY . .
