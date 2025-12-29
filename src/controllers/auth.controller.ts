@@ -7,15 +7,17 @@ import { prisma } from "@config/prisma";
 const isProduction = process.env.ENVIRONMENT === "PRODUCTION";
 const cookieName = isProduction ? "__Host-erp-access" : "erp-access";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "2d";
+const baseCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+} as const;
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
     try {
         if (!req.auth) {
-            res.clearCookie(cookieName, {
-                httpOnly: true,
-                secure: isProduction,
-                sameSite: "none",
-            });
+            res.clearCookie(cookieName, baseCookieOptions);
 
             return res.status(401).json({
                 error: true,
@@ -37,9 +39,7 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
 
             if (count > 0) {
                 res.cookie(cookieName, token, {
-                    httpOnly: true,
-                    secure: isProduction,
-                    sameSite: "none",
+                    ...baseCookieOptions,
                     maxAge: expiresInMs,
                 });
             }
@@ -120,9 +120,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
     }
 
     res.cookie(cookieName, result.token, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: "none",
+        ...baseCookieOptions,
         maxAge: parseTimeToMs(JWT_EXPIRES_IN),
     });
 
@@ -136,11 +134,7 @@ export const logout = async (req: Request, res: Response) => {
 
     const result = await service.logout(token);
 
-    res.clearCookie(cookieName, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: "none",
-    });
+    res.clearCookie(cookieName, baseCookieOptions);
 
     return sendResponse(res, result, "Logout successful");
 };

@@ -5,6 +5,12 @@ import { prisma } from "@config/prisma";
 const isProduction = process.env.ENVIRONMENT === "PRODUCTION";
 const cookieName = isProduction ? "__Host-erp-access" : "erp-access";
 const APP_SECRET = process.env.APP_SECRET ?? "";
+const baseCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+} as const;
 
 interface AuthPayload {
     sub: number;
@@ -46,11 +52,7 @@ export const authMiddleware = async (
 
         const tokenRecord = await prisma.token.findUnique({ where: { token } });
         if (!tokenRecord || !tokenRecord.valid || tokenRecord.expiresAt < new Date()) {
-            res.clearCookie(cookieName, {
-                httpOnly: true,
-                secure: isProduction,
-                sameSite: "none",
-            });
+            res.clearCookie(cookieName, baseCookieOptions);
             return res.status(401).json({ error: true, message: "Token revoked or expired" });
         }
 
