@@ -17,6 +17,7 @@ export const inventoryMovementAllowedSortFields = [
     "quantity",
     "balance",
     "unitCost",
+    "saleValue",
     "createdAt",
     "updatedAt",
 ];

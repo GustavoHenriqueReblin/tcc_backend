@@ -521,6 +521,7 @@ model InventoryMovement {
   quantity     Decimal        @db.Decimal(14, 6)
   balance      Decimal        @db.Decimal(14, 6)
   unitCost     Decimal?       @db.Decimal(14, 6)
+  saleValue    Decimal?       @db.Decimal(14, 6)
   reference    String?        @db.VarChar(80) // NF, código colheita...
   notes        String?
   supplierId   Int? // se for uma compra

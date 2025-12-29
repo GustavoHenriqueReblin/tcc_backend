@@ -30,6 +30,7 @@ export interface InventoryMovementInput {
     source: MovementSource;
     quantity: number;
     unitCost?: number | null;
+    saleValue?: number | null;
     reference?: string | null;
     notes?: string | null;
     supplierId?: number | null;
@@ -141,7 +142,7 @@ export class InventoryMovementService extends BaseService {
                         where: { id: data.productId, enterpriseId },
                         include: {
                             productInventory: {
-                                select: { quantity: true, costValue: true },
+                                select: { quantity: true, costValue: true, saleValue: true },
                             },
                         },
                     }),
@@ -258,7 +259,7 @@ export class InventoryMovementService extends BaseService {
                 where: { id: data.productId, enterpriseId },
                 include: {
                     productInventory: {
-                        select: { quantity: true, costValue: true },
+                        select: { quantity: true, costValue: true, saleValue: true },
                     },
                 },
             }),
@@ -279,11 +280,18 @@ export class InventoryMovementService extends BaseService {
 
         const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
         const currentCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
+        const currentSaleValue = product.productInventory?.[0]?.saleValue ?? null;
         const movedQty = new Decimal(data.quantity);
         const unitCost =
             data.unitCost !== undefined && data.unitCost !== null
                 ? new Decimal(data.unitCost)
                 : currentCost;
+        const saleValue =
+            data.saleValue !== undefined && data.saleValue !== null
+                ? new Decimal(data.saleValue)
+                : data.direction === MovementType.IN
+                  ? currentSaleValue
+                  : null;
         const newBalance =
             data.direction === MovementType.IN
                 ? currentQty.plus(movedQty)
@@ -310,6 +318,7 @@ export class InventoryMovementService extends BaseService {
                 quantity: movedQty,
                 balance: newBalance,
                 unitCost,
+                saleValue,
                 reference: data.reference ?? null,
                 notes: data.notes ?? null,
                 supplierId: data.supplierId ?? null,

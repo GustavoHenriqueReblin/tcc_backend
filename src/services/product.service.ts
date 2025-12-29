@@ -215,6 +215,7 @@ export class ProductService extends BaseService {
                                 balance: new Decimal(data.inventory.quantity),
                                 source: "ADJUSTMENT",
                                 unitCost: data.inventory.costValue,
+                                saleValue: new Decimal(data.inventory.saleValue),
                                 enterpriseId,
                                 productId: prod.id,
                                 warehouseId: warehouse!.id,

@@ -435,6 +435,7 @@ export class ProductionOrderService extends BaseService {
             const currentQty = inventory?.quantity ?? new Decimal(0);
 
             const unitCost = input.unitCost ?? inventory?.costValue ?? new Decimal(0);
+            const saleValue = inventory?.saleValue ?? null;
 
             const totalConsumedQty = new Decimal(input.quantity).mul(order.producedQty);
 
@@ -461,6 +462,7 @@ export class ProductionOrderService extends BaseService {
                     quantity: totalConsumedQty,
                     balance: newBalance,
                     unitCost,
+                    saleValue,
                     reference: order.code,
                     notes: `Consumo de insumo na OP ${order.code}`,
                     supplierId: null,
@@ -493,6 +495,7 @@ export class ProductionOrderService extends BaseService {
 
         const currentFinishedQty = finishedInventory?.quantity ?? new Decimal(0);
         const currentCostValue = finishedInventory?.costValue ?? new Decimal(0);
+        const finishedSaleValue = finishedInventory?.saleValue ?? null;
         const newFinishedQty = currentFinishedQty.plus(producedQty);
         const newCostValue = currentFinishedQty.eq(0)
             ? productionUnitCost
@@ -512,6 +515,7 @@ export class ProductionOrderService extends BaseService {
                 quantity: producedQty,
                 balance: newFinishedQty,
                 unitCost: productionUnitCost,
+                saleValue: finishedSaleValue,
                 reference: order.code,
                 notes: `Produção finalizada OP ${order.code}`,
                 supplierId: null,
