@@ -1,8 +1,6 @@
-# ---------- BASE ----------
 FROM node:20-bookworm
 
-# ---------- DEPENDÊNCIAS DO SISTEMA ----------
-# Chromium + libs necessárias para Playwright PDF
+# Dependências do sistema (Chromium + libs)
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -14,17 +12,12 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- VARIÁVEIS ----------
-ENV NODE_ENV=production
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-
-# ---------- APP ----------
 WORKDIR /app
 
-# Copia apenas manifests primeiro (melhora cache)
+# Copia manifests
 COPY package*.json ./
 
-# Instala dependências (prod + prisma generate no postinstall)
+# Instala deps + devDeps (necessário para prisma generate)
 RUN npm install
 
 # Copia o restante do código
@@ -33,8 +26,9 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# ---------- PORT ----------
+ENV NODE_ENV=production
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
 EXPOSE 3333
 
-# ---------- START ----------
 CMD ["node", "dist/server.js"]
