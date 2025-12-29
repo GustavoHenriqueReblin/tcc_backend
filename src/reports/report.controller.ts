@@ -16,12 +16,12 @@ export const getReportPdf = async (req: Request, res: Response) => {
     }
 
     if (!reportService.hasReport(reportKey)) {
-        throw new AppError("Tipo de relatorio não encontrado", 404, "REPORT:INVALID_KEY");
+        throw new AppError("Tipo de relatório não encontrado", 404, "REPORT:INVALID_KEY");
     }
 
     const pdfBuffer = await reportService.generatePdf(reportKey, { id, enterpriseId });
 
-    const filename = encodeURIComponent(`Ordem de Produção ${id}.pdf`);
+    const filename = encodeURIComponent(`${reportKey}-${id}.pdf`);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

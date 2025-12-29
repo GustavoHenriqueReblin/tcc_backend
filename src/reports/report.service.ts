@@ -28,7 +28,7 @@ export class ReportService {
     async generatePdf(reportKey: string, context: ReportRequestContext): Promise<Buffer> {
         const definition = this.registry[reportKey];
         if (!definition) {
-            throw new AppError("Relatorio nao encontrado", 404, "REPORT:NOT_FOUND");
+            throw new AppError("Relatório não encontrado", 404, "REPORT:NOT_FOUND");
         }
 
         let browser;
@@ -56,7 +56,7 @@ export class ReportService {
             if (error instanceof AppError) throw error;
 
             throw new AppError(
-                "Falha ao gerar relatorio em PDF",
+                "Falha ao gerar relatório em PDF",
                 500,
                 `REPORT:${reportKey}`,
                 error
