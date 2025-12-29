@@ -504,6 +504,7 @@ model Warehouse {
   enterprise       Enterprise          @relation(fields: [enterpriseId], references: [id])
   movements        InventoryMovement[]
   productionOrders ProductionOrder[]
+  SaleOrder        SaleOrder[]
 
   @@unique([enterpriseId, code])
   /// Depósitos/almoxarifados da empresa.
@@ -649,6 +650,7 @@ model SaleOrder {
   id           Int         @id @default(autoincrement())
   enterpriseId Int
   customerId   Int
+  warehouseId  Int
   code         String      @unique @db.VarChar(40)
   status       OrderStatus @default(PENDING)
   totalValue   Decimal     @db.Decimal(14, 6)
@@ -660,6 +662,7 @@ model SaleOrder {
 
   enterprise         Enterprise           @relation(fields: [enterpriseId], references: [id])
   customer           Customer             @relation(fields: [customerId], references: [id])
+  warehouse          Warehouse            @relation(fields: [warehouseId], references: [id])
   items              SaleOrderItem[]
   AccountsReceivable AccountsReceivable[]
 

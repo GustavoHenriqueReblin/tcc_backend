@@ -907,6 +907,7 @@ export const generateData = async () => {
                 update: {
                     enterpriseId,
                     customerId: anyCustomer.id,
+                    warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
                     totalValue: 79.2,
                     discount: 0,
                     otherCosts: 0,
@@ -916,6 +917,7 @@ export const generateData = async () => {
                     id: genId(),
                     enterpriseId,
                     customerId: anyCustomer.id,
+                    warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
                     code: saleCode,
                     totalValue: 79.2,
                     discount: 0,

@@ -124,16 +124,21 @@ export class SaleOrderService extends BaseService {
                 const otherCostsValue = new Decimal(data.otherCosts ?? 0);
                 const status = data.status ?? OrderStatus.PENDING;
 
-                const [codeTaken, customer] = await Promise.all([
+                const [codeTaken, customer, warehouse] = await Promise.all([
                     prisma.saleOrder.findFirst({ where: { code: data.code } }),
                     prisma.customer.findFirst({
                         where: { id: data.customerId, enterpriseId },
+                        select: { id: true },
+                    }),
+                    prisma.warehouse.findFirst({
+                        where: { id: data.warehouseId, enterpriseId },
                         select: { id: true },
                     }),
                 ]);
 
                 if (codeTaken) throw new AppError("Pedido já existe", 409, "SALE_ORDER:create");
                 if (!customer) throw new AppError("Cliente não encontrado", 404, "FK:NOT_FOUND");
+                if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
 
                 const created = await prisma.$transaction(async (tx) => {
                     const order = await tx.saleOrder.create({
@@ -144,6 +149,7 @@ export class SaleOrderService extends BaseService {
                                 : {}),
                             enterpriseId,
                             customerId: data.customerId,
+                            warehouseId: data.warehouseId,
                             code: data.code,
                             status,
                             totalValue: new Decimal(data.totalValue),
@@ -167,7 +173,7 @@ export class SaleOrderService extends BaseService {
                     );
 
                     if (status === OrderStatus.FINISHED) {
-                        await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
+                        await this.finalizeSaleOrder(tx, enterpriseId, order.id);
                     }
 
                     await tx.audit.create({
@@ -187,7 +193,6 @@ export class SaleOrderService extends BaseService {
             "SALE_ORDER:create",
             enterpriseId
         );
-
     update = async (id: number, enterpriseId: number, data: SaleOrderInput, userId: number) =>
         this.safeQuery(
             async () => {
@@ -213,6 +218,17 @@ export class SaleOrderService extends BaseService {
                 }
 
                 const status = data.status ?? existing.status;
+                const warehouseId = data.warehouseId ?? existing.warehouseId ?? null;
+
+                const warehouse = await prisma.warehouse.findFirst({
+                    where: { id: warehouseId, enterpriseId },
+                    select: { id: true },
+                });
+
+                if (!warehouse) {
+                    throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
+                }
+
                 const discountValue =
                     data.discount !== undefined
                         ? new Decimal(data.discount)
@@ -227,6 +243,7 @@ export class SaleOrderService extends BaseService {
                         where: { id },
                         data: {
                             customerId: data.customerId ?? existing.customerId,
+                            warehouseId,
                             code: data.code ?? existing.code,
                             status,
                             totalValue:
@@ -260,7 +277,7 @@ export class SaleOrderService extends BaseService {
                         existing.status !== OrderStatus.FINISHED &&
                         status === OrderStatus.FINISHED
                     ) {
-                        await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
+                        await this.finalizeSaleOrder(tx, enterpriseId, order.id);
                     }
 
                     await tx.audit.create({
@@ -465,12 +482,11 @@ export class SaleOrderService extends BaseService {
     private async finalizeSaleOrder(
         tx: Prisma.TransactionClient,
         enterpriseId: number,
-        orderId: number,
-        warehouseId: number
+        orderId: number
     ) {
         const order = await tx.saleOrder.findUnique({
             where: { id: orderId, enterpriseId },
-            include: { items: true },
+            include: { items: true, warehouse: true },
         });
 
         if (!order) throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:FINALIZE");
@@ -478,10 +494,20 @@ export class SaleOrderService extends BaseService {
             throw new AppError("Pedido não possui itens", 400, "SALE_ORDER:FINALIZE:NO_ITEMS");
         }
 
-        const warehouse = await tx.warehouse.findFirst({
-            where: { enterpriseId, id: warehouseId },
-            select: { id: true },
-        });
+        if (!order.warehouseId) {
+            throw new AppError(
+                "Venda precisa de depósito para movimentar estoque",
+                400,
+                "SALE_ORDER:WAREHOUSE_REQUIRED"
+            );
+        }
+
+        const warehouse =
+            order.warehouse ??
+            (await tx.warehouse.findFirst({
+                where: { enterpriseId, id: order.warehouseId },
+                select: { id: true },
+            }));
 
         if (!warehouse) {
             throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");

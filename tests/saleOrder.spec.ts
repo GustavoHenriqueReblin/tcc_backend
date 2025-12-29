@@ -103,9 +103,17 @@ test("Cria, busca e atualiza pedido de venda", async ({ request }) => {
     const customer = clist.items[0];
     expect(customer).toBeTruthy();
 
+    const warehouse = await createAuxWarehouse(request);
     const code = `SO${Date.now().toString().slice(-6)}`;
     const createRes = await request.post(`${baseUrl}/sale-orders`, {
-        data: { id: genId(), code, customerId: customer.id, totalValue: 100.5, notes: null },
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 100.5,
+            notes: null,
+        },
     });
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
@@ -140,11 +148,13 @@ test("Permite cadastrar e atualizar itens pelo endpoint principal", async ({ req
     const productC = await createSaleProduct(request, "SO_ITEM_C");
 
     const code = `SOITEM${Date.now().toString().slice(-6)}`;
+    const warehouse = await createAuxWarehouse(request);
     const createRes = await request.post(`${baseUrl}/sale-orders`, {
         data: {
             id: genId(),
             code,
             customerId: customer.id,
+            warehouseId: warehouse.id,
             totalValue: 250,
             items: {
                 create: [
@@ -232,13 +242,26 @@ test("Criar pedido com code duplicado retorna 409", async ({ request }) => {
     const { data: clist } = await custRes.json();
     const customer = clist.items[0];
 
+    const warehouse = await createAuxWarehouse(request);
     const code = `SOD${Date.now().toString().slice(-6)}`;
     const res1 = await request.post(`${baseUrl}/sale-orders`, {
-        data: { id: genId(), code, customerId: customer.id, totalValue: 10 },
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 10,
+        },
     });
     expect(res1.status()).toBe(200);
     const res2 = await request.post(`${baseUrl}/sale-orders`, {
-        data: { id: genId(), code, customerId: customer.id, totalValue: 20 },
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 20,
+        },
     });
     expect(res2.status()).toBe(409);
 });
@@ -254,10 +277,23 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     expect(sourceName).toBeTruthy();
     const searchTerm = sourceName.slice(0, Math.min(4, sourceName.length));
 
+    const warehouse = await createAuxWarehouse(request);
     const codePrefix = `SOSRCH_${Date.now().toString().slice(-4)}`;
     const payloads = [
-        { id: genId(), code: `${codePrefix}B`, customerId: customer.id, totalValue: 75.5 },
-        { id: genId(), code: `${codePrefix}A`, customerId: customer.id, totalValue: 12.25 },
+        {
+            id: genId(),
+            code: `${codePrefix}B`,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 75.5,
+        },
+        {
+            id: genId(),
+            code: `${codePrefix}A`,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 12.25,
+        },
     ];
 
     for (const payload of payloads) {
@@ -296,6 +332,7 @@ test("Aplica desconto e outros custos rateando valor dos itens", async ({ reques
 
     const productA = await createSaleProduct(request, "SO_DISC_A");
     const productB = await createSaleProduct(request, "SO_DISC_B");
+    const warehouse = await createAuxWarehouse(request);
 
     const discount = 10;
     const otherCosts = 5;
@@ -306,6 +343,7 @@ test("Aplica desconto e outros custos rateando valor dos itens", async ({ reques
             id: genId(),
             code,
             customerId: customer.id,
+            warehouseId: warehouse.id,
             totalValue: 0,
             discount,
             otherCosts,
@@ -382,9 +420,9 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
             code,
             customerId: customer.id,
             warehouseId: warehouse.id,
-            status: OrderStatus.FINISHED,
+            status: OrderStatus.APPROVED,
             totalValue: saleQty * unitPrice,
-            notes: "Venda finalizada com movimento de estoque",
+            notes: "Venda aguardando finalizacao",
             items: {
                 create: [
                     {
@@ -399,6 +437,20 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
         },
     });
     expect(createRes.status()).toBe(200);
+    const { data: createdOrder } = await createRes.json();
+    expect(createdOrder.warehouseId).toBe(warehouse.id);
+
+    const finishRes = await request.put(`${baseUrl}/sale-orders/${createdOrder.id}`, {
+        data: {
+            customerId: createdOrder.customerId,
+            code: createdOrder.code,
+            totalValue: saleQty * unitPrice,
+            status: OrderStatus.FINISHED,
+            notes: "Venda finalizada com movimento de estoque",
+            warehouseId: warehouse.id,
+        },
+    });
+    expect(finishRes.status()).toBe(200);
 
     const movementRes = await request.get(`${baseUrl}/inventory-movement?productId=${product.id}`);
     expect(movementRes.status()).toBe(200);
@@ -407,6 +459,7 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
         (mv: { reference?: string }) => mv.reference === code
     );
     expect(saleMovement).toBeTruthy();
+    expect(saleMovement.warehouseId).toBe(warehouse.id);
     expect(saleMovement.direction).toBe("OUT");
     expect(saleMovement.source).toBe("SALE");
     expect(Number(saleMovement.quantity)).toBeCloseTo(saleQty, 6);

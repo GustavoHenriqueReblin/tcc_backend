@@ -58,13 +58,30 @@ const createAuxProduct = async (request: APIRequestContext, namePrefix = "PROD_S
     return data;
 };
 
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_SI_${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "SOI Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
 const createSaleOrder = async (request: APIRequestContext) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     const { data: clist } = await custRes.json();
     const customer = clist.items[0];
+    const warehouse = await createAuxWarehouse(request);
     const code = `SOI${Date.now().toString().slice(-6)}`;
     const res = await request.post(`${baseUrl}/sale-orders`, {
-        data: { id: genId(), code, customerId: customer.id, totalValue: 0 },
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            totalValue: 0,
+        },
     });
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -98,6 +115,7 @@ test("Cria, busca e atualiza item do pedido de venda", async ({ request }) => {
             unitPrice: 7.77,
             productUnitPrice: 7.77,
             unitCost: 3.77,
+            warehouseId: order.warehouseId,
         },
     });
     expect(createRes.status()).toBe(200);
@@ -148,6 +166,7 @@ test("Busca itens de pedido de venda com search por produto e ordena por unitPri
             unitPrice: 12.5,
             productUnitPrice: 12.5,
             unitCost: 6.25,
+            warehouseId: order.warehouseId,
         },
         {
             id: genId(),
@@ -157,6 +176,7 @@ test("Busca itens de pedido de venda com search por produto e ordena por unitPri
             unitPrice: 8.75,
             productUnitPrice: 8.75,
             unitCost: 4.5,
+            warehouseId: order.warehouseId,
         },
     ];
 
