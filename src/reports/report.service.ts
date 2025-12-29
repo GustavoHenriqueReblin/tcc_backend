@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import { chromium } from "playwright";
 import { AppError } from "@utils/appError";
 import { handleError } from "@utils/errorBundler";
@@ -14,6 +15,8 @@ const DEFAULT_PDF_OPTIONS = {
     format: "A4",
     printBackground: true,
 } as const;
+
+const SYSTEM_CHROMIUM_PATHS = ["/usr/bin/chromium", "/usr/bin/chromium-browser"];
 
 export class ReportService {
     constructor(private readonly registry: ReportRegistry) {}
@@ -31,11 +34,16 @@ export class ReportService {
         let browser;
         try {
             const html = await this.renderHtml(definition, context);
+            const executablePath = SYSTEM_CHROMIUM_PATHS.find((path) => fsSync.existsSync(path));
+
+            console.log("[REPORT][PDF] Chromium executablePath:", executablePath ?? "NOT_FOUND");
 
             browser = await chromium.launch({
                 headless: true,
+                executablePath,
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
             });
+
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: "networkidle" });
 
@@ -48,6 +56,7 @@ export class ReportService {
         } catch (error) {
             await handleError(error, `REPORT:${reportKey}`);
             if (error instanceof AppError) throw error;
+
             throw new AppError(
                 "Falha ao gerar relatorio em PDF",
                 500,
