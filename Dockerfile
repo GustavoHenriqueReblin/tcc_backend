@@ -1,6 +1,5 @@
 FROM node:20-bookworm
 
-# Dependências do sistema (Chromium + libs)
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -14,16 +13,13 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copia manifests
 COPY package*.json ./
+COPY prisma ./prisma
 
-# Instala deps + devDeps (necessário para prisma generate)
 RUN npm install
 
-# Copia o restante do código
 COPY . .
 
-# Build TypeScript
 RUN npm run build
 
 ENV NODE_ENV=production
