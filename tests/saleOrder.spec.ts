@@ -58,7 +58,30 @@ const createSaleProduct = async (request: APIRequestContext, prefix = "PROD_SO")
     return data;
 };
 
-test("Lista pedidos de venda e valida paginação", async ({ request }) => {
+const createAuxWarehouse = async (request: APIRequestContext) => {
+    const code = `WH_SO_${Math.abs(genId())}`;
+    const res = await request.post(`${baseUrl}/warehouses`, {
+        data: { id: genId(), code, name: `Warehouse ${code}`, description: "SO Aux" },
+    });
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    return data;
+};
+
+const getProductInventorySnapshot = async (request: APIRequestContext, productId: number) => {
+    const res = await request.get(`${baseUrl}/products/${productId}`);
+    expect(res.status()).toBe(200);
+    const { data } = await res.json();
+    const inventory = data.productInventory?.[0];
+    expect(inventory).toBeTruthy();
+    return {
+        quantity: Number(inventory.quantity),
+        costValue: Number(inventory.costValue),
+        saleValue: Number(inventory.saleValue),
+    };
+};
+
+test("Lista pedidos de venda e valida paginaÇõÇœo", async ({ request }) => {
     const res = await request.get(`${baseUrl}/sale-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -66,7 +89,7 @@ test("Lista pedidos de venda e valida paginação", async ({ request }) => {
     expect(typeof data.meta.total).toBe("number");
 });
 
-test("Filtro status inválido deve retornar 400", async ({ request }) => {
+test("Filtro status invÇ­lido deve retornar 400", async ({ request }) => {
     const res = await request.get(`${baseUrl}/sale-orders?status=INVALID`);
     expect(res.status()).toBe(400);
     const body = await res.json();
@@ -263,4 +286,69 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
                 order.customer.person.name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     ).toBeTruthy();
+});
+
+test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos", async ({
+    request,
+}) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    expect(custRes.status()).toBe(200);
+    const { data: clist } = await custRes.json();
+    const customer = clist.items[0];
+    expect(customer).toBeTruthy();
+
+    // Garante que há um depósito disponível para a movimentação de saída
+    const warehouse = await createAuxWarehouse(request);
+
+    const product = await createSaleProduct(request, "SO_STK");
+    const beforeInventory = await getProductInventorySnapshot(request, product.id);
+
+    const saleQty = 2.75;
+    const unitPrice = 15.25;
+    const unitCost = beforeInventory.costValue;
+    const code = `SO_STK_${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/sale-orders`, {
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            status: OrderStatus.FINISHED,
+            totalValue: saleQty * unitPrice,
+            notes: "Venda finalizada com movimento de estoque",
+            items: {
+                create: [
+                    {
+                        productId: product.id,
+                        quantity: saleQty,
+                        unitPrice,
+                        productUnitPrice: unitPrice,
+                        unitCost,
+                    },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+
+    const movementRes = await request.get(`${baseUrl}/inventory-movement?productId=${product.id}`);
+    expect(movementRes.status()).toBe(200);
+    const { data: movementData } = await movementRes.json();
+    const saleMovement = movementData.items.find(
+        (mv: { reference?: string }) => mv.reference === code
+    );
+    expect(saleMovement).toBeTruthy();
+    expect(saleMovement.direction).toBe("OUT");
+    expect(saleMovement.source).toBe("SALE");
+    expect(Number(saleMovement.quantity)).toBeCloseTo(saleQty, 6);
+    expect(Number(saleMovement.balance)).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
+    expect(Number(saleMovement.unitCost)).toBeCloseTo(unitCost, 6);
+    expect(Number(saleMovement.saleValue)).toBeCloseTo(unitPrice, 6);
+    expect(saleMovement.reference).toBe(code);
+
+    const afterInventory = await getProductInventorySnapshot(request, product.id);
+    expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
+    expect(afterInventory.costValue).toBeCloseTo(beforeInventory.costValue, 6);
+    expect(afterInventory.saleValue).toBeCloseTo(beforeInventory.saleValue, 6);
 });

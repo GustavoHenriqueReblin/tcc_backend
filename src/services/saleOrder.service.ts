@@ -1,15 +1,17 @@
-﻿import { prisma } from "@config/prisma";
+import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
-import { OrderStatus } from "@prisma/client";
+import { MovementSource, MovementType, OrderStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { saleOrderAllowedSortFields } from "@routes/saleOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
+import { InventoryMovementService } from "@services/inventoryMovement.service";
 
 export interface SaleOrderInput {
     id?: number;
     customerId: number;
+    warehouseId: number;
     code: string;
     status?: OrderStatus;
     totalValue: number;
@@ -39,6 +41,8 @@ export type SaleOrderItemsPayload = NestedItemsPayload<
     SaleOrderItemCreateData,
     SaleOrderItemUpdateData
 >;
+
+const inventoryService = new InventoryMovementService();
 
 export class SaleOrderService extends BaseService {
     getAll = async (
@@ -143,6 +147,10 @@ export class SaleOrderService extends BaseService {
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
+                    if (order.status === OrderStatus.FINISHED) {
+                        await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -203,6 +211,13 @@ export class SaleOrderService extends BaseService {
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
+                    if (
+                        existing.status !== OrderStatus.FINISHED &&
+                        order.status === OrderStatus.FINISHED
+                    ) {
+                        await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
+                    }
+
                     await tx.audit.create({
                         data: {
                             userId,
@@ -241,15 +256,32 @@ export class SaleOrderService extends BaseService {
             ])
         );
 
+        let productsMap = new Map<
+            number,
+            { costValue: Decimal | null; saleValue: Decimal | null }
+        >();
         if (productIds.length) {
             const products = await tx.product.findMany({
                 where: { enterpriseId, id: { in: productIds } },
-                select: { id: true },
+                select: {
+                    id: true,
+                    productInventory: { select: { costValue: true, saleValue: true } },
+                },
             });
 
             if (products.length !== productIds.length) {
                 throw new AppError("Produto não encontrado", 404, "SALE_ORDER:items:FK");
             }
+
+            productsMap = new Map(
+                products.map((p) => [
+                    p.id,
+                    {
+                        costValue: p.productInventory?.[0]?.costValue ?? null,
+                        saleValue: p.productInventory?.[0]?.saleValue ?? null,
+                    },
+                ])
+            );
         }
 
         const targetIds = Array.from(new Set([...update.map((item) => item.id), ...remove]));
@@ -292,6 +324,19 @@ export class SaleOrderService extends BaseService {
         }
 
         for (const item of create) {
+            const productData = productsMap.get(item.productId) ?? {
+                costValue: null,
+                saleValue: null,
+            };
+            const resolvedUnitCost =
+                item.unitCost !== undefined ? item.unitCost : (productData.costValue ?? 0);
+            const resolvedProductUnitPrice =
+                item.productUnitPrice !== undefined
+                    ? item.productUnitPrice
+                    : (productData.saleValue ?? 0);
+            const resolvedUnitPrice =
+                item.unitPrice !== undefined ? item.unitPrice : (productData.saleValue ?? 0);
+
             await tx.saleOrderItem.create({
                 data: {
                     ...(process.env.ENVIRONMENT !== "PRODUCTION" && typeof item.id === "number"
@@ -301,11 +346,59 @@ export class SaleOrderService extends BaseService {
                     saleOrderId,
                     productId: item.productId,
                     quantity: new Decimal(item.quantity),
-                    unitPrice: new Decimal(item.unitPrice),
-                    productUnitPrice: new Decimal(item.productUnitPrice),
-                    unitCost: new Decimal(item.unitCost),
+                    unitPrice: new Decimal(resolvedUnitPrice),
+                    productUnitPrice: new Decimal(resolvedProductUnitPrice),
+                    unitCost: new Decimal(resolvedUnitCost),
                 },
             });
+        }
+    }
+
+    private async finalizeSaleOrder(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        orderId: number,
+        warehouseId: number
+    ) {
+        const order = await tx.saleOrder.findUnique({
+            where: { id: orderId, enterpriseId },
+            include: { items: true },
+        });
+
+        if (!order) throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:FINALIZE");
+        if (!order.items.length) {
+            throw new AppError("Pedido não possui itens", 400, "SALE_ORDER:FINALIZE:NO_ITEMS");
+        }
+
+        const warehouse = await tx.warehouse.findFirst({
+            where: { enterpriseId, id: warehouseId },
+            select: { id: true },
+        });
+
+        if (!warehouse) {
+            throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
+        }
+
+        for (const item of order.items) {
+            const quantity = new Decimal(item.quantity);
+            const unitCost = new Decimal(item.unitCost);
+            const saleValue = new Decimal(item.unitPrice);
+
+            await inventoryService.create(
+                enterpriseId,
+                {
+                    productId: item.productId,
+                    warehouseId: warehouse.id,
+                    direction: MovementType.OUT,
+                    source: MovementSource.SALE,
+                    quantity: quantity.toNumber(),
+                    unitCost: unitCost.toNumber(),
+                    saleValue: saleValue.toNumber(),
+                    reference: order.code,
+                    notes: order.notes ?? null,
+                },
+                tx
+            );
         }
     }
 }

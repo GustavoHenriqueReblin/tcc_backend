@@ -80,6 +80,10 @@ export const validateSaleOrderFields = (req: Request, res: Response, next: NextF
         return res.status(400).json({ message: SALE_ORDER_ERROR.WRONG_FIELD_VALUE });
     }
 
+    if (order.status === OrderStatus.FINISHED && !order.warehouseId) {
+        return res.status(400).json({ message: SALE_ORDER_ERROR.MISSING_FIELDS });
+    }
+
     if (
         order.items &&
         !isValidNestedItemsPayload(order.items, {
