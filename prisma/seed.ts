@@ -908,6 +908,8 @@ export const generateData = async () => {
                     enterpriseId,
                     customerId: anyCustomer.id,
                     totalValue: 79.2,
+                    discount: 0,
+                    otherCosts: 0,
                     notes: "Pedido inicial",
                 },
                 create: {
@@ -916,6 +918,8 @@ export const generateData = async () => {
                     customerId: anyCustomer.id,
                     code: saleCode,
                     totalValue: 79.2,
+                    discount: 0,
+                    otherCosts: 0,
                     notes: "Pedido inicial",
                 },
             });

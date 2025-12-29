@@ -15,6 +15,8 @@ export interface SaleOrderInput {
     code: string;
     status?: OrderStatus;
     totalValue: number;
+    discount?: number;
+    otherCosts?: number;
     notes?: string | null;
     items?: SaleOrderItemsPayload;
 }
@@ -118,6 +120,10 @@ export class SaleOrderService extends BaseService {
     create = async (enterpriseId: number, data: SaleOrderInput, userId: number) =>
         this.safeQuery(
             async () => {
+                const discountValue = new Decimal(data.discount ?? 0);
+                const otherCostsValue = new Decimal(data.otherCosts ?? 0);
+                const status = data.status ?? OrderStatus.PENDING;
+
                 const [codeTaken, customer] = await Promise.all([
                     prisma.saleOrder.findFirst({ where: { code: data.code } }),
                     prisma.customer.findFirst({
@@ -139,15 +145,28 @@ export class SaleOrderService extends BaseService {
                             enterpriseId,
                             customerId: data.customerId,
                             code: data.code,
-                            status: data.status ?? OrderStatus.PENDING,
+                            status,
                             totalValue: new Decimal(data.totalValue),
+                            discount: discountValue,
+                            otherCosts: otherCostsValue,
                             notes: data.notes ?? null,
                         },
                     });
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
-                    if (order.status === OrderStatus.FINISHED) {
+                    const adjustedOrder = await this.applySaleOrderAdjustments(
+                        tx,
+                        enterpriseId,
+                        order.id,
+                        {
+                            discount: discountValue,
+                            otherCosts: otherCostsValue,
+                            totalValue: data.totalValue,
+                        }
+                    );
+
+                    if (status === OrderStatus.FINISHED) {
                         await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
                     }
 
@@ -160,7 +179,7 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
-                    return order;
+                    return adjustedOrder;
                 });
 
                 return created;
@@ -193,17 +212,29 @@ export class SaleOrderService extends BaseService {
                         throw new AppError("Cliente não encontrado", 404, "FK:NOT_FOUND");
                 }
 
+                const status = data.status ?? existing.status;
+                const discountValue =
+                    data.discount !== undefined
+                        ? new Decimal(data.discount)
+                        : (existing.discount ?? new Decimal(0));
+                const otherCostsValue =
+                    data.otherCosts !== undefined
+                        ? new Decimal(data.otherCosts)
+                        : (existing.otherCosts ?? new Decimal(0));
+
                 const updated = await prisma.$transaction(async (tx) => {
                     const order = await tx.saleOrder.update({
                         where: { id },
                         data: {
                             customerId: data.customerId ?? existing.customerId,
                             code: data.code ?? existing.code,
-                            status: data.status ?? existing.status,
+                            status,
                             totalValue:
                                 data.totalValue !== undefined
                                     ? new Decimal(data.totalValue)
                                     : existing.totalValue,
+                            discount: discountValue,
+                            otherCosts: otherCostsValue,
                             notes: data.notes ?? existing.notes,
                             updatedAt: new Date(),
                         },
@@ -211,9 +242,23 @@ export class SaleOrderService extends BaseService {
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
+                    const adjustedOrder = await this.applySaleOrderAdjustments(
+                        tx,
+                        enterpriseId,
+                        order.id,
+                        {
+                            discount: discountValue,
+                            otherCosts: otherCostsValue,
+                            totalValue:
+                                data.totalValue !== undefined
+                                    ? data.totalValue
+                                    : Number(order.totalValue),
+                        }
+                    );
+
                     if (
                         existing.status !== OrderStatus.FINISHED &&
-                        order.status === OrderStatus.FINISHED
+                        status === OrderStatus.FINISHED
                     ) {
                         await this.finalizeSaleOrder(tx, enterpriseId, order.id, data.warehouseId);
                     }
@@ -227,7 +272,7 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
-                    return order;
+                    return adjustedOrder;
                 });
 
                 return updated;
@@ -352,6 +397,69 @@ export class SaleOrderService extends BaseService {
                 },
             });
         }
+    }
+
+    private async applySaleOrderAdjustments(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        saleOrderId: number,
+        payload: { discount?: Decimal | number; otherCosts?: Decimal | number; totalValue?: number }
+    ) {
+        const discount = new Decimal(payload.discount ?? 0);
+        const otherCosts = new Decimal(payload.otherCosts ?? 0);
+
+        const items = await tx.saleOrderItem.findMany({
+            where: { enterpriseId, saleOrderId },
+            select: { id: true, quantity: true, unitPrice: true, productUnitPrice: true },
+        });
+
+        if (!items.length) {
+            const totalValue =
+                payload.totalValue !== undefined ? new Decimal(payload.totalValue) : undefined;
+
+            return tx.saleOrder.update({
+                where: { id: saleOrderId },
+                data: {
+                    discount,
+                    otherCosts,
+                    ...(totalValue !== undefined ? { totalValue } : {}),
+                    updatedAt: new Date(),
+                },
+            });
+        }
+
+        const baseTotal = items.reduce(
+            (acc, item) =>
+                acc.plus(new Decimal(item.quantity).times(item.productUnitPrice ?? item.unitPrice)),
+            new Decimal(0)
+        );
+
+        let targetTotal = baseTotal.minus(discount).plus(otherCosts);
+        if (targetTotal.isNegative()) targetTotal = new Decimal(0);
+
+        const factor = baseTotal.gt(0) ? targetTotal.div(baseTotal) : new Decimal(1);
+
+        for (const item of items) {
+            const basePrice = new Decimal(item.productUnitPrice ?? item.unitPrice);
+            const adjustedUnitPrice = basePrice.mul(factor);
+
+            await tx.saleOrderItem.update({
+                where: { id: item.id },
+                data: { unitPrice: adjustedUnitPrice },
+            });
+        }
+
+        const adjustedTotal = baseTotal.gt(0) ? baseTotal.mul(factor) : targetTotal;
+
+        return tx.saleOrder.update({
+            where: { id: saleOrderId },
+            data: {
+                discount,
+                otherCosts,
+                totalValue: adjustedTotal,
+                updatedAt: new Date(),
+            },
+        });
     }
 
     private async finalizeSaleOrder(

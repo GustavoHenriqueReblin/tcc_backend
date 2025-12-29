@@ -288,6 +288,74 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     ).toBeTruthy();
 });
 
+test("Aplica desconto e outros custos rateando valor dos itens", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    const { data: clist } = await custRes.json();
+    const customer = clist.items[0];
+    expect(customer).toBeTruthy();
+
+    const productA = await createSaleProduct(request, "SO_DISC_A");
+    const productB = await createSaleProduct(request, "SO_DISC_B");
+
+    const discount = 10;
+    const otherCosts = 5;
+    const code = `SODISC_${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/sale-orders`, {
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            totalValue: 0,
+            discount,
+            otherCosts,
+            items: {
+                create: [
+                    {
+                        productId: productA.id,
+                        quantity: 2,
+                        unitPrice: 20,
+                        productUnitPrice: 20,
+                        unitCost: 7,
+                    },
+                    {
+                        productId: productB.id,
+                        quantity: 1,
+                        unitPrice: 10,
+                        productUnitPrice: 10,
+                        unitCost: 4,
+                    },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: created } = await createRes.json();
+
+    const fetchRes = await request.get(`${baseUrl}/sale-orders/${created.id}`);
+    expect(fetchRes.status()).toBe(200);
+    const { data: order } = await fetchRes.json();
+
+    const itemA = order.items.find((item: { productId: number }) => item.productId === productA.id);
+    const itemB = order.items.find((item: { productId: number }) => item.productId === productB.id);
+    expect(itemA).toBeTruthy();
+    expect(itemB).toBeTruthy();
+
+    const baseTotal = 2 * 20 + 10;
+    const expectedTotal = baseTotal - discount + otherCosts;
+    const factor = expectedTotal / baseTotal;
+    const totalFromItems =
+        Number(itemA.unitPrice) * Number(itemA.quantity) +
+        Number(itemB.unitPrice) * Number(itemB.quantity);
+
+    expect(Number(order.discount)).toBeCloseTo(discount, 4);
+    expect(Number(order.otherCosts)).toBeCloseTo(otherCosts, 4);
+    expect(Number(order.totalValue)).toBeCloseTo(expectedTotal, 4);
+    expect(Number(itemA.unitPrice)).toBeCloseTo(20 * factor, 4);
+    expect(Number(itemB.unitPrice)).toBeCloseTo(10 * factor, 4);
+    expect(totalFromItems).toBeCloseTo(expectedTotal, 4);
+});
+
 test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos", async ({
     request,
 }) => {

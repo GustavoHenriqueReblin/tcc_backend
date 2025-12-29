@@ -76,6 +76,23 @@ export const validateSaleOrderFields = (req: Request, res: Response, next: NextF
         return res.status(400).json({ message: SALE_ORDER_ERROR.MISSING_FIELDS });
     }
 
+    const totalValueNum = Number(order.totalValue);
+    const discountValue = order.discount !== undefined ? Number(order.discount) : 0;
+    const otherCostsValue = order.otherCosts !== undefined ? Number(order.otherCosts) : 0;
+
+    if (Number.isNaN(totalValueNum) || totalValueNum < 0) {
+        return res.status(400).json({ message: SALE_ORDER_ERROR.WRONG_FIELD_VALUE });
+    }
+
+    const invalidDiscount =
+        order.discount !== undefined && (Number.isNaN(discountValue) || discountValue < 0);
+    const invalidOtherCosts =
+        order.otherCosts !== undefined && (Number.isNaN(otherCostsValue) || otherCostsValue < 0);
+
+    if (invalidDiscount || invalidOtherCosts) {
+        return res.status(400).json({ message: SALE_ORDER_ERROR.WRONG_FIELD_VALUE });
+    }
+
     if (order.status && !Object.values(OrderStatus).includes(order.status)) {
         return res.status(400).json({ message: SALE_ORDER_ERROR.WRONG_FIELD_VALUE });
     }
