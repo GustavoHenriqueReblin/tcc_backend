@@ -32,7 +32,10 @@ export class ReportService {
         try {
             const html = await this.renderHtml(definition, context);
 
-            browser = await chromium.launch({ headless: true });
+            browser = await chromium.launch({
+                headless: true,
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+            });
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: "networkidle" });
 
