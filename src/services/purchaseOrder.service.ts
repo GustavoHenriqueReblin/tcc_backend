@@ -314,7 +314,7 @@ export class PurchaseOrderService extends BaseService {
                     source: MovementSource.PURCHASE,
                     quantity: item.quantity,
                     unitCost: item.unitCost,
-                    reference: purchaseOrder.code,
+                    reference: "Compra " + purchaseOrder.code,
                     notes: purchaseOrder.notes ?? null,
                     supplierId: purchaseOrder.supplierId ?? null,
                 },

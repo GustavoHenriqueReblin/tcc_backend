@@ -559,7 +559,7 @@ export class SaleOrderService extends BaseService {
                     quantity: quantity.toNumber(),
                     unitCost: unitCost.toNumber(),
                     saleValue: saleValue.toNumber(),
-                    reference: order.code,
+                    reference: "Venda " + order.code,
                     notes: order.notes ?? null,
                 },
                 tx
@@ -596,7 +596,7 @@ export class SaleOrderService extends BaseService {
                     quantity: quantity.toNumber(),
                     unitCost: unitCost.toNumber(),
                     saleValue: saleValue.toNumber(),
-                    reference: order.code,
+                    reference: "Venda " + order.code,
                     notes: `Cancelamento da venda ${order.code}`,
                 },
                 tx
