@@ -1,6 +1,6 @@
 {
   "name": "tcc_backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema de controle de produção e estoque de sucos com acompanhamento de custos e vendas, voltado para pequenas agroindústrias.",
   "main": "index.js",
   "scripts": {
