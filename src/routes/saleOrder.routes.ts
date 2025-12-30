@@ -15,6 +15,8 @@ import {
 export const saleOrderAllowedSortFields = [
     "code",
     "status",
+    "discount",
+    "otherCosts",
     "totalValue",
     "createdAt",
     "updatedAt",

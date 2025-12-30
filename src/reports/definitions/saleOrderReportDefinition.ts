@@ -36,7 +36,7 @@ const saleStatusLabels: Record<OrderStatus, string> = {
     APPROVED: "Aprovada",
     SHIPPED: "Enviada",
     RECEIVED: "Recebida",
-    FINISHED: "Concluída",
+    FINISHED: "Finalizada",
     CANCELED: "Cancelada",
 };
 
