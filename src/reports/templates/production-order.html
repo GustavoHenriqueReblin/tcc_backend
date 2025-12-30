@@ -96,6 +96,10 @@
                 padding-bottom: 16px;
                 border-bottom: 1px solid #e5e7eb;
                 margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
             }
 
             h1 {
@@ -239,8 +243,10 @@
     <body>
         <div class="card">
             <div class="header">
-                <h1>Ordem de Produção</h1>
-                <div class="subtitle">Código {{code}} · Produto {{productName}}</div>
+                <div>
+                    <h1>Ordem de Produção</h1>
+                    <div class="subtitle">Código {{code}} · Produto {{productName}}</div>
+                </div>
                 <span class="badge {{statusClass}}">{{status}}</span>
             </div>
             <div class="grid">

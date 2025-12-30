@@ -35,14 +35,14 @@ interface ProductionOrderReportData {
 
 const statusLabels: Record<string, string> = {
     PLANNED: "Planejada",
-    IN_PROGRESS: "Em andamento",
+    RUNNING: "Em produção",
     FINISHED: "Finalizada",
     CANCELLED: "Cancelada",
 };
 
 const statusClasses: Record<string, string> = {
     PLANNED: "bg-gray-200 text-gray-800",
-    IN_PROGRESS: "bg-blue-100 text-blue-800",
+    RUNNING: "bg-blue-100 text-blue-800",
     FINISHED: "bg-green-100 text-green-800",
     CANCELLED: "bg-red-100 text-red-800",
 };
