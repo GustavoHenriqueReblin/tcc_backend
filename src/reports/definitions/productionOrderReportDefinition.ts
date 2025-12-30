@@ -37,14 +37,14 @@ const statusLabels: Record<string, string> = {
     PLANNED: "Planejada",
     RUNNING: "Em produção",
     FINISHED: "Finalizada",
-    CANCELLED: "Cancelada",
+    CANCELED: "Cancelada",
 };
 
 const statusClasses: Record<string, string> = {
     PLANNED: "bg-gray-200 text-gray-800",
     RUNNING: "bg-blue-100 text-blue-800",
     FINISHED: "bg-green-100 text-green-800",
-    CANCELLED: "bg-red-100 text-red-800",
+    CANCELED: "bg-red-100 text-red-800",
 };
 
 export const productionOrderReport: ReportDefinition<ProductionOrderReportData> = {
