@@ -95,16 +95,52 @@ export class SaleOrderService extends BaseService {
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
-                const [orders, total] = await prisma.$transaction([
+                const [orders, total, ordersForTotals] = await prisma.$transaction([
                     prisma.saleOrder.findMany({
                         where,
-                        include: { customer: { include: { person: true } }, items: true },
+                        include: {
+                            customer: { include: { person: true } },
+                            items: true,
+                        },
                         skip,
                         take: limit,
                         orderBy: { [safeSortBy]: safeSortOrder },
                     }),
                     prisma.saleOrder.count({ where }),
+                    prisma.saleOrder.findMany({
+                        where,
+                        select: {
+                            discount: true,
+                            otherCosts: true,
+                            items: {
+                                select: {
+                                    quantity: true,
+                                    productUnitPrice: true,
+                                },
+                            },
+                        },
+                    }),
                 ]);
+
+                let subtotal = 0;
+                let discount = 0;
+                let otherCosts = 0;
+
+                for (const order of ordersForTotals) {
+                    discount += Number(order.discount ?? 0);
+                    otherCosts += Number(order.otherCosts ?? 0);
+
+                    for (const item of order.items) {
+                        subtotal += Number(item.quantity ?? 0) * Number(item.productUnitPrice ?? 0);
+                    }
+                }
+
+                const totals = {
+                    subtotal,
+                    discount,
+                    otherCosts,
+                    total: subtotal - discount + otherCosts,
+                };
 
                 return {
                     items: orders,
@@ -113,6 +149,7 @@ export class SaleOrderService extends BaseService {
                         page,
                         totalPages: Math.ceil(total / limit),
                     },
+                    totals,
                 };
             },
             "SALE_ORDER:getAll",

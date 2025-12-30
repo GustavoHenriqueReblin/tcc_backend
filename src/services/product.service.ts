@@ -58,7 +58,7 @@ export class ProductService extends BaseService {
                 };
 
                 const validSortFields = productAllowedSortFields;
-                const safeSortBy: string = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+                const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder: "asc" | "desc" = sortOrder === "asc" ? "asc" : "desc";
 
                 const [productsRaw, total] = await prisma.$transaction([
@@ -78,13 +78,33 @@ export class ProductService extends BaseService {
                 const productsWithInventory = productsRaw.map((p) => {
                     const inv = p.productInventory[0];
 
+                    const quantity = inv ? Number(inv.quantity) : 0;
+                    const costValue = inv ? Number(inv.costValue) : 0;
+                    const saleValue = inv ? Number(inv.saleValue) : 0;
+
                     return {
                         ...p,
-                        costValue: inv ? Number(inv.costValue) : 0,
-                        saleValue: inv ? Number(inv.saleValue) : 0,
-                        quantity: inv ? Number(inv.quantity) : 0,
+                        quantity,
+                        costValue,
+                        saleValue,
                     };
                 });
+
+                let totalQuantity = 0;
+                let totalCost = 0;
+                let totalSaleValue = 0;
+
+                for (const p of productsWithInventory) {
+                    totalQuantity += p.quantity;
+                    totalCost += p.quantity * p.costValue;
+                    totalSaleValue += p.quantity * p.saleValue;
+                }
+
+                const totals = {
+                    totalQuantity,
+                    totalCost,
+                    totalSaleValue,
+                };
 
                 const sortedProducts = [...productsWithInventory].sort((a, b) => {
                     const aValue = a[safeSortBy as keyof typeof a];
@@ -93,7 +113,6 @@ export class ProductService extends BaseService {
                     if (aggregatedFields.includes(safeSortBy)) {
                         const av = aValue as number;
                         const bv = bValue as number;
-
                         return safeSortOrder === "asc" ? av - bv : bv - av;
                     }
 
@@ -118,6 +137,7 @@ export class ProductService extends BaseService {
                         page,
                         totalPages: Math.ceil(total / limit),
                     },
+                    totals,
                 };
             },
             "PRODUCT:getAll",

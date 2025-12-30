@@ -80,11 +80,11 @@ export class ProductionOrderService extends BaseService {
                 sortOrder = sortOrder || "desc";
 
                 const skip = (page - 1) * limit;
+
                 const where = {
                     enterpriseId,
                     ...(status && { status }),
                     ...(typeof productId === "number" ? { productId } : {}),
-
                     ...(startDateFrom || startDateTo
                         ? {
                               AND: [
@@ -97,7 +97,6 @@ export class ProductionOrderService extends BaseService {
                                             },
                                         ]
                                       : []),
-
                                   ...(startDateFrom
                                       ? [
                                             {
@@ -115,7 +114,6 @@ export class ProductionOrderService extends BaseService {
                               ],
                           }
                         : {}),
-
                     ...(search
                         ? {
                               OR: [
@@ -139,11 +137,15 @@ export class ProductionOrderService extends BaseService {
                 const safeSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
                 const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
-                const [orders, total] = await prisma.$transaction([
+                const [orders, total, ordersForTotals] = await prisma.$transaction([
                     prisma.productionOrder.findMany({
                         where,
                         include: {
-                            recipe: { include: { product: { include: { unity: true } } } },
+                            recipe: {
+                                include: {
+                                    product: { include: { unity: true } },
+                                },
+                            },
                             lot: true,
                             inputs: true,
                         },
@@ -151,10 +153,34 @@ export class ProductionOrderService extends BaseService {
                         take: limit,
                         orderBy: { [safeSortBy]: safeSortOrder },
                     }),
-                    prisma.productionOrder.count({
+                    prisma.productionOrder.count({ where }),
+                    prisma.productionOrder.findMany({
                         where,
+                        select: {
+                            plannedQty: true,
+                            producedQty: true,
+                            wasteQty: true,
+                            status: true,
+                        },
                     }),
                 ]);
+
+                let plannedQty = 0;
+                let producedQty = 0;
+                let wasteQty = 0;
+                let plannedCount = 0;
+                let runningCount = 0;
+                let finishedCount = 0;
+
+                for (const o of ordersForTotals) {
+                    plannedQty += Number(o.plannedQty ?? 0);
+                    producedQty += Number(o.producedQty ?? 0);
+                    wasteQty += Number(o.wasteQty ?? 0);
+
+                    if (o.status === ProductionOrderStatus.PLANNED) plannedCount++;
+                    if (o.status === ProductionOrderStatus.RUNNING) runningCount++;
+                    if (o.status === ProductionOrderStatus.FINISHED) finishedCount++;
+                }
 
                 return {
                     items: orders,
@@ -162,6 +188,14 @@ export class ProductionOrderService extends BaseService {
                         total,
                         page,
                         totalPages: Math.ceil(total / limit),
+                    },
+                    totals: {
+                        plannedQty,
+                        producedQty,
+                        wasteQty,
+                        plannedCount,
+                        runningCount,
+                        finishedCount,
                     },
                 };
             },
