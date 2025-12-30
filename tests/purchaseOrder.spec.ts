@@ -336,7 +336,7 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
     expect(Number(latestMovement.quantity)).toBeCloseTo(purchaseQty, 6);
     expect(Number(latestMovement.balance)).toBeCloseTo(beforeInventory.quantity + purchaseQty, 6);
     expect(Number(latestMovement.unitCost)).toBeCloseTo(unitCost, 6);
-    expect(latestMovement.supplierId).toBe(supplier.id);
+    expect(latestMovement.purchaseOrderId).toBe(created.id);
     expect(latestMovement.reference).toBe(`Compra ${code}`);
     expect(latestMovement.notes).toBe(notes);
 
@@ -416,7 +416,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
     expect(Number(latestAddition.quantity)).toBeCloseTo(extraQty, 6);
     expect(Number(latestAddition.balance)).toBeCloseTo(extraBeforeInventory.quantity + extraQty, 6);
     expect(Number(latestAddition.unitCost)).toBeCloseTo(extraUnitCost, 6);
-    expect(latestAddition.supplierId).toBe(supplier.id);
+    expect(latestAddition.purchaseOrderId).toBe(created.id);
     expect(latestAddition.reference).toBe(`Compra ${baseCode}`);
     expect(latestAddition.notes).toBe(updateNotes);
 

@@ -310,13 +310,13 @@ export class PurchaseOrderService extends BaseService {
                 {
                     productId: item.productId,
                     warehouseId: purchaseOrder.warehouseId,
+                    purchaseOrderId: purchaseOrder.id ?? null,
                     direction: MovementType.IN,
                     source: MovementSource.PURCHASE,
                     quantity: item.quantity,
                     unitCost: item.unitCost,
                     reference: "Compra " + purchaseOrder.code,
                     notes: purchaseOrder.notes ?? null,
-                    supplierId: purchaseOrder.supplierId ?? null,
                 },
                 tx
             );

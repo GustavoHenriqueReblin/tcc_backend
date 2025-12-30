@@ -481,6 +481,7 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
     expect(Number(saleMovement.balance)).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
     expect(Number(saleMovement.unitCost)).toBeCloseTo(unitCost, 6);
     expect(Number(saleMovement.saleValue)).toBeCloseTo(unitPrice, 6);
+    expect(saleMovement.saleOrderId).toBe(createdOrder.id);
     expect(saleMovement.reference).toBe(`Venda ${code}`);
 
     const afterInventory = await getProductInventorySnapshot(request, product.id);
@@ -626,6 +627,7 @@ test("Cancelar pedido FINISHED gera ajuste IN devolvendo estoque", async ({ requ
             mv.reference === `Venda ${code}` && mv.source === "SALE" && mv.direction === "IN"
     );
     expect(adjustmentMovement).toBeTruthy();
+    expect(adjustmentMovement.saleOrderId).toBe(createdOrder.id);
     expect(Number(adjustmentMovement.quantity)).toBeCloseTo(saleQty, 6);
     expect(Number(adjustmentMovement.balance)).toBeCloseTo(beforeInventory.quantity, 6);
 

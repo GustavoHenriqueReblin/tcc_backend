@@ -500,6 +500,7 @@ export class SaleOrderService extends BaseService {
                 {
                     productId: item.productId,
                     warehouseId: warehouse.id,
+                    saleOrderId: order.id,
                     direction: MovementType.OUT,
                     source: MovementSource.SALE,
                     quantity: quantity.toNumber(),
@@ -537,6 +538,7 @@ export class SaleOrderService extends BaseService {
                 {
                     productId: item.productId,
                     warehouseId,
+                    saleOrderId: order.id,
                     direction: MovementType.IN,
                     source: MovementSource.SALE,
                     quantity: quantity.toNumber(),

@@ -10,8 +10,6 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "prisma:validate": "prisma validate --schema=prisma/schema.prisma",
-    "prisma:migrate": "prisma migrate dev --name init --schema=prisma/schema.prisma",
-    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "prisma:seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "prisma:reset": "prisma migrate reset --schema=prisma/schema.prisma",
     "prisma:format": "prisma format --schema=prisma/schema.prisma",

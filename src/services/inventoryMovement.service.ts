@@ -25,6 +25,9 @@ export interface InventoryMovementInput {
     id?: number;
     productId: number;
     warehouseId: number;
+    productionOrderId?: number | null;
+    purchaseOrderId?: number | null;
+    saleOrderId?: number | null;
     lotId?: number | null;
     direction: MovementType;
     source: MovementSource;
@@ -33,7 +36,6 @@ export interface InventoryMovementInput {
     saleValue?: number | null;
     reference?: string | null;
     notes?: string | null;
-    supplierId?: number | null;
 }
 
 export class InventoryMovementService extends BaseService {
@@ -97,7 +99,6 @@ export class InventoryMovementService extends BaseService {
                         include: {
                             product: { include: { unity: true } },
                             warehouse: true,
-                            supplier: true,
                         },
                         skip,
                         take: limit,
@@ -124,7 +125,13 @@ export class InventoryMovementService extends BaseService {
             async () =>
                 prisma.inventoryMovement.findUnique({
                     where: { id, enterpriseId },
-                    include: { product: true, warehouse: true, supplier: true },
+                    include: {
+                        product: true,
+                        warehouse: true,
+                        saleOrder: true,
+                        purchaseOrder: true,
+                        productionOrder: true,
+                    },
                 }),
             "INVENTORY_MOVEMENT:getById",
             enterpriseId
@@ -180,7 +187,6 @@ export class InventoryMovementService extends BaseService {
                         quantity: movedQty.toNumber(),
                         reference: null,
                         notes: data.notes ?? null,
-                        supplierId: null,
                     })
                 );
 
@@ -212,7 +218,6 @@ export class InventoryMovementService extends BaseService {
                         unitCost: data.unitCost ?? null,
                         reference: null,
                         notes: data.notes ?? null,
-                        supplierId: null,
                     })
                 );
 
@@ -254,7 +259,7 @@ export class InventoryMovementService extends BaseService {
             );
         }
 
-        const [product, warehouse, supplier] = await Promise.all([
+        const [product, warehouse] = await Promise.all([
             tx.product.findFirst({
                 where: { id: data.productId, enterpriseId },
                 include: {
@@ -267,16 +272,10 @@ export class InventoryMovementService extends BaseService {
                 where: { id: data.warehouseId, enterpriseId },
                 select: { id: true },
             }),
-            tx.supplier.findFirst({
-                where: { id: data.supplierId ?? 0, enterpriseId },
-                select: { id: true },
-            }),
         ]);
 
         if (!product) throw new AppError("Produto não encontrado", 404, "FK:NOT_FOUND");
         if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:NOT_FOUND");
-        if (data.supplierId && !supplier)
-            throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
 
         const currentQty = product.productInventory?.[0]?.quantity ?? new Decimal(0);
         const currentCost = product.productInventory?.[0]?.costValue ?? new Decimal(0);
@@ -312,6 +311,9 @@ export class InventoryMovementService extends BaseService {
                 enterpriseId,
                 productId: data.productId,
                 warehouseId: data.warehouseId,
+                productionOrderId: data.productionOrderId ?? null,
+                purchaseOrderId: data.purchaseOrderId ?? null,
+                saleOrderId: data.saleOrderId ?? null,
                 lotId: data.lotId ?? null,
                 direction: data.direction,
                 source: data.source,
@@ -321,7 +323,6 @@ export class InventoryMovementService extends BaseService {
                 saleValue,
                 reference: data.reference ?? null,
                 notes: data.notes ?? null,
-                supplierId: data.supplierId ?? null,
             },
         });
 

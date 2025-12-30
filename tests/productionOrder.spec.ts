@@ -484,6 +484,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
             mv.reference === `OP ${code}` && mv.direction === "OUT"
     );
     expect(rawAOut).toBeTruthy();
+    expect(rawAOut.productionOrderId).toBe(created.id);
     expect(Number(rawAOut.quantity)).toBeCloseTo(rawAQtyPerUnit * producedQty, 4);
     expect(Number(rawAOut.balance)).toBeCloseTo(expectedRawABalance, 4);
     expect(Number(rawAOut.unitCost)).toBeCloseTo(rawAUnitCost, 4);
@@ -498,6 +499,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
             mv.reference === `OP ${code}` && mv.direction === "OUT"
     );
     expect(rawBOut).toBeTruthy();
+    expect(rawBOut.productionOrderId).toBe(created.id);
     expect(Number(rawBOut.quantity)).toBeCloseTo(rawBQtyPerUnit * producedQty, 4);
     expect(Number(rawBOut.balance)).toBeCloseTo(expectedRawBBalance, 4);
     expect(Number(rawBOut.unitCost)).toBeCloseTo(rawBUnitCost, 4);
@@ -512,6 +514,7 @@ test("Finaliza ordem de producao movimentando estoque e custos", async ({ reques
             mv.reference === `OP ${code}` && mv.direction === "IN"
     );
     expect(prodIn).toBeTruthy();
+    expect(prodIn.productionOrderId).toBe(created.id);
     expect(Number(prodIn.quantity)).toBeCloseTo(producedQty, 4);
     expect(Number(prodIn.balance)).toBeCloseTo(expectedFinishedQty, 4);
     expect(Number(prodIn.unitCost)).toBeCloseTo(productionUnitCost, 4);
@@ -617,6 +620,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
             mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "OUT"
     );
     expect(adjustmentOut).toBeTruthy();
+    expect(adjustmentOut.productionOrderId).toBe(created.id);
     expect(Number(adjustmentOut.quantity)).toBeCloseTo(producedQty, 4);
 
     const rawAMovementsRes = await request.get(
@@ -629,6 +633,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
             mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "IN"
     );
     expect(adjustmentInA).toBeTruthy();
+    expect(adjustmentInA.productionOrderId).toBe(created.id);
     expect(Number(adjustmentInA.quantity)).toBeCloseTo(rawAQtyPerUnit * producedQty, 4);
 
     const rawBMovementsRes = await request.get(
@@ -641,6 +646,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
             mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "IN"
     );
     expect(adjustmentInB).toBeTruthy();
+    expect(adjustmentInB.productionOrderId).toBe(created.id);
     expect(Number(adjustmentInB.quantity)).toBeCloseTo(rawBQtyPerUnit * producedQty, 4);
 
     const afterCancelFinished = await getInventorySnapshot(request, finishedProduct.id);

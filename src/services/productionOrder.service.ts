@@ -468,6 +468,7 @@ export class ProductionOrderService extends BaseService {
                     enterpriseId,
                     productId: input.productId,
                     warehouseId: order.warehouseId,
+                    productionOrderId: order.id,
                     lotId: null,
                     direction: MovementType.OUT,
                     source: MovementSource.PRODUCTION,
@@ -477,7 +478,6 @@ export class ProductionOrderService extends BaseService {
                     saleValue,
                     reference: "OP " + order.code,
                     notes: `Consumo de insumo na OP ${order.code}`,
-                    supplierId: null,
                 },
             });
 
@@ -521,6 +521,7 @@ export class ProductionOrderService extends BaseService {
                 enterpriseId,
                 productId: order.productId,
                 warehouseId: order.warehouseId,
+                productionOrderId: order.id,
                 lotId: order.lotId ?? null,
                 direction: MovementType.IN,
                 source: MovementSource.PRODUCTION,
@@ -530,7 +531,6 @@ export class ProductionOrderService extends BaseService {
                 saleValue: finishedSaleValue,
                 reference: "OP " + order.code,
                 notes: `Produção finalizada OP ${order.code}`,
-                supplierId: null,
             },
         });
 
@@ -610,6 +610,7 @@ export class ProductionOrderService extends BaseService {
             {
                 productId: order.productId,
                 warehouseId: order.warehouseId,
+                productionOrderId: order.id,
                 direction: MovementType.OUT,
                 source: MovementSource.PRODUCTION,
                 quantity: producedQty.toNumber(),
@@ -633,6 +634,7 @@ export class ProductionOrderService extends BaseService {
                 {
                     productId: input.productId,
                     warehouseId: order.warehouseId,
+                    productionOrderId: order.id,
                     direction: MovementType.IN,
                     source: MovementSource.PRODUCTION,
                     quantity: totalReturnQty.toNumber(),
