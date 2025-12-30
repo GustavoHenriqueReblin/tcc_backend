@@ -174,17 +174,6 @@ export class SaleOrderService extends BaseService {
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
-                    const adjustedOrder = await this.applySaleOrderAdjustments(
-                        tx,
-                        enterpriseId,
-                        order.id,
-                        {
-                            discount: discountValue,
-                            otherCosts: otherCostsValue,
-                            totalValue: data.totalValue,
-                        }
-                    );
-
                     if (status === OrderStatus.FINISHED) {
                         await this.finalizeSaleOrder(tx, enterpriseId, order.id);
                     }
@@ -198,7 +187,7 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
-                    return adjustedOrder;
+                    return order;
                 });
 
                 return created;
@@ -271,20 +260,6 @@ export class SaleOrderService extends BaseService {
 
                     await this.syncSaleOrderItems(tx, enterpriseId, order.id, data.items);
 
-                    const adjustedOrder = await this.applySaleOrderAdjustments(
-                        tx,
-                        enterpriseId,
-                        order.id,
-                        {
-                            discount: discountValue,
-                            otherCosts: otherCostsValue,
-                            totalValue:
-                                data.totalValue !== undefined
-                                    ? data.totalValue
-                                    : Number(order.totalValue),
-                        }
-                    );
-
                     const wasFinished = existing.status === OrderStatus.FINISHED;
                     const isFinishing = !wasFinished && status === OrderStatus.FINISHED;
                     const isCancelingFinished = wasFinished && status === OrderStatus.CANCELED;
@@ -311,7 +286,7 @@ export class SaleOrderService extends BaseService {
                         },
                     });
 
-                    return adjustedOrder;
+                    return order;
                 });
 
                 return updated;
@@ -436,78 +411,6 @@ export class SaleOrderService extends BaseService {
                 },
             });
         }
-    }
-
-    private async applySaleOrderAdjustments(
-        tx: Prisma.TransactionClient,
-        enterpriseId: number,
-        saleOrderId: number,
-        payload: { discount?: Decimal | number; otherCosts?: Decimal | number; totalValue?: number }
-    ) {
-        const discount = new Decimal(payload.discount ?? 0);
-        const otherCosts = new Decimal(payload.otherCosts ?? 0);
-
-        const items = await tx.saleOrderItem.findMany({
-            where: { enterpriseId, saleOrderId },
-            select: { id: true, quantity: true, unitPrice: true, productUnitPrice: true },
-        });
-
-        if (!items.length) {
-            const totalValue =
-                payload.totalValue !== undefined ? new Decimal(payload.totalValue) : undefined;
-
-            return tx.saleOrder.update({
-                where: { id: saleOrderId },
-                data: {
-                    discount,
-                    otherCosts,
-                    ...(totalValue !== undefined ? { totalValue } : {}),
-                    updatedAt: new Date(),
-                },
-            });
-        }
-
-        const baseTotal = items.reduce(
-            (acc, item) =>
-                acc.plus(
-                    new Decimal(item.quantity).times(
-                        item.productUnitPrice && new Decimal(item.productUnitPrice).gt(0)
-                            ? item.productUnitPrice
-                            : item.unitPrice
-                    )
-                ),
-            new Decimal(0)
-        );
-
-        let targetTotal = baseTotal.minus(discount).plus(otherCosts);
-        if (targetTotal.isNegative()) targetTotal = new Decimal(0);
-
-        const factor = baseTotal.gt(0) ? targetTotal.div(baseTotal) : new Decimal(1);
-
-        for (const item of items) {
-            const basePrice =
-                item.productUnitPrice && new Decimal(item.productUnitPrice).gt(0)
-                    ? new Decimal(item.productUnitPrice)
-                    : new Decimal(item.unitPrice);
-            const adjustedUnitPrice = basePrice.mul(factor);
-
-            await tx.saleOrderItem.update({
-                where: { id: item.id },
-                data: { unitPrice: adjustedUnitPrice },
-            });
-        }
-
-        const adjustedTotal = baseTotal.gt(0) ? baseTotal.mul(factor) : targetTotal;
-
-        return tx.saleOrder.update({
-            where: { id: saleOrderId },
-            data: {
-                discount,
-                otherCosts,
-                totalValue: adjustedTotal,
-                updatedAt: new Date(),
-            },
-        });
     }
 
     private async finalizeSaleOrder(

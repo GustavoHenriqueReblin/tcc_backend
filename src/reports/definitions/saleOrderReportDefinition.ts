@@ -80,9 +80,11 @@ export const saleOrderReport: ReportDefinition<SaleOrderReportData> = {
         });
 
         const subtotal = sale.items.reduce(
-            (acc, item) => acc + toNumber(item.quantity) * toNumber(item.unitPrice),
+            (acc, item) => acc + toNumber(item.quantity) * toNumber(item.productUnitPrice),
             0
         );
+
+        const totalValue = subtotal - Number(sale.discount ?? 0) + Number(sale.otherCosts ?? 0);
 
         return {
             id: String(sale.id),
@@ -103,7 +105,7 @@ export const saleOrderReport: ReportDefinition<SaleOrderReportData> = {
                 subtotal: formatCurrency(subtotal),
                 discount: formatCurrency(sale.discount ?? 0),
                 otherCosts: formatCurrency(sale.otherCosts ?? 0),
-                total: formatCurrency(sale.totalValue),
+                total: formatCurrency(totalValue),
             },
         };
     },
