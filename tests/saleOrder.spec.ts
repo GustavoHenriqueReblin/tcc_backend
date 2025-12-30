@@ -456,7 +456,7 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
     expect(movementRes.status()).toBe(200);
     const { data: movementData } = await movementRes.json();
     const saleMovement = movementData.items.find(
-        (mv: { reference?: string }) => mv.reference === code
+        (mv: { reference?: string }) => mv.reference === `Venda ${code}`
     );
     expect(saleMovement).toBeTruthy();
     expect(saleMovement.warehouseId).toBe(warehouse.id);
@@ -466,7 +466,7 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
     expect(Number(saleMovement.balance)).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
     expect(Number(saleMovement.unitCost)).toBeCloseTo(unitCost, 6);
     expect(Number(saleMovement.saleValue)).toBeCloseTo(unitPrice, 6);
-    expect(saleMovement.reference).toBe(code);
+    expect(saleMovement.reference).toBe(`Venda ${code}`);
 
     const afterInventory = await getProductInventorySnapshot(request, product.id);
     expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
@@ -547,7 +547,7 @@ test("Cancelar pedido FINISHED gera ajuste IN devolvendo estoque", async ({ requ
     const { data: movementData } = await movementRes.json();
     const adjustmentMovement = movementData.items.find(
         (mv: { reference?: string; source?: string; direction?: string }) =>
-            mv.reference === code && mv.source === "ADJUSTMENT" && mv.direction === "IN"
+            mv.reference === `Venda ${code}` && mv.source === "ADJUSTMENT" && mv.direction === "IN"
     );
     expect(adjustmentMovement).toBeTruthy();
     expect(Number(adjustmentMovement.quantity)).toBeCloseTo(saleQty, 6);

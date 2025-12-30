@@ -327,7 +327,7 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
     expect(movementRes.status()).toBe(200);
     const { data: movementData } = await movementRes.json();
     const purchaseMovement = movementData.items.find(
-        (mv: { reference?: string }) => mv.reference === code
+        (mv: { reference?: string }) => mv.reference === `Compra ${code}`
     );
     expect(purchaseMovement).toBeTruthy();
     const latestMovement = purchaseMovement!;
@@ -337,7 +337,7 @@ test("Compra com itens gera movimento de estoque IN e atualiza saldo", async ({ 
     expect(Number(latestMovement.balance)).toBeCloseTo(beforeInventory.quantity + purchaseQty, 6);
     expect(Number(latestMovement.unitCost)).toBeCloseTo(unitCost, 6);
     expect(latestMovement.supplierId).toBe(supplier.id);
-    expect(latestMovement.reference).toBe(code);
+    expect(latestMovement.reference).toBe(`Compra ${code}`);
     expect(latestMovement.notes).toBe(notes);
 
     const afterInventory = await getProductInventorySnapshot(request, raw.id);
@@ -407,7 +407,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
     expect(movementRes.status()).toBe(200);
     const { data: movementData } = await movementRes.json();
     const additionMovement = movementData.items.find(
-        (mv: { reference?: string }) => mv.reference === baseCode
+        (mv: { reference?: string }) => mv.reference === `Compra ${baseCode}`
     );
     expect(additionMovement).toBeTruthy();
     const latestAddition = additionMovement!;
@@ -417,7 +417,7 @@ test("Adicionar item em compra existente cria novo movimento de estoque IN", asy
     expect(Number(latestAddition.balance)).toBeCloseTo(extraBeforeInventory.quantity + extraQty, 6);
     expect(Number(latestAddition.unitCost)).toBeCloseTo(extraUnitCost, 6);
     expect(latestAddition.supplierId).toBe(supplier.id);
-    expect(latestAddition.reference).toBe(baseCode);
+    expect(latestAddition.reference).toBe(`Compra ${baseCode}`);
     expect(latestAddition.notes).toBe(updateNotes);
 
     const extraAfterInventory = await getProductInventorySnapshot(request, rawExtra.id);

@@ -9,6 +9,7 @@ import {
     ProductionOrder,
     ProductionOrderStatus,
 } from "@prisma/client";
+import { InventoryMovementService } from "@services/inventoryMovement.service";
 import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 import { endOfDayUTC, startOfDayUTC } from "@utils/functions";
@@ -54,6 +55,8 @@ export type ProductionOrderInputsPayload = NestedItemsPayload<
     ProductionOrderInputFormData,
     ProductionOrderInputUpdateData
 >;
+
+const inventoryService = new InventoryMovementService();
 
 export class ProductionOrderService extends BaseService {
     getAll = async (
@@ -352,7 +355,12 @@ export class ProductionOrderService extends BaseService {
                     }
 
                     const wasFinished = existing.status === ProductionOrderStatus.FINISHED;
-                    if (!wasFinished && order.status === ProductionOrderStatus.FINISHED) {
+                    const isFinishing =
+                        !wasFinished && order.status === ProductionOrderStatus.FINISHED;
+                    const isCancelingFinished =
+                        wasFinished && order.status === ProductionOrderStatus.CANCELED;
+
+                    if (isFinishing) {
                         const warehouse = await prisma.warehouse.findFirst({
                             where: { id: data.warehouseId, enterpriseId },
                             select: { id: true },
@@ -363,6 +371,10 @@ export class ProductionOrderService extends BaseService {
                         }
 
                         await this.finalizeProductionOrder(tx, enterpriseId, order, userId);
+                    }
+
+                    if (isCancelingFinished) {
+                        await this.revertProductionOrderInventory(tx, enterpriseId, order.id);
                     }
 
                     await tx.audit.create({
@@ -543,6 +555,95 @@ export class ProductionOrderService extends BaseService {
                 entity: "ProductionOrder",
             },
         });
+    }
+
+    private async revertProductionOrderInventory(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        orderId: number
+    ) {
+        const order = await tx.productionOrder.findUnique({
+            where: { id: orderId, enterpriseId },
+            include: {
+                inputs: {
+                    include: {
+                        product: {
+                            include: { productInventory: true },
+                        },
+                    },
+                },
+                Product: {
+                    include: { productInventory: true },
+                },
+            },
+        });
+
+        if (!order)
+            throw new AppError("Ordem de produção não encontrada", 404, "PRODUCTION_ORDER:CANCEL");
+        if (!order.producedQty || order.producedQty.lte(0)) {
+            throw new AppError(
+                "Ordem não possui quantidade produzida para cancelar",
+                400,
+                "PRODUCTION_ORDER:CANCEL:NO_QTY"
+            );
+        }
+
+        if (!order.productId) {
+            throw new AppError(
+                "Produto final não definido para cancelar produção",
+                400,
+                "PRODUCTION_ORDER:CANCEL:NO_PRODUCT"
+            );
+        }
+
+        const producedQty = order.producedQty;
+        const cancelReference = "OP " + order.code;
+        const cancelNotes = `Cancelamento OP ${order.code}`;
+
+        const finishedInventory = order.Product?.productInventory?.[0];
+        const finishedQty = finishedInventory?.quantity ?? new Decimal(0);
+        const finishedCost = finishedInventory?.costValue ?? new Decimal(0);
+        const finishedSaleValue = finishedInventory?.saleValue ?? null;
+
+        await inventoryService.create(
+            enterpriseId,
+            {
+                productId: order.productId,
+                warehouseId: order.warehouseId,
+                direction: MovementType.OUT,
+                source: MovementSource.ADJUSTMENT,
+                quantity: producedQty.toNumber(),
+                unitCost: finishedCost.toNumber(),
+                saleValue: finishedSaleValue ? finishedSaleValue.toNumber() : null,
+                reference: cancelReference,
+                notes: cancelNotes,
+            },
+            tx
+        );
+
+        for (const input of order.inputs) {
+            const inventory = input.product.productInventory?.[0];
+            const currentQty = inventory?.quantity ?? new Decimal(0);
+            const unitCost = input.unitCost ?? inventory?.costValue ?? new Decimal(0);
+            const saleValue = inventory?.saleValue ?? null;
+            const totalReturnQty = new Decimal(input.quantity).mul(producedQty);
+
+            await inventoryService.create(
+                enterpriseId,
+                {
+                    productId: input.productId,
+                    warehouseId: order.warehouseId,
+                    direction: MovementType.IN,
+                    source: MovementSource.ADJUSTMENT,
+                    quantity: totalReturnQty.toNumber(),
+                    unitCost: unitCost ? unitCost.toNumber() : undefined,
+                    saleValue: saleValue ? saleValue.toNumber() : null,
+                    reference: cancelReference,
+                    notes: `Devolução de insumo na OP ${order.code}`,
+                },
+                tx
+            );
+        }
     }
 
     private async syncProductionOrderInputs(
