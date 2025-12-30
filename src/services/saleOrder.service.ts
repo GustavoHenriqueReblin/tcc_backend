@@ -124,7 +124,14 @@ export class SaleOrderService extends BaseService {
             async () =>
                 prisma.saleOrder.findUnique({
                     where: { id, enterpriseId },
-                    include: { customer: { include: { person: true } }, items: true },
+                    include: {
+                        customer: { include: { person: true } },
+                        items: {
+                            include: {
+                                product: { include: { productInventory: true, unity: true } },
+                            },
+                        },
+                    },
                 }),
             "SALE_ORDER:getById",
             enterpriseId
@@ -420,7 +427,10 @@ export class SaleOrderService extends BaseService {
     ) {
         const order = await tx.saleOrder.findUnique({
             where: { id: orderId, enterpriseId },
-            include: { items: true, warehouse: true },
+            include: {
+                items: { include: { product: { select: { name: true } } } },
+                warehouse: true,
+            },
         });
 
         if (!order) throw new AppError("Venda não encontrada", 404, "SALE_ORDER:FINALIZE");
@@ -445,6 +455,39 @@ export class SaleOrderService extends BaseService {
 
         if (!warehouse) {
             throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
+        }
+
+        const productTotals = new Map<number, Decimal>();
+        const productNames = new Map<number, string>();
+
+        for (const item of order.items) {
+            const currentTotal = productTotals.get(item.productId) ?? new Decimal(0);
+            productTotals.set(item.productId, currentTotal.plus(new Decimal(item.quantity)));
+            productNames.set(item.productId, item.product?.name ?? `ID ${item.productId}`);
+        }
+
+        const productIds = Array.from(productTotals.keys());
+        const inventories = productIds.length
+            ? await tx.productInventory.findMany({
+                  where: { enterpriseId, productId: { in: productIds } },
+                  select: { productId: true, quantity: true },
+              })
+            : [];
+
+        const inventoryMap = new Map(
+            inventories.map((inventory) => [inventory.productId, new Decimal(inventory.quantity)])
+        );
+
+        for (const [productId, requiredQty] of productTotals.entries()) {
+            const availableQty = inventoryMap.get(productId) ?? new Decimal(0);
+            if (availableQty.lt(requiredQty)) {
+                const productName = productNames.get(productId) ?? `ID ${productId}`;
+                throw new AppError(
+                    `Estoque insuficiente para o produto ${productName}`,
+                    400,
+                    "SALE_ORDER:INSUFFICIENT_STOCK"
+                );
+            }
         }
 
         for (const item of order.items) {

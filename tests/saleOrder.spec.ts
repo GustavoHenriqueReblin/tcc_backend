@@ -324,7 +324,7 @@ test("Busca pedidos de venda com search e ordena por totalValue", async ({ reque
     ).toBeTruthy();
 });
 
-test("Aplica desconto e outros custos rateando valor dos itens", async ({ request }) => {
+test("Aplica desconto e outros custos rateando proporcionalmente os itens", async ({ request }) => {
     const custRes = await request.get(`${baseUrl}/customers`);
     const { data: clist } = await custRes.json();
     const customer = clist.items[0];
@@ -338,28 +338,44 @@ test("Aplica desconto e outros custos rateando valor dos itens", async ({ reques
     const otherCosts = 5;
     const code = `SODISC_${Date.now().toString().slice(-6)}`;
 
+    // base
+    const baseTotalA = 2 * 20; // 40
+    const baseTotalB = 1 * 10; // 10
+    const baseSubtotal = baseTotalA + baseTotalB; // 50
+
+    const ratioA = baseTotalA / baseSubtotal; // 0.8
+    const ratioB = baseTotalB / baseSubtotal; // 0.2
+
+    const totalA = baseTotalA - discount * ratioA + otherCosts * ratioA; // 36
+    const totalB = baseTotalB - discount * ratioB + otherCosts * ratioB; // 9
+
+    const unitA = totalA / 2; // 18
+    const unitB = totalB / 1; // 9
+
+    const totalValue = totalA + totalB; // 45
+
     const createRes = await request.post(`${baseUrl}/sale-orders`, {
         data: {
             id: genId(),
             code,
             customerId: customer.id,
             warehouseId: warehouse.id,
-            totalValue: 0,
             discount,
             otherCosts,
+            totalValue,
             items: {
                 create: [
                     {
                         productId: productA.id,
                         quantity: 2,
-                        unitPrice: 20,
+                        unitPrice: unitA,
                         productUnitPrice: 20,
                         unitCost: 7,
                     },
                     {
                         productId: productB.id,
                         quantity: 1,
-                        unitPrice: 10,
+                        unitPrice: unitB,
                         productUnitPrice: 10,
                         unitCost: 4,
                     },
@@ -367,6 +383,7 @@ test("Aplica desconto e outros custos rateando valor dos itens", async ({ reques
             },
         },
     });
+
     expect(createRes.status()).toBe(200);
     const { data: created } = await createRes.json();
 
@@ -376,22 +393,20 @@ test("Aplica desconto e outros custos rateando valor dos itens", async ({ reques
 
     const itemA = order.items.find((item: { productId: number }) => item.productId === productA.id);
     const itemB = order.items.find((item: { productId: number }) => item.productId === productB.id);
+
     expect(itemA).toBeTruthy();
     expect(itemB).toBeTruthy();
 
-    const baseTotal = 2 * 20 + 10;
-    const expectedTotal = baseTotal - discount + otherCosts;
-    const factor = expectedTotal / baseTotal;
     const totalFromItems =
         Number(itemA.unitPrice) * Number(itemA.quantity) +
         Number(itemB.unitPrice) * Number(itemB.quantity);
 
     expect(Number(order.discount)).toBeCloseTo(discount, 4);
     expect(Number(order.otherCosts)).toBeCloseTo(otherCosts, 4);
-    expect(Number(order.totalValue)).toBeCloseTo(expectedTotal, 4);
-    expect(Number(itemA.unitPrice)).toBeCloseTo(20 * factor, 4);
-    expect(Number(itemB.unitPrice)).toBeCloseTo(10 * factor, 4);
-    expect(totalFromItems).toBeCloseTo(expectedTotal, 4);
+    expect(Number(order.totalValue)).toBeCloseTo(totalValue, 4);
+    expect(Number(itemA.unitPrice)).toBeCloseTo(unitA, 4);
+    expect(Number(itemB.unitPrice)).toBeCloseTo(unitB, 4);
+    expect(totalFromItems).toBeCloseTo(totalValue, 4);
 });
 
 test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos", async ({
@@ -470,6 +485,67 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
 
     const afterInventory = await getProductInventorySnapshot(request, product.id);
     expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
+    expect(afterInventory.costValue).toBeCloseTo(beforeInventory.costValue, 6);
+    expect(afterInventory.saleValue).toBeCloseTo(beforeInventory.saleValue, 6);
+});
+
+test("Nao permite finalizar venda sem estoque suficiente", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    expect(custRes.status()).toBe(200);
+    const { data: clist } = await custRes.json();
+    const customer = clist.items[0];
+    expect(customer).toBeTruthy();
+
+    const warehouse = await createAuxWarehouse(request);
+    const product = await createSaleProduct(request, "SO_NO_STOCK");
+    const beforeInventory = await getProductInventorySnapshot(request, product.id);
+
+    const saleQty = beforeInventory.quantity + 5; // maior que o estoque atual
+    const unitPrice = beforeInventory.saleValue;
+    const code = `SO_NOSTK_${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/sale-orders`, {
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            status: OrderStatus.APPROVED,
+            totalValue: saleQty * unitPrice,
+            notes: "Venda com quantidade acima do estoque",
+            items: {
+                create: [
+                    {
+                        productId: product.id,
+                        quantity: saleQty,
+                        unitPrice,
+                        productUnitPrice: unitPrice,
+                        unitCost: beforeInventory.costValue,
+                    },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: createdOrder } = await createRes.json();
+
+    const finishRes = await request.put(`${baseUrl}/sale-orders/${createdOrder.id}`, {
+        data: {
+            customerId: createdOrder.customerId,
+            code: createdOrder.code,
+            totalValue: saleQty * unitPrice,
+            status: OrderStatus.FINISHED,
+            notes: "Tentativa de finalizacao sem estoque",
+            warehouseId: warehouse.id,
+        },
+    });
+    expect(finishRes.status()).toBe(400);
+    const { message } = await finishRes.json();
+    expect(message).toContain("Estoque insuficiente");
+    expect(message).toContain(product.name);
+
+    const afterInventory = await getProductInventorySnapshot(request, product.id);
+    expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity, 6);
     expect(afterInventory.costValue).toBeCloseTo(beforeInventory.costValue, 6);
     expect(afterInventory.saleValue).toBeCloseTo(beforeInventory.saleValue, 6);
 });
