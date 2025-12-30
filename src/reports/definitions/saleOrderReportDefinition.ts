@@ -33,11 +33,11 @@ interface SaleOrderReportData {
 
 const saleStatusLabels: Record<OrderStatus, string> = {
     PENDING: "Pendente",
-    APPROVED: "Aprovado",
-    SHIPPED: "Enviado",
-    RECEIVED: "Recebido",
-    FINISHED: "Concluido",
-    CANCELED: "Cancelado",
+    APPROVED: "Aprovada",
+    SHIPPED: "Enviada",
+    RECEIVED: "Recebida",
+    FINISHED: "Concluída",
+    CANCELED: "Cancelada",
 };
 
 const saleStatusClasses: Record<OrderStatus, string> = {

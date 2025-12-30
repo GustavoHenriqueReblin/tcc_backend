@@ -7,6 +7,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { saleOrderAllowedSortFields } from "@routes/saleOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
 import { InventoryMovementService } from "@services/inventoryMovement.service";
+import { endOfDayUTC, startOfDayUTC } from "@utils/functions";
 
 export interface SaleOrderInput {
     id?: number;
@@ -54,7 +55,10 @@ export class SaleOrderService extends BaseService {
         status?: OrderStatus,
         search?: string | null,
         sortBy?: string,
-        sortOrder?: "asc" | "desc"
+        sortOrder?: "asc" | "desc",
+        customerId?: number,
+        createdAtFrom?: Date,
+        createdAtTo?: Date
     ) =>
         this.safeQuery(
             async () => {
@@ -67,6 +71,15 @@ export class SaleOrderService extends BaseService {
                 const where = {
                     enterpriseId,
                     ...(status ? { status } : {}),
+                    ...(typeof customerId === "number" ? { customerId } : {}),
+                    ...(createdAtFrom || createdAtTo
+                        ? {
+                              createdAt: {
+                                  ...(createdAtFrom ? { gte: createdAtFrom } : {}),
+                                  ...(createdAtTo ? { lte: createdAtTo } : {}),
+                              },
+                          }
+                        : {}),
                     ...(search
                         ? {
                               OR: [
@@ -447,7 +460,13 @@ export class SaleOrderService extends BaseService {
 
         const baseTotal = items.reduce(
             (acc, item) =>
-                acc.plus(new Decimal(item.quantity).times(item.productUnitPrice ?? item.unitPrice)),
+                acc.plus(
+                    new Decimal(item.quantity).times(
+                        item.productUnitPrice && new Decimal(item.productUnitPrice).gt(0)
+                            ? item.productUnitPrice
+                            : item.unitPrice
+                    )
+                ),
             new Decimal(0)
         );
 
@@ -457,7 +476,10 @@ export class SaleOrderService extends BaseService {
         const factor = baseTotal.gt(0) ? targetTotal.div(baseTotal) : new Decimal(1);
 
         for (const item of items) {
-            const basePrice = new Decimal(item.productUnitPrice ?? item.unitPrice);
+            const basePrice =
+                item.productUnitPrice && new Decimal(item.productUnitPrice).gt(0)
+                    ? new Decimal(item.productUnitPrice)
+                    : new Decimal(item.unitPrice);
             const adjustedUnitPrice = basePrice.mul(factor);
 
             await tx.saleOrderItem.update({

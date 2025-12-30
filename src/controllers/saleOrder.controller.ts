@@ -5,7 +5,17 @@ import { saleOrderService as service } from "@services/services";
 import { OrderStatus } from "@prisma/client";
 
 export const getAllSaleOrders = async (req: Request, res: Response) => {
-    const { page = "1", limit = "10", status, search, sortBy, sortOrder } = req.query;
+    const {
+        page = "1",
+        limit = "10",
+        status,
+        search,
+        sortBy,
+        sortOrder,
+        customerId,
+        createdAtFrom,
+        createdAtTo,
+    } = req.query;
     const enterpriseId = req.auth!.enterpriseId;
 
     const result = await service.getAll(
@@ -15,7 +25,10 @@ export const getAllSaleOrders = async (req: Request, res: Response) => {
         status ? (status as OrderStatus) : undefined,
         search?.toString() ?? undefined,
         sortBy?.toString(),
-        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc"
+        (sortOrder?.toString() as "asc" | "desc" | undefined) ?? "desc",
+        customerId ? Number(customerId) : undefined,
+        createdAtFrom ? new Date(createdAtFrom.toString()) : undefined,
+        createdAtTo ? new Date(createdAtTo.toString()) : undefined
     );
     return sendResponse(res, result, "Sale orders fetched successfully");
 };

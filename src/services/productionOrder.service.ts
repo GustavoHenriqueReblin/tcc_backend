@@ -89,7 +89,7 @@ export class ProductionOrderService extends BaseService {
                                       ? [
                                             {
                                                 startDate: {
-                                                    lte: endOfDayUTC(startDateTo),
+                                                    lte: startDateTo,
                                                 },
                                             },
                                         ]
@@ -102,7 +102,7 @@ export class ProductionOrderService extends BaseService {
                                                     { endDate: null },
                                                     {
                                                         endDate: {
-                                                            gte: startOfDayUTC(startDateFrom),
+                                                            gte: startDateFrom,
                                                         },
                                                     },
                                                 ],
