@@ -592,7 +592,7 @@ export class SaleOrderService extends BaseService {
                     productId: item.productId,
                     warehouseId,
                     direction: MovementType.IN,
-                    source: MovementSource.ADJUSTMENT,
+                    source: MovementSource.SALE,
                     quantity: quantity.toNumber(),
                     unitCost: unitCost.toNumber(),
                     saleValue: saleValue.toNumber(),

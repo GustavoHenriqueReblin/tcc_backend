@@ -547,7 +547,7 @@ test("Cancelar pedido FINISHED gera ajuste IN devolvendo estoque", async ({ requ
     const { data: movementData } = await movementRes.json();
     const adjustmentMovement = movementData.items.find(
         (mv: { reference?: string; source?: string; direction?: string }) =>
-            mv.reference === `Venda ${code}` && mv.source === "ADJUSTMENT" && mv.direction === "IN"
+            mv.reference === `Venda ${code}` && mv.source === "SALE" && mv.direction === "IN"
     );
     expect(adjustmentMovement).toBeTruthy();
     expect(Number(adjustmentMovement.quantity)).toBeCloseTo(saleQty, 6);

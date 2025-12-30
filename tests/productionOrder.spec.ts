@@ -614,7 +614,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
     const { data: finishedMovements } = await finishedMovementsRes.json();
     const adjustmentOut = finishedMovements.items.find(
         (mv: { reference: string; source: string; direction: string }) =>
-            mv.reference === `OP ${code}` && mv.source === "ADJUSTMENT" && mv.direction === "OUT"
+            mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "OUT"
     );
     expect(adjustmentOut).toBeTruthy();
     expect(Number(adjustmentOut.quantity)).toBeCloseTo(producedQty, 4);
@@ -626,7 +626,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
     const { data: rawAMovements } = await rawAMovementsRes.json();
     const adjustmentInA = rawAMovements.items.find(
         (mv: { reference: string; source: string; direction: string }) =>
-            mv.reference === `OP ${code}` && mv.source === "ADJUSTMENT" && mv.direction === "IN"
+            mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "IN"
     );
     expect(adjustmentInA).toBeTruthy();
     expect(Number(adjustmentInA.quantity)).toBeCloseTo(rawAQtyPerUnit * producedQty, 4);
@@ -638,7 +638,7 @@ test("Cancelar ordem FINISHED estorna produto final e devolve insumos via ajuste
     const { data: rawBMovements } = await rawBMovementsRes.json();
     const adjustmentInB = rawBMovements.items.find(
         (mv: { reference: string; source: string; direction: string }) =>
-            mv.reference === `OP ${code}` && mv.source === "ADJUSTMENT" && mv.direction === "IN"
+            mv.reference === `OP ${code}` && mv.source === "PRODUCTION" && mv.direction === "IN"
     );
     expect(adjustmentInB).toBeTruthy();
     expect(Number(adjustmentInB.quantity)).toBeCloseTo(rawBQtyPerUnit * producedQty, 4);
