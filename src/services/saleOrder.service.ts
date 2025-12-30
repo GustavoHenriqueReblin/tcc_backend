@@ -149,7 +149,7 @@ export class SaleOrderService extends BaseService {
                     }),
                 ]);
 
-                if (codeTaken) throw new AppError("Pedido já existe", 409, "SALE_ORDER:create");
+                if (codeTaken) throw new AppError("Venda já existe", 409, "SALE_ORDER:create");
                 if (!customer) throw new AppError("Cliente não encontrado", 404, "FK:NOT_FOUND");
                 if (!warehouse) throw new AppError("Depósito não encontrado", 404, "FK:WAREHOUSE");
 
@@ -210,15 +210,14 @@ export class SaleOrderService extends BaseService {
         this.safeQuery(
             async () => {
                 const existing = await prisma.saleOrder.findFirst({ where: { id, enterpriseId } });
-                if (!existing)
-                    throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:update");
+                if (!existing) throw new AppError("Venda não encontrada", 404, "SALE_ORDER:update");
 
                 if (data.code && data.code !== existing.code) {
                     const codeTaken = await prisma.saleOrder.findFirst({
                         where: { code: data.code },
                     });
                     if (codeTaken)
-                        throw new AppError("Pedido já existe", 409, "SALE_ORDER:update:code");
+                        throw new AppError("Venda já existe", 409, "SALE_ORDER:update:code");
                 }
 
                 if (data.customerId) {
@@ -286,11 +285,21 @@ export class SaleOrderService extends BaseService {
                         }
                     );
 
-                    if (
-                        existing.status !== OrderStatus.FINISHED &&
-                        status === OrderStatus.FINISHED
-                    ) {
+                    const wasFinished = existing.status === OrderStatus.FINISHED;
+                    const isFinishing = !wasFinished && status === OrderStatus.FINISHED;
+                    const isCancelingFinished = wasFinished && status === OrderStatus.CANCELED;
+
+                    if (isFinishing) {
                         await this.finalizeSaleOrder(tx, enterpriseId, order.id);
+                    }
+
+                    if (isCancelingFinished) {
+                        await this.revertSaleOrderInventory(
+                            tx,
+                            enterpriseId,
+                            order.id,
+                            warehouse.id
+                        );
                     }
 
                     await tx.audit.create({
@@ -368,7 +377,7 @@ export class SaleOrderService extends BaseService {
 
             if (found.length !== targetIds.length) {
                 throw new AppError(
-                    "Item do pedido não encontrado",
+                    "Item da venda não encontrado",
                     404,
                     "SALE_ORDER:items:NOT_FOUND"
                 );
@@ -511,9 +520,9 @@ export class SaleOrderService extends BaseService {
             include: { items: true, warehouse: true },
         });
 
-        if (!order) throw new AppError("Pedido não encontrado", 404, "SALE_ORDER:FINALIZE");
+        if (!order) throw new AppError("Venda não encontrada", 404, "SALE_ORDER:FINALIZE");
         if (!order.items.length) {
-            throw new AppError("Pedido não possui itens", 400, "SALE_ORDER:FINALIZE:NO_ITEMS");
+            throw new AppError("Venda não possui itens", 400, "SALE_ORDER:FINALIZE:NO_ITEMS");
         }
 
         if (!order.warehouseId) {
@@ -552,6 +561,43 @@ export class SaleOrderService extends BaseService {
                     saleValue: saleValue.toNumber(),
                     reference: order.code,
                     notes: order.notes ?? null,
+                },
+                tx
+            );
+        }
+    }
+
+    private async revertSaleOrderInventory(
+        tx: Prisma.TransactionClient,
+        enterpriseId: number,
+        orderId: number,
+        warehouseId: number
+    ) {
+        const order = await tx.saleOrder.findUnique({
+            where: { id: orderId, enterpriseId },
+            include: { items: true },
+        });
+
+        if (!order) throw new AppError("Venda não encontrada", 404, "SALE_ORDER:CANCEL");
+        if (!order.items.length) return;
+
+        for (const item of order.items) {
+            const quantity = new Decimal(item.quantity);
+            const unitCost = new Decimal(item.unitCost);
+            const saleValue = new Decimal(item.unitPrice);
+
+            await inventoryService.create(
+                enterpriseId,
+                {
+                    productId: item.productId,
+                    warehouseId,
+                    direction: MovementType.IN,
+                    source: MovementSource.ADJUSTMENT,
+                    quantity: quantity.toNumber(),
+                    unitCost: unitCost.toNumber(),
+                    saleValue: saleValue.toNumber(),
+                    reference: order.code,
+                    notes: `Cancelamento da venda ${order.code}`,
                 },
                 tx
             );

@@ -81,7 +81,7 @@ const getProductInventorySnapshot = async (request: APIRequestContext, productId
     };
 };
 
-test("Lista pedidos de venda e valida paginaÇõÇœo", async ({ request }) => {
+test("Lista pedidos de venda e valida paginação", async ({ request }) => {
     const res = await request.get(`${baseUrl}/sale-orders`);
     expect(res.status()).toBe(200);
     const { data } = await res.json();
@@ -472,4 +472,89 @@ test("Pedido FINISHED gera movimento de estoque OUT com custo e venda corretos",
     expect(afterInventory.quantity).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
     expect(afterInventory.costValue).toBeCloseTo(beforeInventory.costValue, 6);
     expect(afterInventory.saleValue).toBeCloseTo(beforeInventory.saleValue, 6);
+});
+
+test("Cancelar pedido FINISHED gera ajuste IN devolvendo estoque", async ({ request }) => {
+    const custRes = await request.get(`${baseUrl}/customers`);
+    expect(custRes.status()).toBe(200);
+    const { data: clist } = await custRes.json();
+    const customer = clist.items[0];
+    expect(customer).toBeTruthy();
+
+    const warehouse = await createAuxWarehouse(request);
+    const product = await createSaleProduct(request, "SO_CANCEL");
+    const beforeInventory = await getProductInventorySnapshot(request, product.id);
+
+    const saleQty = 3.5;
+    const unitPrice = 18.2;
+    const unitCost = beforeInventory.costValue;
+    const code = `SO_CANCEL_${Date.now().toString().slice(-6)}`;
+
+    const createRes = await request.post(`${baseUrl}/sale-orders`, {
+        data: {
+            id: genId(),
+            code,
+            customerId: customer.id,
+            warehouseId: warehouse.id,
+            status: OrderStatus.APPROVED,
+            totalValue: saleQty * unitPrice,
+            notes: "Venda aguardando finalizacao",
+            items: {
+                create: [
+                    {
+                        productId: product.id,
+                        quantity: saleQty,
+                        unitPrice,
+                        productUnitPrice: unitPrice,
+                        unitCost,
+                    },
+                ],
+            },
+        },
+    });
+    expect(createRes.status()).toBe(200);
+    const { data: createdOrder } = await createRes.json();
+
+    const finishRes = await request.put(`${baseUrl}/sale-orders/${createdOrder.id}`, {
+        data: {
+            customerId: createdOrder.customerId,
+            code: createdOrder.code,
+            totalValue: saleQty * unitPrice,
+            status: OrderStatus.FINISHED,
+            notes: "Venda finalizada para depois cancelar",
+            warehouseId: warehouse.id,
+        },
+    });
+    expect(finishRes.status()).toBe(200);
+
+    const afterFinishInventory = await getProductInventorySnapshot(request, product.id);
+    expect(afterFinishInventory.quantity).toBeCloseTo(beforeInventory.quantity - saleQty, 6);
+
+    const cancelRes = await request.put(`${baseUrl}/sale-orders/${createdOrder.id}`, {
+        data: {
+            customerId: createdOrder.customerId,
+            code: createdOrder.code,
+            totalValue: saleQty * unitPrice,
+            status: OrderStatus.CANCELED,
+            notes: "Venda cancelada",
+            warehouseId: warehouse.id,
+        },
+    });
+    expect(cancelRes.status()).toBe(200);
+
+    const movementRes = await request.get(`${baseUrl}/inventory-movement?productId=${product.id}`);
+    expect(movementRes.status()).toBe(200);
+    const { data: movementData } = await movementRes.json();
+    const adjustmentMovement = movementData.items.find(
+        (mv: { reference?: string; source?: string; direction?: string }) =>
+            mv.reference === code && mv.source === "ADJUSTMENT" && mv.direction === "IN"
+    );
+    expect(adjustmentMovement).toBeTruthy();
+    expect(Number(adjustmentMovement.quantity)).toBeCloseTo(saleQty, 6);
+    expect(Number(adjustmentMovement.balance)).toBeCloseTo(beforeInventory.quantity, 6);
+
+    const afterCancelInventory = await getProductInventorySnapshot(request, product.id);
+    expect(afterCancelInventory.quantity).toBeCloseTo(beforeInventory.quantity, 6);
+    expect(afterCancelInventory.costValue).toBeCloseTo(beforeInventory.costValue, 6);
+    expect(afterCancelInventory.saleValue).toBeCloseTo(beforeInventory.saleValue, 6);
 });
