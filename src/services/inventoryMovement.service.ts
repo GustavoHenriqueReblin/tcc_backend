@@ -99,6 +99,9 @@ export class InventoryMovementService extends BaseService {
                         include: {
                             product: { include: { unity: true } },
                             warehouse: true,
+                            productionOrder: true,
+                            purchaseOrder: { include: { supplier: { include: { person: true } } } },
+                            saleOrder: { include: { customer: { include: { person: true } } } },
                         },
                         skip,
                         take: limit,
