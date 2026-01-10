@@ -190,7 +190,12 @@ export const validateProductionOrderFields = (req: Request, res: Response, next:
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.INVALID_START_END_DATE });
     }
 
-    if (startDateVal && endDateVal && endDateVal <= startDateVal) {
+    if (
+        startDateVal &&
+        endDateVal &&
+        endDateVal <= startDateVal &&
+        order.status === ProductionOrderStatus.FINISHED
+    ) {
         return res.status(400).json({ message: PRODUCTION_ORDER_ERROR.END_DATE_BEFORE_START });
     }
 
