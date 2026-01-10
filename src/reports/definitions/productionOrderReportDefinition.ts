@@ -49,7 +49,7 @@ const statusClasses: Record<string, string> = {
 
 export const productionOrderReport: ReportDefinition<ProductionOrderReportData> = {
     key: "production-order",
-    dataFetcher: async ({ id, enterpriseId }) => {
+    dataFetcher: async ({ id, enterpriseId, timeZone }) => {
         const orderId = Number(id);
         const order = await productionOrderService.getById(orderId, enterpriseId);
 
@@ -72,10 +72,10 @@ export const productionOrderReport: ReportDefinition<ProductionOrderReportData> 
                 order.recipe?.product?.unity?.simbol ??
                 order.recipe?.product?.unity?.description ??
                 "-",
-            startDate: formatDate(order.startDate),
-            endDate: formatDate(order.endDate),
+            startDate: formatDate(order.startDate, timeZone),
+            endDate: formatDate(order.endDate, timeZone),
             notes: order.notes ?? undefined,
-            generatedAt: formatDate(new Date()),
+            generatedAt: formatDate(new Date(), timeZone),
             inputs:
                 order.inputs?.map((input) => ({
                     name: input.product?.name ?? `ID ${input.productId}`,

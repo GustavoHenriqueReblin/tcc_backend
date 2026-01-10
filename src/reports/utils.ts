@@ -1,5 +1,8 @@
-export const formatDate = (value: Date | string | null | undefined) =>
-    value ? new Date(value).toLocaleString("pt-BR") : "-";
+export const formatDate = (value: Date | string | null | undefined, timeZone?: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    return timeZone ? date.toLocaleString("pt-BR", { timeZone }) : date.toLocaleString("pt-BR");
+};
 
 export const toNumber = (value: unknown): number => {
     if (value === null || value === undefined) return 0;

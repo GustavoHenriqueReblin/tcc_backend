@@ -5,6 +5,7 @@ type PdfOptions = Parameters<import("playwright").Page["pdf"]>[0];
 export interface ReportRequestContext {
     id: string;
     enterpriseId: number;
+    timeZone?: string;
 }
 
 export type ReportDataFetcher<TData> = (context: ReportRequestContext) => Promise<TData>;

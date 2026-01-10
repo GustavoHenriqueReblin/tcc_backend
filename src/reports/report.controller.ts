@@ -6,6 +6,10 @@ import { reportService } from "./report.service";
 export const getReportPdf = async (req: Request, res: Response) => {
     const { reportKey, id } = req.params;
     const enterpriseId = req.auth?.enterpriseId;
+    const timeZone =
+        typeof req.query.timezone === "string" && req.query.timezone.trim()
+            ? req.query.timezone
+            : undefined;
 
     if (!enterpriseId) {
         throw new AppError(
@@ -19,7 +23,11 @@ export const getReportPdf = async (req: Request, res: Response) => {
         throw new AppError("Tipo de relatório não encontrado", 404, "REPORT:INVALID_KEY");
     }
 
-    const pdfBuffer = await reportService.generatePdf(reportKey, { id, enterpriseId });
+    const pdfBuffer = await reportService.generatePdf(reportKey, {
+        id,
+        enterpriseId,
+        timeZone,
+    });
 
     const filename = encodeURIComponent(`${reportKey}-${id}.pdf`);
 

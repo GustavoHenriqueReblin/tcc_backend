@@ -51,7 +51,7 @@ const saleStatusClasses: Record<OrderStatus, string> = {
 
 export const saleOrderReport: ReportDefinition<SaleOrderReportData> = {
     key: "sale-order",
-    dataFetcher: async ({ id, enterpriseId }) => {
+    dataFetcher: async ({ id, enterpriseId, timeZone }) => {
         const orderId = Number(id);
         const sale = await prisma.saleOrder.findUnique({
             where: { id: orderId, enterpriseId },
@@ -96,10 +96,10 @@ export const saleOrderReport: ReportDefinition<SaleOrderReportData> = {
                 sale.customer?.person?.legalName ??
                 `Cliente ${sale.customerId}`,
             customerTaxId: sale.customer?.person?.taxId ?? "-",
-            createdAt: formatDate(sale.createdAt),
-            updatedAt: formatDate(sale.updatedAt),
+            createdAt: formatDate(sale.createdAt, timeZone),
+            updatedAt: formatDate(sale.updatedAt, timeZone),
             notes: sale.notes ?? undefined,
-            generatedAt: formatDate(new Date()),
+            generatedAt: formatDate(new Date(), timeZone),
             items,
             totals: {
                 subtotal: formatCurrency(subtotal),
