@@ -699,7 +699,7 @@ model PurchaseOrder {
   id           Int         @id @default(autoincrement())
   enterpriseId Int
   supplierId   Int
-  code         String      @unique @db.VarChar(40)
+  code         String      @db.VarChar(40)
   status       OrderStatus @default(PENDING)
   notes        String?
   createdAt    DateTime    @default(now())

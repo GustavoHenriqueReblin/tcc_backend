@@ -113,15 +113,11 @@ export class PurchaseOrderService extends BaseService {
     create = async (enterpriseId: number, data: PurchaseOrderInput, userId: number) =>
         this.safeQuery(
             async () => {
-                const [codeTaken, supplier] = await Promise.all([
-                    prisma.purchaseOrder.findFirst({ where: { code: data.code } }),
-                    prisma.supplier.findFirst({
-                        where: { id: data.supplierId, enterpriseId },
-                        select: { id: true },
-                    }),
-                ]);
+                const supplier = await prisma.supplier.findFirst({
+                    where: { id: data.supplierId, enterpriseId },
+                    select: { id: true },
+                });
 
-                if (codeTaken) throw new AppError("Compra já existe", 409, "PURCHASE_ORDER:create");
                 if (!supplier) throw new AppError("Fornecedor não encontrado", 404, "FK:NOT_FOUND");
 
                 const created = await prisma.$transaction(async (tx) => {
@@ -172,14 +168,6 @@ export class PurchaseOrderService extends BaseService {
                 });
                 if (!existing)
                     throw new AppError("Compra não encontrada", 404, "PURCHASE_ORDER:update");
-
-                if (data.code && data.code !== existing.code) {
-                    const codeTaken = await prisma.purchaseOrder.findFirst({
-                        where: { code: data.code },
-                    });
-                    if (codeTaken)
-                        throw new AppError("Compra já existe", 409, "PURCHASE_ORDER:update:code");
-                }
 
                 if (data.supplierId) {
                     const supplier = await prisma.supplier.findFirst({

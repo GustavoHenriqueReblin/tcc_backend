@@ -979,21 +979,27 @@ export const generateData = async () => {
         const anySupplier = await prisma.supplier.findFirst({ where: { enterpriseId } });
         if (anySupplier) {
             const purchCode = `PO-${Math.abs(enterpriseId)}-001`;
-            const purchase = await prisma.purchaseOrder.upsert({
-                where: { code: purchCode },
-                update: {
-                    enterpriseId,
-                    supplierId: anySupplier.id,
-                    notes: "Compra inicial",
-                },
-                create: {
-                    id: genId(),
-                    enterpriseId,
-                    supplierId: anySupplier.id,
-                    code: purchCode,
-                    notes: "Compra inicial",
-                },
+            const existingPurchase = await prisma.purchaseOrder.findFirst({
+                where: { enterpriseId, code: purchCode },
             });
+            const purchase = existingPurchase
+                ? await prisma.purchaseOrder.update({
+                      where: { id: existingPurchase.id },
+                      data: {
+                          enterpriseId,
+                          supplierId: anySupplier.id,
+                          notes: "Compra inicial",
+                      },
+                  })
+                : await prisma.purchaseOrder.create({
+                      data: {
+                          id: genId(),
+                          enterpriseId,
+                          supplierId: anySupplier.id,
+                          code: purchCode,
+                          notes: "Compra inicial",
+                      },
+                  });
             await prisma.purchaseOrderItem.deleteMany({
                 where: { enterpriseId, purchaseOrderId: purchase.id },
             });

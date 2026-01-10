@@ -218,7 +218,7 @@ test("Cadastra e atualiza itens da compra pela rota principal", async ({ request
     expect(addedItem).toBeTruthy();
 });
 
-test("Criar compra com code duplicado retorna 409", async ({ request }) => {
+test("Criar compra com code duplicado permite duplicidade", async ({ request }) => {
     const supRes = await request.get(`${baseUrl}/suppliers?includeInactive=true`);
     const { data: slist } = await supRes.json();
     const supplier = slist.items[0];
@@ -229,10 +229,13 @@ test("Criar compra com code duplicado retorna 409", async ({ request }) => {
         data: { id: genId(), code, supplierId: supplier.id, warehouseId: warehouse.id },
     });
     expect(res1.status()).toBe(200);
+    const { data: first } = await res1.json();
     const res2 = await request.post(`${baseUrl}/purchase-orders`, {
         data: { id: genId(), code, supplierId: supplier.id, warehouseId: warehouse.id },
     });
-    expect(res2.status()).toBe(409);
+    expect(res2.status()).toBe(200);
+    const { data: second } = await res2.json();
+    expect(second.id).not.toBe(first.id);
 });
 
 test("Busca compras com search por fornecedor e ordena por code", async ({ request }) => {
