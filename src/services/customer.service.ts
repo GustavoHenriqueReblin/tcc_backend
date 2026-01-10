@@ -189,7 +189,7 @@ export class CustomerService extends BaseService {
                         },
                     });
 
-                    if (duplicate && duplicate.id !== existingPerson?.id)
+                    if (duplicate && duplicate.person.taxId && duplicate.id !== existingPerson?.id)
                         throw new AppError(
                             `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
                             409,
@@ -365,7 +365,7 @@ export class CustomerService extends BaseService {
                         },
                     });
 
-                    if (duplicate && duplicate.id !== id)
+                    if (duplicate && duplicate.person.taxId && duplicate.id !== id)
                         throw new AppError(
                             `CPF/CNPJ ${data.person.taxId} já está vinculado a outro cliente`,
                             409,
