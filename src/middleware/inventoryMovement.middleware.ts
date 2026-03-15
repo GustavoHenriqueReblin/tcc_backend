@@ -154,7 +154,7 @@ export const validateInventoryAdjustmentFields = (
     res: Response,
     next: NextFunction
 ) => {
-    const { productId, quantity, warehouseId, notes } = req.body ?? {};
+    const { productId, quantity, warehouseId, notes, createdAt } = req.body ?? {};
 
     if (productId === undefined || quantity === undefined || warehouseId === undefined) {
         return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
@@ -181,13 +181,14 @@ export const validateInventoryAdjustmentFields = (
         quantity: quantityNum,
         warehouseId: warehouseNum,
         ...(parsedNotes ? { notes: parsedNotes } : {}),
+        createdAt,
     } as InventoryAdjustmentInput;
 
     next();
 };
 
 export const validateHarvestFields = (req: Request, res: Response, next: NextFunction) => {
-    const { productId, quantity, unitCost, warehouseId, notes } = req.body ?? {};
+    const { productId, quantity, unitCost, warehouseId, notes, createdAt } = req.body ?? {};
 
     if (productId === undefined || quantity === undefined || warehouseId === undefined) {
         return res.status(400).json({ message: INVENTORY_MOVEMENT_ERROR.MISSING_FIELDS });
@@ -219,6 +220,7 @@ export const validateHarvestFields = (req: Request, res: Response, next: NextFun
         unitCost: unitCostNum,
         warehouseId: warehouseNum,
         ...(parsedNotes ? { notes: parsedNotes } : {}),
+        createdAt,
     } as HarvestInput;
 
     next();

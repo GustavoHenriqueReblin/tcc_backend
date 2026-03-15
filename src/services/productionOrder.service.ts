@@ -565,6 +565,7 @@ export class ProductionOrderService extends BaseService {
                 saleValue: finishedSaleValue,
                 reference: "OP " + order.code,
                 notes: `Produção finalizada OP ${order.code}`,
+                ...(order.endDate && { createdAt: order.endDate }),
             },
         });
 

@@ -19,6 +19,7 @@ export interface SaleOrderInput {
     discount?: number;
     otherCosts?: number;
     notes?: string | null;
+    createdAt?: Date | string | null;
     items?: SaleOrderItemsPayload;
 }
 
@@ -213,6 +214,7 @@ export class SaleOrderService extends BaseService {
                             discount: discountValue,
                             otherCosts: otherCostsValue,
                             notes: data.notes ?? null,
+                            createdAt: data.createdAt ?? undefined,
                         },
                     });
 
@@ -299,6 +301,7 @@ export class SaleOrderService extends BaseService {
                             otherCosts: otherCostsValue,
                             notes: data.notes ?? existing.notes,
                             updatedAt: new Date(),
+                            createdAt: data.createdAt ?? undefined,
                         },
                     });
 
@@ -545,6 +548,7 @@ export class SaleOrderService extends BaseService {
                     saleValue: saleValue.toNumber(),
                     reference: "Venda " + order.code,
                     notes: order.notes ?? null,
+                    createdAt: order.createdAt,
                 },
                 tx
             );

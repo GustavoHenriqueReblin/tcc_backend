@@ -16,6 +16,7 @@ export interface PurchaseOrderInput {
     status?: OrderStatus;
     notes?: string | null;
     items?: PurchaseOrderItemsPayload;
+    createdAt?: Date | string | null;
 }
 
 export interface PurchaseOrderItemCreateData {
@@ -132,6 +133,7 @@ export class PurchaseOrderService extends BaseService {
                             code: data.code,
                             status: data.status ?? OrderStatus.PENDING,
                             notes: data.notes ?? null,
+                            createdAt: data.createdAt ?? undefined,
                         },
                     });
 
@@ -305,6 +307,7 @@ export class PurchaseOrderService extends BaseService {
                     unitCost: item.unitCost,
                     reference: "Compra " + purchaseOrder.code,
                     notes: purchaseOrder.notes ?? null,
+                    ...(purchaseOrder.createdAt && { createdAt: purchaseOrder.createdAt }),
                 },
                 tx
             );

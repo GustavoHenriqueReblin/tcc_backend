@@ -11,6 +11,7 @@ export interface InventoryAdjustmentInput {
     quantity: number;
     warehouseId: number;
     notes?: string;
+    createdAt?: Date | string | null;
 }
 
 export interface HarvestInput {
@@ -19,6 +20,7 @@ export interface HarvestInput {
     unitCost?: number | null;
     warehouseId: number;
     notes?: string;
+    createdAt?: Date | string | null;
 }
 
 export interface InventoryMovementInput {
@@ -36,6 +38,7 @@ export interface InventoryMovementInput {
     saleValue?: number | null;
     reference?: string | null;
     notes?: string | null;
+    createdAt?: Date | string | null;
 }
 
 export class InventoryMovementService extends BaseService {
@@ -190,6 +193,7 @@ export class InventoryMovementService extends BaseService {
                         quantity: movedQty.toNumber(),
                         reference: null,
                         notes: data.notes ?? null,
+                        ...(data.createdAt && { createdAt: data.createdAt }),
                     })
                 );
 
@@ -221,6 +225,7 @@ export class InventoryMovementService extends BaseService {
                         unitCost: data.unitCost ?? null,
                         reference: null,
                         notes: data.notes ?? null,
+                        ...(data.createdAt && { createdAt: data.createdAt }),
                     })
                 );
 
@@ -326,6 +331,7 @@ export class InventoryMovementService extends BaseService {
                 saleValue,
                 reference: data.reference ?? null,
                 notes: data.notes ?? null,
+                createdAt: data.createdAt ?? undefined,
             },
         });
 

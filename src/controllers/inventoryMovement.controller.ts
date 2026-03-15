@@ -40,7 +40,8 @@ export const createInventoryAdjustment = async (req: Request, res: Response) => 
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
 
-    const { productId, quantity, warehouseId, notes } = req.body as InventoryAdjustmentInput;
+    const { productId, quantity, warehouseId, notes, createdAt } =
+        req.body as InventoryAdjustmentInput;
 
     const result = await service.createAdjustment(
         enterpriseId,
@@ -49,6 +50,7 @@ export const createInventoryAdjustment = async (req: Request, res: Response) => 
             quantity,
             warehouseId,
             notes,
+            createdAt,
         },
         userId
     );
@@ -60,7 +62,8 @@ export const createHarvestEntry = async (req: Request, res: Response) => {
     const enterpriseId = req.auth!.enterpriseId;
     const userId = req.auth!.sub;
 
-    const { productId, quantity, unitCost, warehouseId, notes } = req.body as HarvestInput;
+    const { productId, quantity, unitCost, warehouseId, notes, createdAt } =
+        req.body as HarvestInput;
 
     const result = await service.createHarvestEntry(
         enterpriseId,
@@ -70,6 +73,7 @@ export const createHarvestEntry = async (req: Request, res: Response) => {
             unitCost,
             warehouseId,
             notes,
+            createdAt,
         },
         userId
     );
