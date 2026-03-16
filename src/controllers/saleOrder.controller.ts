@@ -33,6 +33,13 @@ export const getAllSaleOrders = async (req: Request, res: Response) => {
     return sendResponse(res, result, "Sale orders fetched successfully");
 };
 
+export const getNextSaleOrderCode = async (req: Request, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+
+    const result = await service.getNextCode(enterpriseId);
+    return sendResponse(res, result, "Next sale order code fetched successfully");
+};
+
 export const getSaleOrderById = async (req: Request, res: Response) => {
     const { id } = req.params;
     const enterpriseId = req.auth!.enterpriseId;

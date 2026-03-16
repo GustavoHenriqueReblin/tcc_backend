@@ -5,9 +5,9 @@ import { Decimal } from "@prisma/client/runtime/library";
 import {
     MovementSource,
     MovementType,
-    Prisma,
     ProductionOrder,
     ProductionOrderStatus,
+    Prisma,
 } from "@prisma/client";
 import { InventoryMovementService } from "@services/inventoryMovement.service";
 import { productionOrderAllowedSortFields } from "@routes/productionOrder.routes";
@@ -59,6 +59,25 @@ export type ProductionOrderInputsPayload = NestedItemsPayload<
 const inventoryService = new InventoryMovementService();
 
 export class ProductionOrderService extends BaseService {
+    getNextCode = async (enterpriseId: number) =>
+        this.safeQuery(
+            async () => {
+                const [result] = await prisma.$queryRaw<{ nextNumber: bigint | number }[]>(
+                    Prisma.sql`
+                            SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(code, '-', -1) AS UNSIGNED)), 0) + 1 AS nextNumber
+                            FROM productionorder
+                            WHERE enterpriseId = ${enterpriseId}
+                        `
+                );
+
+                return {
+                    code: Number(result?.nextNumber ?? 1),
+                };
+            },
+            "PRODUCTION_ORDER:getNextCode",
+            enterpriseId
+        );
+
     getAll = async (
         enterpriseId: number,
         page = 1,

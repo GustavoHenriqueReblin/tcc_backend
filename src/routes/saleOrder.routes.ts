@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "@middleware/auth.middleware";
 import {
     getAllSaleOrders,
+    getNextSaleOrderCode,
     getSaleOrderById,
     createSaleOrder,
     updateSaleOrder,
@@ -33,6 +34,7 @@ router.get(
     }),
     getAllSaleOrders
 );
+router.get("/next-code", getNextSaleOrderCode);
 router.get("/:id", validateSaleOrderQuery, getSaleOrderById);
 router.post("/", validateSaleOrderFields, createSaleOrder);
 router.put("/:id", validateSaleOrderFields, updateSaleOrder);

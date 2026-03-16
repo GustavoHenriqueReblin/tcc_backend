@@ -1,8 +1,7 @@
 import { prisma } from "@config/prisma";
 import { BaseService } from "@services/base.service";
 import { AppError } from "@utils/appError";
-import { MovementSource, MovementType, OrderStatus } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
+import { MovementSource, MovementType, OrderStatus, Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { saleOrderAllowedSortFields } from "@routes/saleOrder.routes";
 import { NestedItemsPayload, normalizeNestedItemsPayload } from "@utils/nestedItems";
@@ -49,6 +48,25 @@ export type SaleOrderItemsPayload = NestedItemsPayload<
 const inventoryService = new InventoryMovementService();
 
 export class SaleOrderService extends BaseService {
+    getNextCode = async (enterpriseId: number) =>
+        this.safeQuery(
+            async () => {
+                const [result] = await prisma.$queryRaw<{ nextNumber: bigint | number }[]>(
+                    Prisma.sql`
+                        SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(code, '-', -1) AS UNSIGNED)), 0) + 1 AS nextNumber
+                        FROM saleorder
+                        WHERE enterpriseId = ${enterpriseId}
+                    `
+                );
+
+                return {
+                    code: Number(result?.nextNumber ?? 1),
+                };
+            },
+            "SALE_ORDER:getNextCode",
+            enterpriseId
+        );
+
     getAll = async (
         enterpriseId: number,
         page = 1,

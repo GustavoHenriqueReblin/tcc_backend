@@ -41,6 +41,13 @@ export const getAllProductionOrders = async (req: Request, res: Response) => {
     return sendResponse(res, result, "Production orders fetched successfully");
 };
 
+export const getNextProductionOrderCode = async (req: Request, res: Response) => {
+    const enterpriseId = req.auth!.enterpriseId;
+
+    const result = await service.getNextCode(enterpriseId);
+    return sendResponse(res, result, "Next production order code fetched successfully");
+};
+
 export const getProductionOrderById = async (req: Request, res: Response) => {
     const { id } = req.params;
     const enterpriseId = req.auth!.enterpriseId;
