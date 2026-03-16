@@ -80,7 +80,7 @@ export const saleOrderReport: ReportDefinition<SaleOrderReportData> = {
         });
 
         const subtotal = sale.items.reduce(
-            (acc, item) => acc + toNumber(item.quantity) * toNumber(item.productUnitPrice),
+            (acc, item) => acc + toNumber(item.quantity) * toNumber(item.unitPrice),
             0
         );
 

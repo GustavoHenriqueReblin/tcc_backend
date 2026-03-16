@@ -116,6 +116,7 @@ export class SaleOrderService extends BaseService {
                             items: {
                                 select: {
                                     quantity: true,
+                                    unitPrice: true,
                                     productUnitPrice: true,
                                 },
                             },
@@ -132,7 +133,7 @@ export class SaleOrderService extends BaseService {
                     otherCosts += Number(order.otherCosts ?? 0);
 
                     for (const item of order.items) {
-                        subtotal += Number(item.quantity ?? 0) * Number(item.productUnitPrice ?? 0);
+                        subtotal += Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0);
                     }
                 }
 
