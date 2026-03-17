@@ -241,7 +241,7 @@ export class ProductionOrderService extends BaseService {
         this.safeQuery(
             async () => {
                 const [codeTaken, recipe, lot] = await Promise.all([
-                    prisma.productionOrder.findFirst({ where: { code: data.code } }),
+                    prisma.productionOrder.findFirst({ where: { code: data.code, enterpriseId } }),
                     prisma.recipe.findFirst({
                         where: { id: data.recipeId, enterpriseId },
                         select: { id: true, productId: true },

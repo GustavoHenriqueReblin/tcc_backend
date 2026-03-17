@@ -202,7 +202,7 @@ export class SaleOrderService extends BaseService {
                 const status = data.status ?? OrderStatus.PENDING;
 
                 const [codeTaken, customer, warehouse] = await Promise.all([
-                    prisma.saleOrder.findFirst({ where: { code: data.code } }),
+                    prisma.saleOrder.findFirst({ where: { code: data.code, enterpriseId } }),
                     prisma.customer.findFirst({
                         where: { id: data.customerId, enterpriseId },
                         select: { id: true },

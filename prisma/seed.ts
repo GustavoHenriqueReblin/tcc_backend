@@ -854,33 +854,42 @@ export const generateData = async () => {
 
         // Ordem de produção
         const prodOrderCode = `PROD-${Math.abs(enterpriseId)}-001`;
-        const prodOrder = await prisma.productionOrder.upsert({
-            where: { code: prodOrderCode },
-            update: {
-                enterpriseId,
-                recipeId: recipe.id,
-                productId: productFinished.id,
-                lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
-                warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
-                plannedQty: 100.0,
-                notes: "Ordem inicial",
-            },
-            create: {
-                id: genId(),
-                enterpriseId,
-                code: prodOrderCode,
-                recipeId: recipe.id,
-                productId: productFinished.id,
-                lotId: (await prisma.lot.findFirst({ where: { code: lotCode } }))?.id ?? null,
-                warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
-                plannedQty: 100.0,
-                producedQty: null,
-                wasteQty: null,
-                startDate: null,
-                endDate: null,
-                notes: "Ordem inicial",
-            },
+        const lot = await prisma.lot.findFirst({
+            where: { enterpriseId, code: lotCode },
         });
+        const existingProdOrder = await prisma.productionOrder.findFirst({
+            where: { enterpriseId, code: prodOrderCode },
+        });
+        const prodOrder = existingProdOrder
+            ? await prisma.productionOrder.update({
+                  where: { id: existingProdOrder.id },
+                  data: {
+                      enterpriseId,
+                      recipeId: recipe.id,
+                      productId: productFinished.id,
+                      lotId: lot?.id ?? null,
+                      warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
+                      plannedQty: 100.0,
+                      notes: "Ordem inicial",
+                  },
+              })
+            : await prisma.productionOrder.create({
+                  data: {
+                      id: genId(),
+                      enterpriseId,
+                      code: prodOrderCode,
+                      recipeId: recipe.id,
+                      productId: productFinished.id,
+                      lotId: lot?.id ?? null,
+                      warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
+                      plannedQty: 100.0,
+                      producedQty: null,
+                      wasteQty: null,
+                      startDate: null,
+                      endDate: null,
+                      notes: "Ordem inicial",
+                  },
+              });
         // Insumos da ordem
         await prisma.productionOrderInput.deleteMany({
             where: { enterpriseId, productionOrderId: prodOrder.id },
@@ -902,29 +911,35 @@ export const generateData = async () => {
         const anyCustomer = await prisma.customer.findFirst({ where: { enterpriseId } });
         if (anyCustomer) {
             const saleCode = `SO-${Math.abs(enterpriseId)}-001`;
-            const sale = await prisma.saleOrder.upsert({
-                where: { code: saleCode },
-                update: {
-                    enterpriseId,
-                    customerId: anyCustomer.id,
-                    warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
-                    totalValue: 79.2,
-                    discount: 0,
-                    otherCosts: 0,
-                    notes: "Pedido inicial",
-                },
-                create: {
-                    id: genId(),
-                    enterpriseId,
-                    customerId: anyCustomer.id,
-                    warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
-                    code: saleCode,
-                    totalValue: 79.2,
-                    discount: 0,
-                    otherCosts: 0,
-                    notes: "Pedido inicial",
-                },
+            const existingSale = await prisma.saleOrder.findFirst({
+                where: { enterpriseId, code: saleCode },
             });
+            const sale = existingSale
+                ? await prisma.saleOrder.update({
+                      where: { id: existingSale.id },
+                      data: {
+                          enterpriseId,
+                          customerId: anyCustomer.id,
+                          warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
+                          totalValue: 79.2,
+                          discount: 0,
+                          otherCosts: 0,
+                          notes: "Pedido inicial",
+                      },
+                  })
+                : await prisma.saleOrder.create({
+                      data: {
+                          id: genId(),
+                          enterpriseId,
+                          customerId: anyCustomer.id,
+                          warehouseId: mainWarehouse?.id ?? warehousesData[0].id,
+                          code: saleCode,
+                          totalValue: 79.2,
+                          discount: 0,
+                          otherCosts: 0,
+                          notes: "Pedido inicial",
+                      },
+                  });
             await prisma.saleOrderItem.deleteMany({
                 where: { enterpriseId, saleOrderId: sale.id },
             });

@@ -604,7 +604,7 @@ model RecipeItem {
 model ProductionOrder {
   id           Int                   @id @default(autoincrement())
   enterpriseId Int
-  code         String                @unique @db.VarChar(40)
+  code         String                @db.VarChar(40)
   recipeId     Int // receita que é vinculada ao produto final
   warehouseId  Int // depósito onde a produção será realizada
   lotId        Int? // lote gerado
@@ -655,7 +655,7 @@ model SaleOrder {
   enterpriseId Int
   customerId   Int
   warehouseId  Int
-  code         String      @unique @db.VarChar(40)
+  code         String      @db.VarChar(40)
   status       OrderStatus @default(PENDING)
   totalValue   Decimal     @db.Decimal(14, 6)
   discount     Decimal     @default(0.0) @db.Decimal(14, 6)
