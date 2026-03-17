@@ -229,6 +229,7 @@ export class ProductionOrderService extends BaseService {
                     where: { id, enterpriseId },
                     include: {
                         recipe: { include: { product: { include: { unity: true } } } },
+                        warehouse: true,
                         lot: true,
                         inputs: { include: { product: { include: { unity: true } } } },
                     },
