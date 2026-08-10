@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Relatório - Vendas</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            * {
+                box-sizing: border-box;
+                font-family: "Plus Jakarta Sans", Arial, Helvetica, sans-serif;
+                color: #0f172a;
+            }
+
+            body {
+                margin: 0;
+                padding: 32px;
+                background: #f8fafc;
+            }
+
+            .card {
+                background: #ffffff;
+                padding: 32px;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            }
+
+            .header {
+                padding-bottom: 16px;
+                border-bottom: 1px solid #e5e7eb;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: 26px;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+            }
+
+            .subtitle {
+                font-size: 13px;
+                color: #64748b;
+            }
+
+            .filters-line {
+                margin-top: 8px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .filter-tag {
+                font-size: 12px;
+                padding: 4px 10px;
+                border-radius: 999px;
+                background: #f1f5f9;
+                color: #334155;
+            }
+
+            .filter-tag strong {
+                font-weight: 600;
+            }
+
+            .badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 10px;
+                border-radius: 8px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+
+            .bg-gray-200 {
+                background: #e5e7eb;
+            }
+
+            .text-gray-800 {
+                color: #1f2937;
+            }
+
+            .bg-blue-100 {
+                background: #dbeafe;
+            }
+
+            .text-blue-800 {
+                color: #1e40af;
+            }
+
+            .bg-green-100 {
+                background: #dcfce7;
+            }
+
+            .text-green-800 {
+                color: #166534;
+            }
+
+            .bg-red-100 {
+                background: #fee2e2;
+            }
+
+            .text-red-800 {
+                color: #991b1b;
+            }
+
+            .summary {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+
+            .summary-item {
+                padding: 14px 16px;
+                border: 1px solid #e5e7eb;
+                border-radius: 10px;
+                background: #fafafa;
+            }
+
+            .summary-item .label {
+                font-size: 11px;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                margin-bottom: 6px;
+                display: block;
+            }
+
+            .summary-item .value {
+                font-size: 16px;
+                font-weight: 700;
+            }
+
+            .order-block {
+                border: 1px solid #e5e7eb;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                overflow: hidden;
+                break-inside: avoid;
+            }
+
+            .order-header {
+                background: #f1f5f9;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                font-size: 13px;
+            }
+
+            .order-code {
+                font-weight: 700;
+                margin-right: 10px;
+            }
+
+            .order-customer {
+                color: #334155;
+            }
+
+            .order-meta {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                color: #64748b;
+            }
+
+            .order-total {
+                font-weight: 700;
+                color: #1e1b4b;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+            }
+
+            th {
+                text-align: left;
+                padding: 10px 16px;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: #64748b;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            td {
+                padding: 10px 16px;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .totals {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                margin-top: 24px;
+            }
+
+            .total-item {
+                padding: 14px 16px;
+                border-radius: 10px;
+                background: #fafafa;
+                border: 1px solid #e5e7eb;
+            }
+
+            .total-item .label {
+                font-size: 11px;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                margin-bottom: 6px;
+                display: block;
+            }
+
+            .total-item .value {
+                font-size: 15px;
+                font-weight: 700;
+            }
+
+            .total-item-highlight {
+                background: #eef2ff;
+                border: 1px solid #c7d2fe;
+            }
+
+            .total-item-highlight .label {
+                color: #4338ca;
+            }
+
+            .total-item-highlight .value {
+                font-size: 16px;
+                color: #1e1b4b;
+            }
+
+            .footer {
+                margin-top: 24px;
+                font-size: 12px;
+                color: #64748b;
+                text-align: right;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <div>
+                    <h1>Relatório de Vendas</h1>
+                    <div class="subtitle">Período: {{rangeLabel}}</div>
+                    <div class="filters-line">{{filtersLine}}</div>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-item">
+                    <span class="label">Vendas no período</span>
+                    <span class="value">{{ordersCount}}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Valor total</span>
+                    <span class="value">{{grandTotal}}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Itens vendidos</span>
+                    <span class="value">{{totalItemsQuantity}}</span>
+                </div>
+            </div>
+
+            {{ordersBlocks}}
+
+            <div class="totals">
+                <div class="total-item">
+                    <span class="label">Subtotal</span>
+                    <span class="value">{{subtotal}}</span>
+                </div>
+                <div class="total-item">
+                    <span class="label">Descontos</span>
+                    <span class="value">{{discount}}</span>
+                </div>
+                <div class="total-item">
+                    <span class="label">Outros custos</span>
+                    <span class="value">{{otherCosts}}</span>
+                </div>
+                <div class="total-item total-item-highlight">
+                    <span class="label">Valor total</span>
+                    <span class="value">{{grandTotal}}</span>
+                </div>
+            </div>
+
+            <div class="footer">Gerado em {{generatedAt}}</div>
+        </div>
+    </body>
+</html>

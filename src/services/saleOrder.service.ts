@@ -123,7 +123,7 @@ export class SaleOrderService extends BaseService {
                         },
                         skip,
                         take: limit,
-                        orderBy: { [safeSortBy]: safeSortOrder },
+                        orderBy: [{ [safeSortBy]: safeSortOrder }, { id: "desc" }],
                     }),
                     prisma.saleOrder.count({ where }),
                     prisma.saleOrder.findMany({

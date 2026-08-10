@@ -3,9 +3,10 @@ export type ReportKey = string;
 type PdfOptions = Parameters<import("playwright").Page["pdf"]>[0];
 
 export interface ReportRequestContext {
-    id: string;
+    id?: string;
     enterpriseId: number;
     timeZone?: string;
+    filters?: Record<string, string>;
 }
 
 export type ReportDataFetcher<TData> = (context: ReportRequestContext) => Promise<TData>;

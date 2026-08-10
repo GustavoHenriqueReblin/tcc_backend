@@ -4,6 +4,14 @@ export const formatDate = (value: Date | string | null | undefined, timeZone?: s
     return timeZone ? date.toLocaleString("pt-BR", { timeZone }) : date.toLocaleString("pt-BR");
 };
 
+export const formatDateOnly = (value: Date | string | null | undefined, timeZone?: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    return timeZone
+        ? date.toLocaleDateString("pt-BR", { timeZone })
+        : date.toLocaleDateString("pt-BR");
+};
+
 export const toNumber = (value: unknown): number => {
     if (value === null || value === undefined) return 0;
     if (typeof value === "number") return value;

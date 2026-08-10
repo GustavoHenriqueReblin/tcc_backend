@@ -39,3 +39,46 @@ export const getReportPdf = async (req: Request, res: Response) => {
 
     return res.send(pdfBuffer);
 };
+
+export const getReportListPdf = async (req: Request, res: Response) => {
+    const { reportKey } = req.params;
+    const enterpriseId = req.auth?.enterpriseId;
+    const timeZone =
+        typeof req.query.timezone === "string" && req.query.timezone.trim()
+            ? req.query.timezone
+            : undefined;
+
+    if (!enterpriseId) {
+        throw new AppError(
+            "Empresa não informada na requisição",
+            401,
+            "REPORT:ENTERPRISE_REQUIRED"
+        );
+    }
+
+    if (!reportService.hasReport(reportKey)) {
+        throw new AppError("Tipo de relatório não encontrado", 404, "REPORT:INVALID_KEY");
+    }
+
+    const filters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) {
+        if (key === "timezone") continue;
+        if (typeof value === "string" && value.trim()) filters[key] = value;
+    }
+
+    const pdfBuffer = await reportService.generatePdf(reportKey, {
+        enterpriseId,
+        timeZone,
+        filters,
+    });
+
+    const filename = encodeURIComponent(`${reportKey}.pdf`);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${filename}"; filename*=UTF-8''${filename}`
+    );
+
+    return res.send(pdfBuffer);
+};
